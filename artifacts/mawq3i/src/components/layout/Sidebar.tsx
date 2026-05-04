@@ -63,9 +63,9 @@ export function Sidebar() {
 
   return (
     <div className="w-64 h-full bg-card border-l border-border flex flex-col text-card-foreground">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-          <span className="w-2 h-6 bg-primary rounded-full inline-block"></span>
+      <div className="p-5 flex items-center gap-3">
+        <img src="/logo.png" alt="Mawq3i Logo" className="w-9 h-9 object-contain flex-shrink-0" />
+        <h1 className="text-xl font-bold tracking-tight text-white">
           Mawq3i | موقعي
         </h1>
       </div>

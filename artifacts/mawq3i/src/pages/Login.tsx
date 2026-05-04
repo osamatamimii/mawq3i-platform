@@ -46,10 +46,16 @@ export default function Login() {
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-3 flex items-center justify-center gap-3">
-            <span className="w-3 h-8 bg-primary rounded-full inline-block shadow-[0_0_15px_rgba(82,255,63,0.5)]"></span>
-            Mawq3i | موقعي
-          </h1>
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <img
+              src="/logo.png"
+              alt="Mawq3i"
+              className="w-12 h-12 object-contain drop-shadow-[0_0_12px_rgba(82,255,63,0.5)]"
+            />
+            <h1 className="text-3xl font-bold tracking-tight text-white">
+              Mawq3i | موقعي
+            </h1>
+          </div>
           <p className="text-muted-foreground">
             {isAr ? 'أدر متجرك بسهولة واحترافية' : 'Manage your store easily and professionally'}
           </p>
