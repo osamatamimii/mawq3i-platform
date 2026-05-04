@@ -16,95 +16,105 @@ export default function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email && password) {
-      setLocation('/dashboard');
+      if (email === 'admin@mawq3i.com') {
+        setLocation('/admin');
+      } else {
+        setLocation('/dashboard');
+      }
     }
   };
 
   return (
     <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-background relative overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0 z-0 opacity-20">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px]" />
+      <div className="absolute inset-0 z-0 opacity-30">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/15 rounded-full blur-[130px]" />
       </div>
 
-      <div className="absolute top-6 right-6 z-20">
-        <Button 
-          variant="outline" 
+      <div className="absolute top-6 end-6 z-20">
+        <Button
+          variant="outline"
           size="sm"
           onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
           className="font-mono bg-background/50 backdrop-blur-sm border-border/50"
+          data-testid="button-language-toggle"
         >
           {language === 'ar' ? 'EN' : 'AR'}
         </Button>
       </div>
 
-      <motion.div 
-        className="w-full max-w-md p-8 z-10"
-        initial={{ opacity: 0, scale: 0.95 }}
+      <motion.div
+        className="w-full max-w-md px-6 z-10"
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
       >
         <div className="text-center mb-10">
-          <div className="flex items-center justify-center gap-3 mb-3">
+          <div className="flex items-center justify-center gap-3 mb-4">
             <img
               src="/logo.png"
               alt="Mawq3i"
-              className="w-12 h-12 object-contain drop-shadow-[0_0_12px_rgba(82,255,63,0.5)]"
+              className="w-14 h-14 object-contain drop-shadow-[0_0_16px_rgba(82,255,63,0.5)]"
             />
-            <h1 className="text-3xl font-bold tracking-tight text-white">
+            <h1 className="text-4xl font-bold tracking-tight text-white">
               Mawq3i | موقعي
             </h1>
           </div>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-base">
             {isAr ? 'أدر متجرك بسهولة واحترافية' : 'Manage your store easily and professionally'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 bg-card p-8 rounded-2xl border border-border/50 shadow-2xl backdrop-blur-xl">
+        <form onSubmit={handleSubmit} className="space-y-5 bg-card p-8 rounded-2xl border border-border/50 shadow-2xl">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium text-foreground/80">
               {isAr ? 'البريد الإلكتروني' : 'Email Address'}
             </Label>
-            <Input 
-              id="email" 
-              type="email" 
-              placeholder="admin@mawq3i.com"
+            <Input
+              id="email"
+              type="email"
+              placeholder="owner@store.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="bg-background/50 border-border/50 focus:border-primary transition-colors"
+              className="bg-background/50 border-border/50 focus:border-primary transition-colors h-11"
               dir="ltr"
               required
+              data-testid="input-email"
             />
           </div>
-          
+
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-sm font-medium text-foreground/80">
-                {isAr ? 'كلمة المرور' : 'Password'}
-              </Label>
-            </div>
-            <Input 
-              id="password" 
-              type="password" 
+            <Label htmlFor="password" className="text-sm font-medium text-foreground/80">
+              {isAr ? 'كلمة المرور' : 'Password'}
+            </Label>
+            <Input
+              id="password"
+              type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="bg-background/50 border-border/50 focus:border-primary transition-colors"
+              className="bg-background/50 border-border/50 focus:border-primary transition-colors h-11"
               dir="ltr"
               required
+              data-testid="input-password"
             />
           </div>
 
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button 
-              type="submit" 
-              className="w-full h-12 text-base font-medium shadow-[0_0_20px_rgba(82,255,63,0.15)] hover:shadow-[0_0_25px_rgba(82,255,63,0.3)] transition-all"
+            <Button
+              type="submit"
+              className="w-full h-12 text-base font-semibold shadow-[0_0_20px_rgba(82,255,63,0.15)] hover:shadow-[0_0_30px_rgba(82,255,63,0.3)] transition-all"
+              data-testid="button-login"
             >
-              {isAr ? 'تسجيل الدخول إلى موقعي' : 'Login to Mawq3i'}
+              {isAr ? 'تسجيل الدخول' : 'Sign In'}
             </Button>
           </motion.div>
         </form>
+
+        <p className="text-center text-xs text-muted-foreground mt-5">
+          {isAr
+            ? 'للدخول كمدير: admin@mawq3i.com'
+            : 'Admin login: admin@mawq3i.com'}
+        </p>
       </motion.div>
     </div>
   );
