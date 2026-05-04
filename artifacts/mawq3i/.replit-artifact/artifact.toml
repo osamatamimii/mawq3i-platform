@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Mawq3i Platform"
+version = "1.0.0"
+id = "artifacts/mawq3i"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24456
+
+[services.development]
+run = "pnpm --filter @workspace/mawq3i run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mawq3i", "run", "build" ]
+publicDir = "artifacts/mawq3i/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24456"
+BASE_PATH = "/"

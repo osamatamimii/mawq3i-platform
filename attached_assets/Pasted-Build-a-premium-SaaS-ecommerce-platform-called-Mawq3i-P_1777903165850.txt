@@ -1,0 +1,299 @@
+Build a premium SaaS ecommerce platform called "Mawq3i Platform".
+
+IMPORTANT:
+This must be a fully interactive frontend web app (not static mockups).
+Navigation, buttons, forms, and flows must work using local state or mock data.
+
+========================
+TECH STACK
+========================
+- Next.js (App Router)
+- Tailwind CSS
+- Framer Motion (for animations)
+- Clean component-based architecture
+
+========================
+LANGUAGE & DIRECTION
+========================
+- Default language: Arabic (RTL)
+- Support English (LTR toggle)
+- Clean typography for Arabic UI
+
+========================
+CURRENCY
+========================
+Only support:
+- ILS (₪ - شيكل)
+- SAR (﷼ - ريال سعودي)
+
+Currency must be visible in:
+- Products
+- Orders
+- Analytics
+
+========================
+BRANDING
+========================
+- Name: Mawq3i | موقعي
+- Background: #070A0D
+- Accent color: #52FF3F (use minimally)
+- Premium dark SaaS style
+- Clean spacing, minimal UI
+
+========================
+GLOBAL LAYOUT
+========================
+- Sidebar (RTL)
+- Top navbar
+- Page container with padding
+- Responsive (mobile + desktop)
+
+Sidebar items:
+- لوحة التحكم
+- المنتجات
+- الطلبات
+- الإحصائيات
+- إعدادات المتجر
+- تسجيل الخروج
+
+========================
+ANIMATION SYSTEM (VERY IMPORTANT)
+========================
+Use Framer Motion:
+
+1. Page transitions:
+- Fade + slight slide up
+- Duration: 0.4s
+
+2. Cards:
+- On hover: translateY(-4px) + shadow
+
+3. Buttons:
+- Scale 1.03 on hover
+- Smooth transition
+
+4. Tables:
+- Row hover highlight
+
+5. Scroll:
+- Sections fade-in on scroll
+
+6. Avoid:
+- Heavy animations
+- Lag
+- Over-effects
+
+========================
+PAGES
+========================
+
+1. LOGIN PAGE
+
+Arabic UI:
+Title: تسجيل الدخول إلى موقعي
+Subtitle: أدر متجرك بسهولة واحترافية
+
+Fields:
+- البريد الإلكتروني
+- كلمة المرور
+
+Extras:
+- Language switch (AR / EN)
+
+Animations:
+- Fade in form
+- Button hover scale
+
+========================
+
+2. DASHBOARD (OWNER)
+
+Cards:
+- إجمالي المبيعات
+- عدد الطلبات
+- عدد المنتجات
+- منتجات منخفضة المخزون
+
+Sections:
+- آخر الطلبات
+- أفضل المنتجات
+
+Use mock data
+
+========================
+
+3. PRODUCTS PAGE
+
+Table columns:
+- صورة المنتج
+- اسم المنتج
+- السعر
+- العملة
+- المخزون
+- الحالة (ظاهر / مخفي)
+- تعديل
+- حذف
+
+Top actions:
+- زر إضافة منتج
+
+Interactions:
+- Edit modal
+- Delete confirmation
+
+========================
+
+4. ADD PRODUCT PAGE
+
+Fields:
+- اسم المنتج (عربي)
+- اسم المنتج (إنجليزي)
+- الوصف (عربي)
+- الوصف (إنجليزي)
+- السعر
+- اختيار العملة (ILS / SAR)
+- المخزون
+- التصنيف
+
+IMAGE UPLOAD:
+- Drag & drop upload area
+- Preview before save
+
+========================
+AI IMAGE FEATURE (UI ONLY)
+========================
+
+Flow:
+1. Upload image
+2. Select style:
+   - White studio
+   - Luxury dark
+   - Beige minimal
+   - Brand green
+
+3. Button:
+   "تحسين الصورة بالذكاء الاصطناعي"
+
+4. Show:
+- Loading animation
+- Before/After comparison
+- Final result preview
+
+Buttons:
+- استخدام هذه الصورة
+- إعادة المحاولة
+
+========================
+
+5. ORDERS PAGE
+
+Table:
+- رقم الطلب
+- اسم العميل
+- رقم الهاتف
+- المدينة
+- المبلغ
+- العملة
+- طريقة الدفع
+- حالة الطلب
+- التاريخ
+
+Statuses:
+- جديد
+- قيد التجهيز
+- تم التسليم
+- ملغي
+
+========================
+
+6. ANALYTICS PAGE
+
+Show:
+- مبيعات اليوم
+- مبيعات الشهر
+- عدد الطلبات
+- متوسط الطلب
+
+Charts:
+- Simple bar / line charts
+
+Add:
+- Count-up animation for numbers
+
+========================
+
+7. STORE SETTINGS PAGE
+
+Fields:
+- اسم المتجر
+- الشعار
+- اللون الرئيسي
+- العملة الافتراضية (ILS / SAR)
+- اللغة الافتراضية
+- رقم واتساب
+- الدومين
+
+Payment options UI:
+- الدفع عند الاستلام
+- رابط دفع
+
+========================
+
+8. ADMIN PANEL (OSAMA)
+
+Features:
+- عرض جميع المتاجر
+- إضافة متجر جديد
+- عرض بيانات المتجر
+- زر: دخول كصاحب المتجر
+
+Store table:
+- اسم المتجر
+- الدومين
+- عدد الطلبات
+- العملة
+- الحالة
+
+========================
+
+9. STOREFRONT PAGE
+
+This is the client-facing store.
+
+Sections:
+- Hero
+- Product grid
+- Product cards
+- CTA (طلب عبر واتساب)
+
+Product card:
+- Image
+- Name
+- Price
+- Currency
+
+Design:
+- Very premium ecommerce look
+- Better than local competitors
+
+Animations:
+- Products fade in
+- Hover lift cards
+
+========================
+IMPORTANT RULES
+========================
+
+- Use clean spacing
+- Avoid clutter
+- Make UI feel premium
+- Everything must be interactive (mock logic)
+- Use reusable components
+- Code must be clean and structured
+
+========================
+GOAL
+========================
+
+Create a fully interactive premium frontend SaaS platform
+that looks real, feels fast, and is ready for backend integration later.
