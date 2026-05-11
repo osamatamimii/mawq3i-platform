@@ -1,0 +1,6 @@
+{
+  "buildCommand": "cd artifacts/mawq3i && npm install && npm run build",
+  "outputDirectory": "artifacts/mawq3i/dist",
+  "installCommand": "echo 'dependencies installed per-app'",
+  "framework": null
+}
