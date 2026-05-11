@@ -106,6 +106,9 @@ export default function Login() {
 
   return (
     <div className="min-h-[100dvh] flex bg-background overflow-hidden">
+      <div style={{position:'fixed',top:0,left:0,right:0,zIndex:9999,background:'#FFD700',color:'#000',textAlign:'center',padding:'10px',fontWeight:'bold',fontSize:'16px'}}>
+        🟡 اختبار التحديث — إذا رأيت هذا الشريط فالتحديثات تصل — خط Thmanyah مفعّل
+      </div>
 
       {/* ── Left Panel (visual, hidden on mobile) ─────────────────────── */}
       <motion.div
