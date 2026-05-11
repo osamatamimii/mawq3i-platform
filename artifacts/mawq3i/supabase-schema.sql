@@ -42,6 +42,8 @@ create table if not exists products (
 create table if not exists orders (
   id              text primary key,
   store_id        uuid references stores(id) on delete cascade,
+  product_id      text,
+  product_name    text,
   customer_name   text,
   phone           text,
   city            text,
@@ -52,6 +54,10 @@ create table if not exists orders (
   date            date default current_date,
   created_at      timestamptz default now()
 );
+
+-- If upgrading an existing orders table, run these migrations:
+-- alter table orders add column if not exists product_id text;
+-- alter table orders add column if not exists product_name text;
 
 -- ─── Row Level Security ────────────────────────────────────────────────────
 -- Enable RLS on all tables
@@ -73,6 +79,8 @@ create policy "Auth insert products" on products for insert with check (auth.rol
 create policy "Auth update products" on products for update using (auth.role() = 'authenticated');
 create policy "Auth delete products" on products for delete using (auth.role() = 'authenticated');
 
+-- Allow anyone (including storefront visitors) to place orders
+create policy "Public insert orders" on orders   for insert with check (true);
 create policy "Auth update orders"   on orders   for update using (auth.role() = 'authenticated');
 
 -- ─── Sample Data (optional) ────────────────────────────────────────────────

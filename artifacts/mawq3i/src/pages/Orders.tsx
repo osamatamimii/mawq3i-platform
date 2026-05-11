@@ -62,15 +62,24 @@ export default function Orders() {
                   <th className="text-start px-6 py-4 font-medium">{isAr ? 'رقم الطلب' : 'Order ID'}</th>
                   <th className="text-start px-6 py-4 font-medium">{isAr ? 'اسم العميل' : 'Customer'}</th>
                   <th className="text-start px-6 py-4 font-medium">{isAr ? 'رقم الهاتف' : 'Phone'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'المدينة' : 'City'}</th>
+                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'المنتج' : 'Product'}</th>
                   <th className="text-start px-6 py-4 font-medium">{isAr ? 'المبلغ' : 'Amount'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'طريقة الدفع' : 'Payment'}</th>
                   <th className="text-start px-6 py-4 font-medium">{isAr ? 'حالة الطلب' : 'Status'}</th>
                   <th className="text-start px-6 py-4 font-medium">{isAr ? 'التاريخ' : 'Date'}</th>
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order, i) => (
+                {orders.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-16 text-center text-muted-foreground">
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-3xl">📭</span>
+                        <p className="text-sm">{isAr ? 'لا توجد طلبات بعد' : 'No orders yet'}</p>
+                        <p className="text-xs opacity-60">{isAr ? 'ستظهر هنا عند وصول أول طلب من المتجر' : 'Orders from your store will appear here'}</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : orders.map((order, i) => (
                   <motion.tr
                     key={order.id}
                     initial={{ opacity: 0, x: -10 }}
@@ -78,17 +87,16 @@ export default function Orders() {
                     transition={{ delay: i * 0.04 }}
                     className="border-b border-border/30 hover:bg-white/[0.02] transition-colors"
                   >
-                    <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{order.id}</td>
+                    <td className="px-6 py-4 font-mono text-xs text-primary font-bold">{order.id}</td>
                     <td className="px-6 py-4 font-medium">{order.customerName}</td>
                     <td className="px-6 py-4 font-mono text-xs text-muted-foreground" dir="ltr">{order.phone}</td>
-                    <td className="px-6 py-4">{order.city}</td>
+                    <td className="px-6 py-4 text-sm max-w-[140px] truncate">{order.productName || '—'}</td>
                     <td className="px-6 py-4">
                       <span className="font-semibold font-mono">
                         {order.currency === 'ILS' ? '₪' : '﷼'}{order.amount}
                       </span>
                       <span className="text-xs text-muted-foreground ms-1">{order.currency}</span>
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground">{order.paymentMethod}</td>
                     <td className="px-6 py-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

@@ -22,6 +22,7 @@ export type Order = {
   amount: number;
   currency: 'ILS' | 'SAR';
   paymentMethod: string;
+  productName?: string;
   status: OrderStatus;
   date: string;
 };

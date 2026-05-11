@@ -49,6 +49,7 @@ function rowToOrder(row: any): Order {
     amount: Number(row.amount),
     currency: row.currency ?? 'ILS',
     paymentMethod: row.payment_method ?? '',
+    productName: row.product_name ?? '',
     status: row.status ?? 'new',
     date: row.date ?? '',
   };
@@ -124,10 +125,48 @@ export async function getOrders(storeId?: string): Promise<Order[]> {
     let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
     if (storeId) query = query.eq('store_id', storeId);
     const { data, error } = await query;
-    if (error || !data || data.length === 0) return initialOrders;
+    if (error) return initialOrders;
+    if (!data) return [];
     return data.map(rowToOrder);
   } catch {
     return initialOrders;
+  }
+}
+
+export async function createOrder(params: {
+  storeId: string;
+  productId: string;
+  productName: string;
+  customerName: string;
+  phone: string;
+  amount: number;
+  currency: 'ILS' | 'SAR';
+}): Promise<Order | null> {
+  try {
+    const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
+    const now = new Date().toISOString().split('T')[0];
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([{
+        id: orderId,
+        store_id: params.storeId,
+        product_id: params.productId,
+        product_name: params.productName,
+        customer_name: params.customerName,
+        phone: params.phone,
+        city: '',
+        amount: params.amount,
+        currency: params.currency,
+        payment_method: 'واتساب',
+        status: 'new',
+        date: now,
+      }])
+      .select()
+      .single();
+    if (error || !data) return null;
+    return rowToOrder(data);
+  } catch {
+    return null;
   }
 }
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
-import { mockStores } from '@/data/mockData';
+import { adminStores, StoreRecord } from '@/data/mockData';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,28 +17,39 @@ import {
 } from '@/components/ui/dialog';
 import { Plus, LogIn, Eye } from 'lucide-react';
 
-type Store = typeof mockStores[0];
+type Store = StoreRecord;
 
 export default function Admin() {
   const { language, setCurrentUser } = useAppContext();
   const isAr = language === 'ar';
   const [, setLocation] = useLocation();
 
-  const [stores, setStores] = useState<Store[]>(mockStores);
+  const [stores, setStores] = useState<Store[]>(adminStores);
   const [showAdd, setShowAdd] = useState(false);
   const [newStore, setNewStore] = useState({ name: '', domain: '', currency: 'ILS' });
 
   const handleAddStore = () => {
     if (!newStore.name || !newStore.domain) return;
+    const slug = newStore.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
     setStores(prev => [
       ...prev,
       {
         id: String(Date.now()),
         name: newStore.name,
+        slug,
         domain: newStore.domain,
-        orders: 0,
-        currency: newStore.currency,
-        status: 'نشط',
+        ownerName: '',
+        ownerEmail: '',
+        ownerPhone: '',
+        ordersCount: 0,
+        totalSales: 0,
+        currency: newStore.currency as 'ILS' | 'SAR',
+        status: 'active',
+        subscriptionStatus: 'trial',
+        subscriptionPlan: 'monthly',
+        subscriptionPaid: false,
+        renewalDate: '',
+        joinDate: new Date().toISOString().split('T')[0],
       },
     ]);
     setNewStore({ name: '', domain: '', currency: 'ILS' });
@@ -95,7 +106,7 @@ export default function Admin() {
                   >
                     <td className="px-6 py-4 font-semibold">{store.name}</td>
                     <td className="px-6 py-4 font-mono text-xs text-muted-foreground" dir="ltr">{store.domain}</td>
-                    <td className="px-6 py-4 font-mono font-semibold">{store.orders.toLocaleString()}</td>
+                    <td className="px-6 py-4 font-mono font-semibold">{store.ordersCount.toLocaleString()}</td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-muted text-muted-foreground font-mono">
                         {store.currency}
@@ -103,11 +114,11 @@ export default function Admin() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                        store.status === 'نشط'
+                        store.status === 'active'
                           ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                           : 'bg-muted text-muted-foreground border-border/50'
                       }`}>
-                        {store.status}
+                        {store.status === 'active' ? (isAr ? 'نشط' : 'Active') : (isAr ? 'موقوف' : 'Suspended')}
                       </span>
                     </td>
                     <td className="px-6 py-4">
