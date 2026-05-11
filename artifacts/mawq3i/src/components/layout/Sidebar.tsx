@@ -11,11 +11,10 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 
 export function Sidebar() {
   const [location, setLocation] = useLocation();
-  const { language } = useAppContext();
+  const { language, signOut } = useAppContext();
   const isAr = language === 'ar';
 
   const menuItems = [
@@ -31,17 +30,17 @@ export function Sidebar() {
     return (
       <Link href={item.href} className="block w-full">
         <div className={cn(
-          "relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors cursor-pointer",
+          'relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors cursor-pointer',
           isActive
-            ? "text-primary-foreground"
-            : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+            ? 'text-primary-foreground'
+            : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
         )}>
           {isActive && (
             <motion.div
               layoutId="sidebar-active"
               className="absolute inset-0 bg-primary rounded-lg z-0"
               initial={false}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             />
           )}
           <item.icon className="w-5 h-5 relative z-10 flex-shrink-0" />
@@ -49,6 +48,11 @@ export function Sidebar() {
         </div>
       </Link>
     );
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    setLocation('/login');
   };
 
   return (
@@ -67,7 +71,6 @@ export function Sidebar() {
       </div>
 
       <div className="p-4 space-y-2 border-t border-border">
-        {/* Preview Store Button */}
         <button
           onClick={() => window.open('/store/elegance', '_blank')}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors cursor-pointer"
@@ -76,13 +79,13 @@ export function Sidebar() {
           <span>{isAr ? 'معاينة المتجر' : 'Preview Store'}</span>
         </button>
 
-        {/* Logout */}
-        <Link href="/login" className="block w-full">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-red-400 hover:bg-red-500/5 transition-colors cursor-pointer">
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-            <span>{isAr ? 'تسجيل الخروج' : 'Logout'}</span>
-          </div>
-        </Link>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-red-400 hover:bg-red-500/5 transition-colors cursor-pointer"
+        >
+          <LogOut className="w-5 h-5 flex-shrink-0" />
+          <span>{isAr ? 'تسجيل الخروج' : 'Logout'}</span>
+        </button>
       </div>
     </div>
   );

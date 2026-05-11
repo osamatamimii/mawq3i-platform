@@ -1,0 +1,198 @@
+import { supabase } from './supabase';
+import {
+  initialProducts,
+  initialOrders,
+  adminStores,
+  Product,
+  Order,
+  StoreRecord,
+} from '@/data/mockData';
+
+// ─── Mapping helpers ──────────────────────────────────────────────────
+
+function rowToProduct(row: any): Product {
+  return {
+    id: String(row.id),
+    nameAr: row.name_ar ?? '',
+    nameEn: row.name_en ?? '',
+    descAr: row.desc_ar ?? '',
+    descEn: row.desc_en ?? '',
+    price: Number(row.price),
+    currency: row.currency ?? 'ILS',
+    stock: Number(row.stock),
+    category: row.category ?? '',
+    status: row.status ?? 'visible',
+  };
+}
+
+function productToRow(p: Partial<Product> & { storeId?: string }) {
+  return {
+    ...(p.nameAr !== undefined && { name_ar: p.nameAr }),
+    ...(p.nameEn !== undefined && { name_en: p.nameEn }),
+    ...(p.descAr !== undefined && { desc_ar: p.descAr }),
+    ...(p.descEn !== undefined && { desc_en: p.descEn }),
+    ...(p.price !== undefined && { price: p.price }),
+    ...(p.currency !== undefined && { currency: p.currency }),
+    ...(p.stock !== undefined && { stock: p.stock }),
+    ...(p.category !== undefined && { category: p.category }),
+    ...(p.status !== undefined && { status: p.status }),
+    ...(p.storeId !== undefined && { store_id: p.storeId }),
+  };
+}
+
+function rowToOrder(row: any): Order {
+  return {
+    id: String(row.id),
+    customerName: row.customer_name ?? '',
+    phone: row.phone ?? '',
+    city: row.city ?? '',
+    amount: Number(row.amount),
+    currency: row.currency ?? 'ILS',
+    paymentMethod: row.payment_method ?? '',
+    status: row.status ?? 'new',
+    date: row.date ?? '',
+  };
+}
+
+function rowToStore(row: any): StoreRecord {
+  return {
+    id: String(row.id),
+    name: row.name ?? '',
+    slug: row.slug ?? '',
+    domain: row.domain ?? '',
+    ownerName: row.owner_name ?? '',
+    ownerEmail: row.owner_email ?? '',
+    ownerPhone: row.owner_phone ?? '',
+    currency: row.currency ?? 'ILS',
+    status: row.status ?? 'active',
+    ordersCount: Number(row.orders_count ?? 0),
+    totalSales: Number(row.total_sales ?? 0),
+    subscriptionStatus: row.subscription_status ?? 'trial',
+    subscriptionPlan: row.subscription_plan ?? 'monthly',
+    subscriptionPaid: Boolean(row.subscription_paid),
+    renewalDate: row.renewal_date ?? '',
+    joinDate: row.join_date ?? '',
+  };
+}
+
+// ─── Products ─────────────────────────────────────────────────────────
+
+export async function getProducts(storeId?: string): Promise<Product[]> {
+  try {
+    let query = supabase.from('products').select('*').order('created_at', { ascending: false });
+    if (storeId) query = query.eq('store_id', storeId);
+    const { data, error } = await query;
+    if (error || !data || data.length === 0) return initialProducts;
+    return data.map(rowToProduct);
+  } catch {
+    return initialProducts;
+  }
+}
+
+export async function addProduct(product: Omit<Product, 'id'> & { storeId?: string }): Promise<Product | null> {
+  try {
+    const { data, error } = await supabase.from('products').insert([productToRow(product)]).select().single();
+    if (error || !data) return null;
+    return rowToProduct(data);
+  } catch {
+    return null;
+  }
+}
+
+export async function updateProduct(id: string, updates: Partial<Product>): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('products').update(productToRow(updates)).eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteProduct(id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('products').delete().eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// ─── Orders ──────────────────────────────────────────────────────────
+
+export async function getOrders(storeId?: string): Promise<Order[]> {
+  try {
+    let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+    if (storeId) query = query.eq('store_id', storeId);
+    const { data, error } = await query;
+    if (error || !data || data.length === 0) return initialOrders;
+    return data.map(rowToOrder);
+  } catch {
+    return initialOrders;
+  }
+}
+
+export async function updateOrderStatus(id: string, status: Order['status']): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('orders').update({ status }).eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// ─── Stores (Admin) ──────────────────────────────────────────────────
+
+export async function getAllStores(): Promise<StoreRecord[]> {
+  try {
+    const { data, error } = await supabase.from('stores').select('*').order('join_date', { ascending: false });
+    if (error || !data || data.length === 0) return adminStores;
+    return data.map(rowToStore);
+  } catch {
+    return adminStores;
+  }
+}
+
+export async function addStore(store: Omit<StoreRecord, 'id'>): Promise<StoreRecord | null> {
+  try {
+    const row = {
+      name: store.name,
+      slug: store.slug,
+      domain: store.domain,
+      owner_name: store.ownerName,
+      owner_email: store.ownerEmail,
+      owner_phone: store.ownerPhone,
+      currency: store.currency,
+      status: store.status,
+      orders_count: store.ordersCount,
+      total_sales: store.totalSales,
+      subscription_status: store.subscriptionStatus,
+      subscription_plan: store.subscriptionPlan,
+      subscription_paid: store.subscriptionPaid,
+      renewal_date: store.renewalDate,
+      join_date: store.joinDate,
+    };
+    const { data, error } = await supabase.from('stores').insert([row]).select().single();
+    if (error || !data) return null;
+    return rowToStore(data);
+  } catch {
+    return null;
+  }
+}
+
+export async function updateStore(id: string, updates: Partial<StoreRecord>): Promise<boolean> {
+  try {
+    const row: Record<string, unknown> = {};
+    if (updates.name !== undefined) row.name = updates.name;
+    if (updates.slug !== undefined) row.slug = updates.slug;
+    if (updates.domain !== undefined) row.domain = updates.domain;
+    if (updates.ownerName !== undefined) row.owner_name = updates.ownerName;
+    if (updates.ownerEmail !== undefined) row.owner_email = updates.ownerEmail;
+    if (updates.ownerPhone !== undefined) row.owner_phone = updates.ownerPhone;
+    if (updates.status !== undefined) row.status = updates.status;
+    if (updates.subscriptionPaid !== undefined) row.subscription_paid = updates.subscriptionPaid;
+    const { error } = await supabase.from('stores').update(row).eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
 import { initialProducts, Product } from '@/data/mockData';
+import { getProducts, addProduct, updateProduct, deleteProduct } from '@/lib/db';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 
 const emojis = ['🕌', '🌿', '💎', '☕', '🫐', '🪔', '✨', '💍'];
 
@@ -19,24 +20,49 @@ export default function Products() {
   const { language } = useAppContext();
   const isAr = language === 'ar';
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [loading, setLoading] = useState(true);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const toggleVisibility = (id: string) => {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, status: p.status === 'visible' ? 'hidden' : 'visible' } : p));
+  useEffect(() => {
+    getProducts().then(data => {
+      setProducts(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const toggleVisibility = async (id: string) => {
+    const product = products.find(p => p.id === id);
+    if (!product) return;
+    const newStatus = product.status === 'visible' ? 'hidden' : 'visible';
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
+    await updateProduct(id, { status: newStatus });
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!editProduct) return;
+    setSaving(true);
     setProducts(prev => prev.map(p => p.id === editProduct.id ? editProduct : p));
+    await updateProduct(editProduct.id, editProduct);
+    setSaving(false);
     setEditProduct(null);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteId) return;
     setProducts(prev => prev.filter(p => p.id !== deleteId));
+    await deleteProduct(deleteId);
     setDeleteId(null);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
@@ -161,7 +187,7 @@ export default function Products() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditProduct(null)}>{isAr ? 'إلغاء' : 'Cancel'}</Button>
-            <Button onClick={saveEdit}>{isAr ? 'حفظ' : 'Save'}</Button>
+            <Button onClick={saveEdit} disabled={saving}>{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (isAr ? 'حفظ' : 'Save')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

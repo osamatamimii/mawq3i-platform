@@ -1,16 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { initialOrders, Order, OrderStatus } from '@/data/mockData';
+import { getOrders, updateOrderStatus } from '@/lib/db';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 
 const statusConfig: Record<OrderStatus, { ar: string; en: string; className: string }> = {
   new: { ar: 'جديد', en: 'New', className: 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30' },
@@ -23,17 +23,30 @@ export default function Orders() {
   const { language } = useAppContext();
   const isAr = language === 'ar';
   const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [loading, setLoading] = useState(true);
 
-  const updateStatus = (id: string, status: OrderStatus) => {
+  useEffect(() => {
+    getOrders().then(data => {
+      setOrders(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const handleStatusChange = async (id: string, status: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+    await updateOrderStatus(id, status);
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
       <Card className="bg-card border-border/50 shadow-lg">
         <CardHeader className="border-b border-border/50 pb-4">
           <CardTitle className="text-lg font-semibold">
@@ -79,20 +92,14 @@ export default function Orders() {
                     <td className="px-6 py-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <button
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer transition-colors ${statusConfig[order.status].className}`}
-                          >
+                          <button className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer transition-colors ${statusConfig[order.status].className}`}>
                             {isAr ? statusConfig[order.status].ar : statusConfig[order.status].en}
                             <ChevronDown className="w-3 h-3" />
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="bg-popover border-border">
                           {(Object.keys(statusConfig) as OrderStatus[]).map(s => (
-                            <DropdownMenuItem
-                              key={s}
-                              onClick={() => updateStatus(order.id, s)}
-                              className="cursor-pointer"
-                            >
+                            <DropdownMenuItem key={s} onClick={() => handleStatusChange(order.id, s)} className="cursor-pointer">
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border me-2 ${statusConfig[s].className}`}>
                                 {isAr ? statusConfig[s].ar : statusConfig[s].en}
                               </span>

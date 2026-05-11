@@ -35,9 +35,14 @@ const adminRouteNames: Record<string, { ar: string; en: string }> = {
 };
 
 function AdminSidebar() {
-  const [location] = useLocation();
-  const { language } = useAppContext();
+  const [location, setLocation] = useLocation();
+  const { language, signOut } = useAppContext();
   const isAr = language === 'ar';
+
+  const handleLogout = async () => {
+    await signOut();
+    setLocation('/login');
+  };
 
   return (
     <div className="w-64 h-full bg-[#080b0f] border-e border-white/[0.06] flex flex-col text-card-foreground flex-shrink-0">
@@ -95,12 +100,10 @@ function AdminSidebar() {
             <p className="text-[10px] text-white/40 truncate">super admin</p>
           </div>
         </div>
-        <Link href="/login" className="block w-full">
-          <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-white/40 hover:text-red-400 hover:bg-red-500/5 transition-colors cursor-pointer">
-            <LogOut className="w-4 h-4 flex-shrink-0" />
-            <span>{isAr ? 'تسجيل الخروج' : 'Logout'}</span>
-          </div>
-        </Link>
+        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-white/40 hover:text-red-400 hover:bg-red-500/5 transition-colors cursor-pointer">
+          <LogOut className="w-4 h-4 flex-shrink-0" />
+          <span>{isAr ? 'تسجيل الخروج' : 'Logout'}</span>
+        </button>
       </div>
     </div>
   );
