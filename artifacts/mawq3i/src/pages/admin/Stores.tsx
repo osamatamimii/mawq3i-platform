@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
 import { StoreRecord } from '@/data/mockData';
-import { getAllStores, addStore, updateStore } from '@/lib/db';
+import { getAllStores, addStore, updateStore, deleteStore } from '@/lib/db';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, LogIn, ExternalLink, Pencil, BanIcon, CheckCircle2, Loader2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Plus, LogIn, ExternalLink, Pencil, BanIcon, CheckCircle2, Loader2, Trash2 } from 'lucide-react';
 
 const subStatusCfg: Record<string, { ar: string; en: string; cls: string }> = {
   active: { ar: 'نشط', en: 'Active', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
@@ -32,6 +33,7 @@ export default function AdminStores() {
   const [saving, setSaving] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editStore, setEditStore] = useState<StoreRecord | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [newStore, setNewStore] = useState({ name: '', domain: '', currency: 'ILS', ownerName: '', ownerEmail: '', ownerPhone: '' });
 
   useEffect(() => {
@@ -75,6 +77,13 @@ export default function AdminStores() {
     await updateStore(editStore.id, editStore);
     setSaving(false);
     setEditStore(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setStores(prev => prev.filter(s => s.id !== deleteId));
+    await deleteStore(deleteId);
+    setDeleteId(null);
   };
 
   if (loading) {
@@ -172,6 +181,10 @@ export default function AdminStores() {
                             title={store.status === 'active' ? (isAr ? 'تعليق' : 'Suspend') : (isAr ? 'تفعيل' : 'Activate')} onClick={() => toggleStatus(store.id)}>
                             {store.status === 'active' ? <BanIcon className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
                           </Button>
+                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-red-500/10 hover:border-red-500/40 text-white/50 hover:text-red-400"
+                            title={isAr ? 'حذف المتجر' : 'Delete Store'} onClick={() => setDeleteId(store.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
                         </div>
                       </td>
                     </motion.tr>
@@ -244,6 +257,32 @@ export default function AdminStores() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteId} onOpenChange={o => !o && setDeleteId(null)}>
+        <AlertDialogContent className="bg-[#0e1217] border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">
+              {isAr ? 'حذف المتجر' : 'Delete Store'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-white/50">
+              {isAr
+                ? 'هل أنت متأكد من حذف هذا المتجر؟ سيتم حذف جميع بياناته بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.'
+                : 'Are you sure you want to delete this store? All data will be permanently removed and this action cannot be undone.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/10 text-white/60 bg-transparent hover:bg-white/5">
+              {isAr ? 'إلغاء' : 'Cancel'}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white border-0"
+            >
+              {isAr ? 'حذف نهائي' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

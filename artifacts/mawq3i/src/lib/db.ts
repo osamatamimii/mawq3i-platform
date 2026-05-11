@@ -235,3 +235,12 @@ export async function updateStore(id: string, updates: Partial<StoreRecord>): Pr
     return false;
   }
 }
+
+export async function deleteStore(id: string): Promise<boolean> {
+  try {
+    const { error } = await supabase.from('stores').delete().eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
