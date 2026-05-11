@@ -258,12 +258,6 @@ export default function Login() {
             </motion.div>
           </form>
 
-          {/* Divider hint */}
-          <p className="text-center text-xs text-muted-foreground/50 mt-8 border-t border-border/30 pt-6">
-            {isAr
-              ? 'للدخول كمدير النظام: admin@mawq3i.com'
-              : 'Admin access: admin@mawq3i.com'}
-          </p>
         </div>
       </motion.div>
     </div>
