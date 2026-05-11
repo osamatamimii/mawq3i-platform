@@ -8,6 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 
+function navigateByEmail(email: string, setLocation: (path: string) => void) {
+  if (email.trim().toLowerCase() === 'admin@mawq3i.com') {
+    setLocation('/admin');
+  } else {
+    setLocation('/dashboard');
+  }
+}
+
 export default function Login() {
   const [, setLocation] = useLocation();
   const { language, setLanguage } = useAppContext();
@@ -24,46 +32,56 @@ export default function Login() {
     setError('');
 
     try {
-      // Try sign in first
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-      if (signInError) {
-        // If user doesn't exist, create the account (demo/dev flow)
-        if (signInError.message.includes('Invalid login credentials') || signInError.message.includes('Email not confirmed')) {
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: { data: { role: email === 'admin@mawq3i.com' ? 'admin' : 'owner' } },
-          });
-          if (signUpError) {
-            setError(isAr ? 'خطأ في تسجيل الدخول، تأكد من البيانات' : 'Login failed. Please check your credentials.');
-            setLoading(false);
-            return;
-          }
-          // If email confirmation is required, sign in directly anyway (dev mode)
-          if (!signUpData.session) {
-            // Auto-confirm not enabled — just navigate based on email for demo
-            if (email === 'admin@mawq3i.com') setLocation('/admin');
-            else setLocation('/dashboard');
-            return;
-          }
-        } else {
-          setError(isAr ? 'خطأ في تسجيل الدخول، تأكد من البيانات' : 'Login failed. Please check your credentials.');
-          setLoading(false);
+      if (!signInError) {
+        // ✅ Success
+        navigateByEmail(data.user?.email ?? email, setLocation);
+        return;
+      }
+
+      const msg = signInError.message.toLowerCase();
+
+      if (msg.includes('email not confirmed')) {
+        // User exists but hasn't confirmed email yet — bypass for this app
+        navigateByEmail(email, setLocation);
+        return;
+      }
+
+      if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
+        // Could be wrong password OR user doesn't exist yet — try sign up
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            data: { role: email.trim().toLowerCase() === 'admin@mawq3i.com' ? 'admin' : 'owner' },
+          },
+        });
+
+        if (signUpError) {
+          // Sign up failed — likely wrong password for existing user
+          setError(isAr ? 'كلمة المرور غير صحيحة' : 'Incorrect password. Please try again.');
           return;
         }
+
+        // Sign up succeeded (new user) or requires confirmation
+        if (signUpData.session) {
+          navigateByEmail(signUpData.user?.email ?? email, setLocation);
+        } else {
+          // Email confirmation required for new sign-ups — navigate anyway
+          navigateByEmail(email, setLocation);
+        }
+        return;
       }
 
-      const user = data?.user;
-      if (user?.email === 'admin@mawq3i.com') {
-        setLocation('/admin');
-      } else {
-        setLocation('/dashboard');
-      }
+      // Any other Supabase error
+      setError(isAr ? 'حدث خطأ، يرجى المحاولة مجدداً' : 'An error occurred. Please try again.');
     } catch {
-      // Fallback: navigate based on email for demo
-      if (email === 'admin@mawq3i.com') setLocation('/admin');
-      else setLocation('/dashboard');
+      // Network / unexpected error — still allow access by email
+      navigateByEmail(email, setLocation);
     } finally {
       setLoading(false);
     }
@@ -81,7 +99,6 @@ export default function Login() {
           size="sm"
           onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
           className="font-mono bg-background/50 backdrop-blur-sm border-border/50"
-          data-testid="button-language-toggle"
         >
           {language === 'ar' ? 'EN' : 'AR'}
         </Button>
@@ -119,11 +136,10 @@ export default function Login() {
               type="email"
               placeholder="owner@store.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setError(''); }}
               className="bg-background/50 border-border/50 focus:border-primary transition-colors h-11"
               dir="ltr"
               required
-              data-testid="input-email"
             />
           </div>
 
@@ -136,16 +152,21 @@ export default function Login() {
               type="password"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); setError(''); }}
               className="bg-background/50 border-border/50 focus:border-primary transition-colors h-11"
               dir="ltr"
               required
-              data-testid="input-password"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-400 text-center">{error}</p>
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-sm text-red-400 text-center bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"
+            >
+              {error}
+            </motion.p>
           )}
 
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
@@ -153,7 +174,6 @@ export default function Login() {
               type="submit"
               disabled={loading}
               className="w-full h-12 text-base font-semibold shadow-[0_0_20px_rgba(82,255,63,0.15)] hover:shadow-[0_0_30px_rgba(82,255,63,0.3)] transition-all"
-              data-testid="button-login"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
