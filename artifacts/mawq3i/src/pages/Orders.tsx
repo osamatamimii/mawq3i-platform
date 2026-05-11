@@ -22,7 +22,7 @@ const statusConfig: Record<OrderStatus, { ar: string; en: string; className: str
 export default function Orders() {
   const { language } = useAppContext();
   const isAr = language === 'ar';
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

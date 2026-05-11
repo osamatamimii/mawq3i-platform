@@ -1,85 +1,102 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
-import { initialProducts, initialOrders } from '@/data/mockData';
+import { Order, Product } from '@/data/mockData';
+import { getOrders, getProducts } from '@/lib/db';
 import { motion } from 'framer-motion';
-import { TrendingUp, ShoppingCart, Package, AlertTriangle, ArrowLeft, ArrowRight } from 'lucide-react';
+import { TrendingUp, ShoppingCart, Package, AlertTriangle, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.08, duration: 0.4 }
+    opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.4 }
   })
+};
+
+const statusColors: Record<string, string> = {
+  new: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  processing: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  delivered: 'bg-primary/20 text-primary border-primary/30',
+  cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
+};
+const statusLabels: Record<string, { ar: string; en: string }> = {
+  new: { ar: 'جديد', en: 'New' },
+  processing: { ar: 'قيد التجهيز', en: 'Processing' },
+  delivered: { ar: 'تم التسليم', en: 'Delivered' },
+  cancelled: { ar: 'ملغي', en: 'Cancelled' },
 };
 
 export default function Dashboard() {
   const { language } = useAppContext();
   const isAr = language === 'ar';
 
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([getOrders(), getProducts()]).then(([o, p]) => {
+      setOrders(o);
+      setProducts(p);
+      setLoading(false);
+    });
+  }, []);
+
+  const totalSales = orders.reduce((sum, o) => sum + o.amount, 0);
+  const orderCount = orders.length;
+  const productCount = products.length;
+  const lowStockCount = products.filter(p => p.stock <= 5).length;
+  const recentOrders = orders.slice(0, 5);
+  const topProducts = products.filter(p => p.status === 'visible').slice(0, 3);
+
   const statCards = [
     {
       titleAr: 'إجمالي المبيعات',
       titleEn: 'Total Sales',
-      value: '₪24,500',
+      value: totalSales > 0 ? `₪${totalSales.toLocaleString()}` : '₪0',
       icon: TrendingUp,
       color: 'text-primary',
       bg: 'bg-primary/10',
-      trend: '+12%',
     },
     {
       titleAr: 'عدد الطلبات',
       titleEn: 'Total Orders',
-      value: '148',
+      value: String(orderCount),
       icon: ShoppingCart,
       color: 'text-blue-400',
       bg: 'bg-blue-400/10',
-      trend: '+8%',
     },
     {
       titleAr: 'عدد المنتجات',
       titleEn: 'Products',
-      value: '36',
+      value: String(productCount),
       icon: Package,
       color: 'text-purple-400',
       bg: 'bg-purple-400/10',
-      trend: '+3',
     },
     {
       titleAr: 'منتجات منخفضة المخزون',
       titleEn: 'Low Stock',
-      value: '4',
+      value: String(lowStockCount),
       icon: AlertTriangle,
       color: 'text-amber-400',
       bg: 'bg-amber-400/10',
-      trend: '!',
     },
   ];
 
-  const statusColors: Record<string, string> = {
-    new: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    processing: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-    delivered: 'bg-primary/20 text-primary border-primary/30',
-    cancelled: 'bg-red-500/20 text-red-400 border-red-500/30',
-  };
-  const statusLabels: Record<string, { ar: string; en: string }> = {
-    new: { ar: 'جديد', en: 'New' },
-    processing: { ar: 'قيد التجهيز', en: 'Processing' },
-    delivered: { ar: 'تم التسليم', en: 'Delivered' },
-    cancelled: { ar: 'ملغي', en: 'Cancelled' },
-  };
-
-  const recentOrders = initialOrders.slice(0, 5);
-  const topProducts = initialProducts.filter(p => p.status === 'visible').slice(0, 3);
-
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card, i) => (
           <motion.div
@@ -97,13 +114,12 @@ export default function Dashboard() {
                     <p className="text-xs text-muted-foreground mb-1 font-medium tracking-wide uppercase">
                       {isAr ? card.titleAr : card.titleEn}
                     </p>
-                    <p className="text-3xl font-bold text-foreground">{card.value}</p>
+                    <p className="text-3xl font-bold text-foreground font-mono">{card.value}</p>
                   </div>
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${card.bg}`}>
                     <card.icon className={`w-6 h-6 ${card.color}`} />
                   </div>
                 </div>
-                <p className={`text-xs mt-3 font-medium ${card.color}`}>{card.trend} {isAr ? 'من الشهر الماضي' : 'from last month'}</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -123,7 +139,7 @@ export default function Dashboard() {
               <CardTitle className="text-base font-semibold">
                 {isAr ? 'آخر الطلبات' : 'Recent Orders'}
               </CardTitle>
-              <Link href="/orders">
+              <Link href="/dashboard/orders">
                 <span className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-colors cursor-pointer">
                   {isAr ? 'عرض الكل' : 'View all'}
                   <ArrowIcon className="w-3 h-3" />
@@ -131,39 +147,44 @@ export default function Dashboard() {
               </Link>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border/50">
-                      <th className="text-start px-6 py-3 text-muted-foreground font-medium">{isAr ? 'رقم الطلب' : 'Order ID'}</th>
-                      <th className="text-start px-6 py-3 text-muted-foreground font-medium">{isAr ? 'العميل' : 'Customer'}</th>
-                      <th className="text-start px-6 py-3 text-muted-foreground font-medium">{isAr ? 'المبلغ' : 'Amount'}</th>
-                      <th className="text-start px-6 py-3 text-muted-foreground font-medium">{isAr ? 'الحالة' : 'Status'}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentOrders.map((order) => (
-                      <tr
-                        key={order.id}
-                        className="border-b border-border/30 hover:bg-white/[0.02] transition-colors"
-                      >
-                        <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{order.id}</td>
-                        <td className="px-6 py-4 font-medium">{order.customerName}</td>
-                        <td className="px-6 py-4">
-                          <span className="font-mono font-semibold">
-                            {order.currency === 'ILS' ? '₪' : '﷼'}{order.amount}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusColors[order.status]}`}>
-                            {isAr ? statusLabels[order.status].ar : statusLabels[order.status].en}
-                          </span>
-                        </td>
+              {recentOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-14 text-muted-foreground gap-2">
+                  <span className="text-3xl">📭</span>
+                  <p className="text-sm">{isAr ? 'لا توجد طلبات بعد' : 'No orders yet'}</p>
+                  <p className="text-xs opacity-60">{isAr ? 'ستظهر هنا طلبات عملائك' : 'Customer orders will appear here'}</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border/50">
+                        <th className="text-start px-6 py-3 text-muted-foreground font-medium">{isAr ? 'رقم الطلب' : 'Order ID'}</th>
+                        <th className="text-start px-6 py-3 text-muted-foreground font-medium">{isAr ? 'العميل' : 'Customer'}</th>
+                        <th className="text-start px-6 py-3 text-muted-foreground font-medium">{isAr ? 'المبلغ' : 'Amount'}</th>
+                        <th className="text-start px-6 py-3 text-muted-foreground font-medium">{isAr ? 'الحالة' : 'Status'}</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {recentOrders.map((order) => (
+                        <tr key={order.id} className="border-b border-border/30 hover:bg-white/[0.02] transition-colors">
+                          <td className="px-6 py-4 font-mono text-xs text-primary font-bold">{order.id}</td>
+                          <td className="px-6 py-4 font-medium">{order.customerName}</td>
+                          <td className="px-6 py-4">
+                            <span className="font-mono font-semibold">
+                              {order.currency === 'ILS' ? '₪' : '﷼'}{order.amount}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusColors[order.status]}`}>
+                              {isAr ? statusLabels[order.status]?.ar : statusLabels[order.status]?.en}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -179,7 +200,7 @@ export default function Dashboard() {
               <CardTitle className="text-base font-semibold">
                 {isAr ? 'أفضل المنتجات' : 'Top Products'}
               </CardTitle>
-              <Link href="/products">
+              <Link href="/dashboard/products">
                 <span className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-colors cursor-pointer">
                   {isAr ? 'عرض الكل' : 'View all'}
                   <ArrowIcon className="w-3 h-3" />
@@ -187,7 +208,12 @@ export default function Dashboard() {
               </Link>
             </CardHeader>
             <CardContent className="space-y-4">
-              {topProducts.map((product, i) => (
+              {topProducts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
+                  <span className="text-3xl">📦</span>
+                  <p className="text-sm">{isAr ? 'لا توجد منتجات بعد' : 'No products yet'}</p>
+                </div>
+              ) : topProducts.map((product, i) => (
                 <div key={product.id} className="flex items-center gap-3 group">
                   <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground flex-shrink-0">
                     {i + 1}

@@ -1,24 +1,43 @@
+import { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import { adminStores, adminSubscriptions } from '@/data/mockData';
+import { StoreRecord } from '@/data/mockData';
+import { getAllStores } from '@/lib/db';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Store, Users, DollarSign, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Store, DollarSign, TrendingUp, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 
 const cardV = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.07, duration: 0.4 } }),
 };
 
+const statusConfig: Record<string, { ar: string; en: string; cls: string }> = {
+  active: { ar: 'نشط', en: 'Active', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
+  suspended: { ar: 'موقوف', en: 'Suspended', cls: 'bg-red-500/15 text-red-400 border-red-500/25' },
+  trial: { ar: 'تجريبي', en: 'Trial', cls: 'bg-blue-500/15 text-blue-400 border-blue-500/25' },
+  expired: { ar: 'منتهي', en: 'Expired', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
+};
+
 export default function AdminOverview() {
   const { language } = useAppContext();
   const isAr = language === 'ar';
 
-  const totalStores = adminStores.length;
-  const activeStores = adminStores.filter(s => s.status === 'active').length;
-  const totalRevenue = adminStores.reduce((a, s) => a + s.totalSales, 0);
-  const expiredSubs = adminSubscriptions.filter(s => s.status === 'expired').length;
-  const unpaidSubs = adminSubscriptions.filter(s => !s.paid).length;
-  const trialStores = adminStores.filter(s => s.subscriptionStatus === 'trial').length;
+  const [stores, setStores] = useState<StoreRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getAllStores().then(data => {
+      setStores(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const totalStores = stores.length;
+  const activeStores = stores.filter(s => s.status === 'active').length;
+  const totalRevenue = stores.reduce((a, s) => a + s.totalSales, 0);
+  const expiredSubs = stores.filter(s => s.subscriptionStatus === 'expired').length;
+  const unpaidSubs = stores.filter(s => !s.subscriptionPaid).length;
+  const trialStores = stores.filter(s => s.subscriptionStatus === 'trial').length;
 
   const stats = [
     { titleAr: 'إجمالي المتاجر', titleEn: 'Total Stores', value: totalStores, icon: Store, color: 'text-blue-400', bg: 'bg-blue-400/10' },
@@ -27,16 +46,16 @@ export default function AdminOverview() {
     { titleAr: 'اشتراكات منتهية', titleEn: 'Expired Subs', value: expiredSubs, icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-400/10' },
   ];
 
-  const statusConfig: Record<string, { ar: string; en: string; cls: string }> = {
-    active: { ar: 'نشط', en: 'Active', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
-    suspended: { ar: 'موقوف', en: 'Suspended', cls: 'bg-red-500/15 text-red-400 border-red-500/25' },
-    trial: { ar: 'تجريبي', en: 'Trial', cls: 'bg-blue-500/15 text-blue-400 border-blue-500/25' },
-    expired: { ar: 'منتهي', en: 'Expired', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-7">
-      {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s, i) => (
           <motion.div key={s.titleAr} custom={i} initial="hidden" animate="visible" variants={cardV} whileHover={{ y: -3, transition: { duration: 0.2 } }}>
@@ -55,7 +74,6 @@ export default function AdminOverview() {
         ))}
       </div>
 
-      {/* Alerts */}
       {(unpaidSubs > 0 || trialStores > 0) && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="flex flex-wrap gap-3">
           {unpaidSubs > 0 && (
@@ -73,7 +91,6 @@ export default function AdminOverview() {
         </motion.div>
       )}
 
-      {/* Recent Stores Table */}
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.4 }}>
         <Card className="bg-white/[0.03] border-white/[0.07]">
           <CardHeader className="border-b border-white/[0.07] pb-4">
@@ -82,41 +99,49 @@ export default function AdminOverview() {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/[0.06] text-white/35">
-                    <th className="text-start px-6 py-3 font-medium">{isAr ? 'المتجر' : 'Store'}</th>
-                    <th className="text-start px-6 py-3 font-medium">{isAr ? 'المالك' : 'Owner'}</th>
-                    <th className="text-start px-6 py-3 font-medium">{isAr ? 'الطلبات' : 'Orders'}</th>
-                    <th className="text-start px-6 py-3 font-medium">{isAr ? 'الاشتراك' : 'Subscription'}</th>
-                    <th className="text-start px-6 py-3 font-medium">{isAr ? 'الحالة' : 'Status'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {adminStores.map((store, i) => (
-                    <motion.tr key={store.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 + i * 0.04 }} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-4">
-                        <p className="font-medium text-white">{store.name}</p>
-                        <p className="text-xs text-white/35 font-mono">{store.domain}</p>
-                      </td>
-                      <td className="px-6 py-4 text-white/60">{store.ownerName}</td>
-                      <td className="px-6 py-4 font-mono font-semibold text-white">{store.ordersCount.toLocaleString()}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusConfig[store.subscriptionStatus].cls}`}>
-                          {isAr ? statusConfig[store.subscriptionStatus].ar : statusConfig[store.subscriptionStatus].en}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusConfig[store.status].cls}`}>
-                          {isAr ? statusConfig[store.status].ar : statusConfig[store.status].en}
-                        </span>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {stores.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-white/30 gap-2">
+                <span className="text-4xl">🏪</span>
+                <p className="text-sm">{isAr ? 'لا توجد متاجر بعد' : 'No stores yet'}</p>
+                <p className="text-xs opacity-60">{isAr ? 'ستظهر هنا المتاجر المسجلة في المنصة' : 'Registered stores will appear here'}</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-white/[0.06] text-white/35">
+                      <th className="text-start px-6 py-3 font-medium">{isAr ? 'المتجر' : 'Store'}</th>
+                      <th className="text-start px-6 py-3 font-medium">{isAr ? 'المالك' : 'Owner'}</th>
+                      <th className="text-start px-6 py-3 font-medium">{isAr ? 'الطلبات' : 'Orders'}</th>
+                      <th className="text-start px-6 py-3 font-medium">{isAr ? 'الاشتراك' : 'Subscription'}</th>
+                      <th className="text-start px-6 py-3 font-medium">{isAr ? 'الحالة' : 'Status'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stores.map((store, i) => (
+                      <motion.tr key={store.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 + i * 0.04 }} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                        <td className="px-6 py-4">
+                          <p className="font-medium text-white">{store.name}</p>
+                          <p className="text-xs text-white/35 font-mono">{store.domain}</p>
+                        </td>
+                        <td className="px-6 py-4 text-white/60">{store.ownerName || '—'}</td>
+                        <td className="px-6 py-4 font-mono font-semibold text-white">{store.ordersCount.toLocaleString()}</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusConfig[store.subscriptionStatus]?.cls}`}>
+                            {isAr ? statusConfig[store.subscriptionStatus]?.ar : statusConfig[store.subscriptionStatus]?.en}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusConfig[store.status]?.cls}`}>
+                            {isAr ? statusConfig[store.status]?.ar : statusConfig[store.status]?.en}
+                          </span>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
