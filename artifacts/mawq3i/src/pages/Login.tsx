@@ -56,8 +56,6 @@ export default function Login() {
     setLoading(true);
     setError('');
 
-    const ADMIN_EMAIL = 'admin@mawq3i.com';
-
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -67,18 +65,6 @@ export default function Login() {
       if (!signInError && data.user) {
         navigateByEmail(data.user.email ?? email, setLocation);
         return;
-      }
-
-      // Temporarily allow signup for admin account recovery only
-      if (email.trim().toLowerCase() === ADMIN_EMAIL) {
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: ADMIN_EMAIL,
-          password,
-        });
-        if (!signUpError && signUpData.user) {
-          navigateByEmail(ADMIN_EMAIL, setLocation);
-          return;
-        }
       }
 
       setError(isAr ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة' : 'Incorrect email or password');
