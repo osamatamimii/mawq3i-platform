@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
+import { addProduct } from '@/lib/db';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ const aiStyles: { id: AIStyle; ar: string; en: string; gradient: string }[] = [
 ];
 
 export default function AddProduct() {
-  const { language } = useAppContext();
+  const { language, currentStore } = useAppContext();
   const isAr = language === 'ar';
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -32,15 +33,21 @@ export default function AddProduct() {
 
   const [dragOver, setDragOver] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageDataUrl, setImageDataUrl] = useState<string>('');
   const [selectedStyle, setSelectedStyle] = useState<AIStyle>('luxury-dark');
   const [aiState, setAiState] = useState<AIState>('idle');
   const [useEnhanced, setUseEnhanced] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
-    reader.onload = e => setImagePreview(e.target?.result as string);
+    reader.onload = e => {
+      const result = e.target?.result as string;
+      setImagePreview(result);
+      setImageDataUrl(result);
+    };
     reader.readAsDataURL(file);
     setAiState('idle');
     setUseEnhanced(false);
@@ -55,14 +62,50 @@ export default function AddProduct() {
     setTimeout(() => setAiState('done'), 2000);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.nameAr || !form.price) return;
-    toast({
-      title: isAr ? 'تم إضافة المنتج' : 'Product added',
-      description: isAr ? `تم إضافة "${form.nameAr}" بنجاح` : `"${form.nameEn || form.nameAr}" has been added.`,
+
+    if (!currentStore) {
+      toast({
+        title: isAr ? 'خطأ' : 'Error',
+        description: isAr ? 'لم يتم ربط حسابك بمتجر' : 'Your account is not linked to a store',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSubmitting(true);
+
+    const saved = await addProduct({
+      nameAr: form.nameAr,
+      nameEn: form.nameEn,
+      descAr: form.descAr,
+      descEn: form.descEn,
+      price: Number(form.price),
+      currency: form.currency as 'ILS' | 'SAR',
+      stock: Number(form.stock) || 0,
+      category: form.category,
+      status: 'visible',
+      imageUrl: imageDataUrl || '',
+      storeId: currentStore.id,
     });
-    setLocation('/dashboard/products');
+
+    setSubmitting(false);
+
+    if (saved) {
+      toast({
+        title: isAr ? 'تم إضافة المنتج' : 'Product added',
+        description: isAr ? `تم إضافة "${form.nameAr}" بنجاح إلى متجرك` : `"${form.nameEn || form.nameAr}" has been added to your store.`,
+      });
+      setLocation('/dashboard/products');
+    } else {
+      toast({
+        title: isAr ? 'حدث خطأ' : 'Error',
+        description: isAr ? 'لم يتم حفظ المنتج، يرجى المحاولة مجدداً' : 'Failed to save product. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const BackIcon = isAr ? ArrowRight : ArrowLeft;
@@ -75,7 +118,11 @@ export default function AddProduct() {
         </Button>
         <div>
           <h2 className="text-lg font-semibold">{isAr ? 'إضافة منتج جديد' : 'Add New Product'}</h2>
-          <p className="text-xs text-muted-foreground">{isAr ? 'أدخل تفاصيل المنتج' : 'Enter product details'}</p>
+          <p className="text-xs text-muted-foreground">
+            {currentStore
+              ? (isAr ? `المتجر: ${currentStore.name}` : `Store: ${currentStore.name}`)
+              : (isAr ? 'لم يتم ربط متجر بحسابك' : 'No store linked to your account')}
+          </p>
         </div>
       </div>
 
@@ -134,7 +181,7 @@ export default function AddProduct() {
 
         <Card className="bg-card border-border/50 shadow-lg">
           <CardHeader className="border-b border-border/50 pb-4">
-            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{isAr ? 'صورة المنتج والذكاء الاصطناعي' : 'Product Image & AI'}</CardTitle>
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{isAr ? 'صورة المنتج' : 'Product Image'}</CardTitle>
           </CardHeader>
           <CardContent className="pt-5 space-y-5">
             <div onDragOver={e => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={onDrop}
@@ -210,8 +257,8 @@ export default function AddProduct() {
         </Card>
 
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button type="submit" className="w-full h-11 font-medium" data-testid="button-submit-product">
-            {isAr ? 'إضافة المنتج' : 'Add Product'}
+          <Button type="submit" disabled={submitting || !currentStore} className="w-full h-11 font-medium" data-testid="button-submit-product">
+            {submitting ? <><Loader2 className="w-4 h-4 animate-spin me-2" />{isAr ? 'جاري الحفظ...' : 'Saving...'}</> : (isAr ? 'إضافة المنتج' : 'Add Product')}
           </Button>
         </motion.div>
       </form>

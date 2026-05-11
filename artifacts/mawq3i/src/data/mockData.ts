@@ -44,6 +44,8 @@ export type StoreRecord = {
   subscriptionPaid: boolean;
   renewalDate: string;
   joinDate: string;
+  primaryColor?: string;
+  logoUrl?: string;
 };
 
 export type Client = {

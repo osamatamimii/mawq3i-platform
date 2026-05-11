@@ -1,12 +1,5 @@
 import { supabase } from './supabase';
-import {
-  initialProducts,
-  initialOrders,
-  adminStores,
-  Product,
-  Order,
-  StoreRecord,
-} from '@/data/mockData';
+import { Product, Order, StoreRecord } from '@/data/mockData';
 
 // ─── Mapping helpers ──────────────────────────────────────────────────
 
@@ -22,6 +15,7 @@ function rowToProduct(row: any): Product {
     stock: Number(row.stock),
     category: row.category ?? '',
     status: row.status ?? 'visible',
+    imageUrl: row.image_url ?? '',
   };
 }
 
@@ -37,6 +31,7 @@ function productToRow(p: Partial<Product> & { storeId?: string }) {
     ...(p.category !== undefined && { category: p.category }),
     ...(p.status !== undefined && { status: p.status }),
     ...(p.storeId !== undefined && { store_id: p.storeId }),
+    ...(p.imageUrl !== undefined && { image_url: p.imageUrl }),
   };
 }
 
@@ -73,6 +68,8 @@ function rowToStore(row: any): StoreRecord {
     subscriptionPaid: Boolean(row.subscription_paid),
     renewalDate: row.renewal_date ?? '',
     joinDate: row.join_date ?? '',
+    primaryColor: row.primary_color ?? '#52FF3F',
+    logoUrl: row.logo_url ?? '',
   };
 }
 
@@ -83,10 +80,10 @@ export async function getProducts(storeId?: string): Promise<Product[]> {
     let query = supabase.from('products').select('*').order('created_at', { ascending: false });
     if (storeId) query = query.eq('store_id', storeId);
     const { data, error } = await query;
-    if (error || !data || data.length === 0) return initialProducts;
+    if (error || !data) return [];
     return data.map(rowToProduct);
   } catch {
-    return initialProducts;
+    return [];
   }
 }
 
@@ -125,11 +122,10 @@ export async function getOrders(storeId?: string): Promise<Order[]> {
     let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
     if (storeId) query = query.eq('store_id', storeId);
     const { data, error } = await query;
-    if (error) return initialOrders;
-    if (!data) return [];
+    if (error || !data) return [];
     return data.map(rowToOrder);
   } catch {
-    return initialOrders;
+    return [];
   }
 }
 
@@ -179,15 +175,43 @@ export async function updateOrderStatus(id: string, status: Order['status']): Pr
   }
 }
 
-// ─── Stores (Admin) ──────────────────────────────────────────────────
+// ─── Stores ──────────────────────────────────────────────────────────
 
 export async function getAllStores(): Promise<StoreRecord[]> {
   try {
     const { data, error } = await supabase.from('stores').select('*').order('join_date', { ascending: false });
-    if (error || !data || data.length === 0) return adminStores;
+    if (error || !data) return [];
     return data.map(rowToStore);
   } catch {
-    return adminStores;
+    return [];
+  }
+}
+
+export async function getStoreByOwnerEmail(email: string): Promise<StoreRecord | null> {
+  try {
+    const { data, error } = await supabase
+      .from('stores')
+      .select('*')
+      .eq('owner_email', email)
+      .single();
+    if (error || !data) return null;
+    return rowToStore(data);
+  } catch {
+    return null;
+  }
+}
+
+export async function getStoreBySlug(slug: string): Promise<StoreRecord | null> {
+  try {
+    const { data, error } = await supabase
+      .from('stores')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+    if (error || !data) return null;
+    return rowToStore(data);
+  } catch {
+    return null;
   }
 }
 
@@ -209,6 +233,8 @@ export async function addStore(store: Omit<StoreRecord, 'id'>): Promise<StoreRec
       subscription_paid: store.subscriptionPaid,
       renewal_date: store.renewalDate,
       join_date: store.joinDate,
+      primary_color: store.primaryColor ?? '#52FF3F',
+      logo_url: store.logoUrl ?? '',
     };
     const { data, error } = await supabase.from('stores').insert([row]).select().single();
     if (error || !data) return null;
@@ -229,6 +255,31 @@ export async function updateStore(id: string, updates: Partial<StoreRecord>): Pr
     if (updates.ownerPhone !== undefined) row.owner_phone = updates.ownerPhone;
     if (updates.status !== undefined) row.status = updates.status;
     if (updates.subscriptionPaid !== undefined) row.subscription_paid = updates.subscriptionPaid;
+    if (updates.primaryColor !== undefined) row.primary_color = updates.primaryColor;
+    if (updates.logoUrl !== undefined) row.logo_url = updates.logoUrl;
+    const { error } = await supabase.from('stores').update(row).eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function updateStoreSettings(id: string, settings: {
+  name?: string;
+  ownerPhone?: string;
+  primaryColor?: string;
+  logoUrl?: string;
+  currency?: string;
+  domain?: string;
+}): Promise<boolean> {
+  try {
+    const row: Record<string, unknown> = {};
+    if (settings.name !== undefined) row.name = settings.name;
+    if (settings.ownerPhone !== undefined) row.owner_phone = settings.ownerPhone;
+    if (settings.primaryColor !== undefined) row.primary_color = settings.primaryColor;
+    if (settings.logoUrl !== undefined) row.logo_url = settings.logoUrl;
+    if (settings.currency !== undefined) row.currency = settings.currency;
+    if (settings.domain !== undefined) row.domain = settings.domain;
     const { error } = await supabase.from('stores').update(row).eq('id', id);
     return !error;
   } catch {

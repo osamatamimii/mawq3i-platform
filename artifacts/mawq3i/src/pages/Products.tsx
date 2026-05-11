@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
-import { initialProducts, Product } from '@/data/mockData';
+import { Product } from '@/data/mockData';
 import { getProducts, addProduct, updateProduct, deleteProduct } from '@/lib/db';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,12 +12,12 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Package } from 'lucide-react';
 
 const emojis = ['🕌', '🌿', '💎', '☕', '🫐', '🪔', '✨', '💍'];
 
 export default function Products() {
-  const { language } = useAppContext();
+  const { language, currentStore } = useAppContext();
   const isAr = language === 'ar';
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,11 +26,11 @@ export default function Products() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    getProducts().then(data => {
+    getProducts(currentStore?.id).then(data => {
       setProducts(data);
       setLoading(false);
     });
-  }, []);
+  }, [currentStore?.id]);
 
   const toggleVisibility = async (id: string) => {
     const product = products.find(p => p.id === id);
@@ -83,64 +83,82 @@ export default function Products() {
 
       <Card className="bg-card border-border/50 shadow-lg">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border/50 text-muted-foreground">
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'الصورة' : 'Image'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'اسم المنتج' : 'Product'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'السعر' : 'Price'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'العملة' : 'Currency'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'المخزون' : 'Stock'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'الحالة' : 'Status'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'إجراءات' : 'Actions'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product, i) => (
-                  <motion.tr key={product.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-                    className="border-b border-border/30 hover:bg-white/[0.02] transition-colors" data-testid={`row-product-${product.id}`}>
-                    <td className="px-6 py-4">
-                      <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg">
-                        {emojis[parseInt(product.id) - 1] ?? '📦'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="font-medium">{isAr ? product.nameAr : product.nameEn}</p>
-                      <p className="text-xs text-muted-foreground">{product.category}</p>
-                    </td>
-                    <td className="px-6 py-4 font-mono font-semibold">
-                      {product.currency === 'ILS' ? '₪' : '﷼'}{product.price}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-muted text-muted-foreground font-mono">{product.currency}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`font-mono text-sm font-semibold ${product.stock <= 5 ? 'text-amber-400' : ''}`}>{product.stock}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <Switch checked={product.status === 'visible'} onCheckedChange={() => toggleVisibility(product.id)} data-testid={`switch-visibility-${product.id}`} />
-                        <span className="text-xs text-muted-foreground">
-                          {product.status === 'visible' ? (isAr ? 'ظاهر' : 'Visible') : (isAr ? 'مخفي' : 'Hidden')}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/30" onClick={() => setEditProduct({ ...product })} data-testid={`button-edit-${product.id}`}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-red-500/50 hover:text-red-400" onClick={() => setDeleteId(product.id)} data-testid={`button-delete-${product.id}`}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {products.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                <Package className="w-7 h-7 text-muted-foreground/50" />
+              </div>
+              <p className="text-sm font-medium">{isAr ? 'لا توجد منتجات بعد' : 'No products yet'}</p>
+              <p className="text-xs opacity-60">{isAr ? 'اضغط "إضافة منتج" لإضافة أول منتج' : 'Click "Add Product" to add your first product'}</p>
+              <Link href="/dashboard/add-product">
+                <Button size="sm" className="mt-2 gap-2">
+                  <Plus className="w-3.5 h-3.5" />
+                  {isAr ? 'إضافة منتج' : 'Add Product'}
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border/50 text-muted-foreground">
+                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'الصورة' : 'Image'}</th>
+                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'اسم المنتج' : 'Product'}</th>
+                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'السعر' : 'Price'}</th>
+                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'العملة' : 'Currency'}</th>
+                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'المخزون' : 'Stock'}</th>
+                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'الحالة' : 'Status'}</th>
+                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'إجراءات' : 'Actions'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((product, i) => (
+                    <motion.tr key={product.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
+                      className="border-b border-border/30 hover:bg-white/[0.02] transition-colors" data-testid={`row-product-${product.id}`}>
+                      <td className="px-6 py-4">
+                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg overflow-hidden">
+                          {product.imageUrl
+                            ? <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
+                            : (emojis[parseInt(product.id) - 1] ?? '📦')}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="font-medium">{isAr ? product.nameAr : product.nameEn}</p>
+                        <p className="text-xs text-muted-foreground">{product.category}</p>
+                      </td>
+                      <td className="px-6 py-4 font-mono font-semibold">
+                        {product.currency === 'ILS' ? '₪' : '﷼'}{product.price}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-muted text-muted-foreground font-mono">{product.currency}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`font-mono text-sm font-semibold ${product.stock <= 5 ? 'text-amber-400' : ''}`}>{product.stock}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Switch checked={product.status === 'visible'} onCheckedChange={() => toggleVisibility(product.id)} data-testid={`switch-visibility-${product.id}`} />
+                          <span className="text-xs text-muted-foreground">
+                            {product.status === 'visible' ? (isAr ? 'ظاهر' : 'Visible') : (isAr ? 'مخفي' : 'Hidden')}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/30" onClick={() => setEditProduct({ ...product })} data-testid={`button-edit-${product.id}`}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-red-500/50 hover:text-red-400" onClick={() => setDeleteId(product.id)} data-testid={`button-delete-${product.id}`}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 

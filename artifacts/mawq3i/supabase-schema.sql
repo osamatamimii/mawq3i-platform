@@ -59,6 +59,13 @@ create table if not exists orders (
 -- alter table orders add column if not exists product_id text;
 -- alter table orders add column if not exists product_name text;
 
+-- ─── Migrations for stores table (run if table already exists) ────────────
+-- alter table stores add column if not exists primary_color text default '#52FF3F';
+-- alter table stores add column if not exists logo_url      text;
+
+-- ─── Migration for products table (run if table already exists) ────────────
+-- alter table products add column if not exists image_url text;
+
 -- ─── Row Level Security ────────────────────────────────────────────────────
 -- Enable RLS on all tables
 alter table stores   enable row level security;

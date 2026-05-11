@@ -28,7 +28,7 @@ const statusLabels: Record<string, { ar: string; en: string }> = {
 };
 
 export default function Dashboard() {
-  const { language } = useAppContext();
+  const { language, currentStore } = useAppContext();
   const isAr = language === 'ar';
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -36,52 +36,41 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getOrders(), getProducts()]).then(([o, p]) => {
+    Promise.all([
+      getOrders(currentStore?.id),
+      getProducts(currentStore?.id),
+    ]).then(([o, p]) => {
       setOrders(o);
       setProducts(p);
       setLoading(false);
     });
-  }, []);
+  }, [currentStore?.id]);
 
   const totalSales = orders.reduce((sum, o) => sum + o.amount, 0);
-  const orderCount = orders.length;
-  const productCount = products.length;
   const lowStockCount = products.filter(p => p.stock <= 5).length;
   const recentOrders = orders.slice(0, 5);
   const topProducts = products.filter(p => p.status === 'visible').slice(0, 3);
 
   const statCards = [
     {
-      titleAr: 'إجمالي المبيعات',
-      titleEn: 'Total Sales',
-      value: totalSales > 0 ? `₪${totalSales.toLocaleString()}` : '₪0',
-      icon: TrendingUp,
-      color: 'text-primary',
-      bg: 'bg-primary/10',
+      titleAr: 'إجمالي المبيعات', titleEn: 'Total Sales',
+      value: `${orders[0]?.currency === 'SAR' ? '﷼' : '₪'}${totalSales.toLocaleString()}`,
+      icon: TrendingUp, color: 'text-primary', bg: 'bg-primary/10',
     },
     {
-      titleAr: 'عدد الطلبات',
-      titleEn: 'Total Orders',
-      value: String(orderCount),
-      icon: ShoppingCart,
-      color: 'text-blue-400',
-      bg: 'bg-blue-400/10',
+      titleAr: 'عدد الطلبات', titleEn: 'Total Orders',
+      value: String(orders.length),
+      icon: ShoppingCart, color: 'text-blue-400', bg: 'bg-blue-400/10',
     },
     {
-      titleAr: 'عدد المنتجات',
-      titleEn: 'Products',
-      value: String(productCount),
-      icon: Package,
-      color: 'text-purple-400',
-      bg: 'bg-purple-400/10',
+      titleAr: 'عدد المنتجات', titleEn: 'Products',
+      value: String(products.length),
+      icon: Package, color: 'text-purple-400', bg: 'bg-purple-400/10',
     },
     {
-      titleAr: 'منتجات منخفضة المخزون',
-      titleEn: 'Low Stock',
+      titleAr: 'منتجات منخفضة المخزون', titleEn: 'Low Stock',
       value: String(lowStockCount),
-      icon: AlertTriangle,
-      color: 'text-amber-400',
-      bg: 'bg-amber-400/10',
+      icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-400/10',
     },
   ];
 
@@ -99,14 +88,7 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card, i) => (
-          <motion.div
-            key={card.titleAr}
-            custom={i}
-            initial="hidden"
-            animate="visible"
-            variants={cardVariants}
-            whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          >
+          <motion.div key={card.titleAr} custom={i} initial="hidden" animate="visible" variants={cardVariants} whileHover={{ y: -4, transition: { duration: 0.2 } }}>
             <Card className="bg-card border-border/50 hover:border-primary/20 transition-colors cursor-default shadow-lg">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
@@ -127,22 +109,13 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Orders */}
-        <motion.div
-          className="lg:col-span-2"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.4 }}
-        >
+        <motion.div className="lg:col-span-2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.4 }}>
           <Card className="bg-card border-border/50 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-base font-semibold">
-                {isAr ? 'آخر الطلبات' : 'Recent Orders'}
-              </CardTitle>
+              <CardTitle className="text-base font-semibold">{isAr ? 'آخر الطلبات' : 'Recent Orders'}</CardTitle>
               <Link href="/dashboard/orders">
                 <span className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-colors cursor-pointer">
-                  {isAr ? 'عرض الكل' : 'View all'}
-                  <ArrowIcon className="w-3 h-3" />
+                  {isAr ? 'عرض الكل' : 'View all'}<ArrowIcon className="w-3 h-3" />
                 </span>
               </Link>
             </CardHeader>
@@ -151,7 +124,7 @@ export default function Dashboard() {
                 <div className="flex flex-col items-center justify-center py-14 text-muted-foreground gap-2">
                   <span className="text-3xl">📭</span>
                   <p className="text-sm">{isAr ? 'لا توجد طلبات بعد' : 'No orders yet'}</p>
-                  <p className="text-xs opacity-60">{isAr ? 'ستظهر هنا طلبات عملائك' : 'Customer orders will appear here'}</p>
+                  <p className="text-xs opacity-60">{isAr ? 'ستظهر هنا طلبات عملاء متجرك' : 'Customer orders will appear here'}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -189,21 +162,13 @@ export default function Dashboard() {
           </Card>
         </motion.div>
 
-        {/* Top Products */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45, duration: 0.4 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.4 }}>
           <Card className="bg-card border-border/50 shadow-lg h-full">
             <CardHeader className="flex flex-row items-center justify-between pb-4">
-              <CardTitle className="text-base font-semibold">
-                {isAr ? 'أفضل المنتجات' : 'Top Products'}
-              </CardTitle>
+              <CardTitle className="text-base font-semibold">{isAr ? 'أفضل المنتجات' : 'Top Products'}</CardTitle>
               <Link href="/dashboard/products">
                 <span className="text-xs text-primary hover:text-primary/80 flex items-center gap-1 transition-colors cursor-pointer">
-                  {isAr ? 'عرض الكل' : 'View all'}
-                  <ArrowIcon className="w-3 h-3" />
+                  {isAr ? 'عرض الكل' : 'View all'}<ArrowIcon className="w-3 h-3" />
                 </span>
               </Link>
             </CardHeader>
@@ -215,8 +180,10 @@ export default function Dashboard() {
                 </div>
               ) : topProducts.map((product, i) => (
                 <div key={product.id} className="flex items-center gap-3 group">
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground flex-shrink-0">
-                    {i + 1}
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground flex-shrink-0 overflow-hidden">
+                    {product.imageUrl
+                      ? <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
+                      : (i + 1)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{isAr ? product.nameAr : product.nameEn}</p>

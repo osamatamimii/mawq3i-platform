@@ -1,15 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import { initialOrders, Order, OrderStatus } from '@/data/mockData';
+import { Order, OrderStatus } from '@/data/mockData';
 import { getOrders, updateOrderStatus } from '@/lib/db';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ChevronDown, Loader2 } from 'lucide-react';
 
 const statusConfig: Record<OrderStatus, { ar: string; en: string; className: string }> = {
@@ -20,17 +15,17 @@ const statusConfig: Record<OrderStatus, { ar: string; en: string; className: str
 };
 
 export default function Orders() {
-  const { language } = useAppContext();
+  const { language, currentStore } = useAppContext();
   const isAr = language === 'ar';
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getOrders().then(data => {
+    getOrders(currentStore?.id).then(data => {
       setOrders(data);
       setLoading(false);
     });
-  }, []);
+  }, [currentStore?.id]);
 
   const handleStatusChange = async (id: string, status: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
@@ -75,7 +70,9 @@ export default function Orders() {
                       <div className="flex flex-col items-center gap-2">
                         <span className="text-3xl">📭</span>
                         <p className="text-sm">{isAr ? 'لا توجد طلبات بعد' : 'No orders yet'}</p>
-                        <p className="text-xs opacity-60">{isAr ? 'ستظهر هنا عند وصول أول طلب من المتجر' : 'Orders from your store will appear here'}</p>
+                        <p className="text-xs opacity-60">
+                          {isAr ? 'ستظهر هنا طلبات عملاء متجرك عند وصولها' : 'Orders from your store customers will appear here'}
+                        </p>
                       </div>
                     </td>
                   </tr>
