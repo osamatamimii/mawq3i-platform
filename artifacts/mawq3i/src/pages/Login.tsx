@@ -62,43 +62,14 @@ export default function Login() {
         password,
       });
 
-      if (!signInError) {
-        navigateByEmail(data.user?.email ?? email, setLocation);
+      if (!signInError && data.user) {
+        navigateByEmail(data.user.email ?? email, setLocation);
         return;
       }
 
-      const msg = signInError.message.toLowerCase();
-
-      if (msg.includes('email not confirmed')) {
-        navigateByEmail(email, setLocation);
-        return;
-      }
-
-      if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: {
-            data: { role: email.trim().toLowerCase() === 'admin@mawq3i.com' ? 'admin' : 'owner' },
-          },
-        });
-
-        if (signUpError) {
-          setError(isAr ? 'كلمة المرور غير صحيحة' : 'Incorrect password. Please try again.');
-          return;
-        }
-
-        if (signUpData.session) {
-          navigateByEmail(signUpData.user?.email ?? email, setLocation);
-        } else {
-          navigateByEmail(email, setLocation);
-        }
-        return;
-      }
-
-      setError(isAr ? 'حدث خطأ، يرجى المحاولة مجدداً' : 'An error occurred. Please try again.');
+      setError(isAr ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة' : 'Incorrect email or password');
     } catch {
-      navigateByEmail(email, setLocation);
+      setError(isAr ? 'حدث خطأ، يرجى المحاولة مجدداً' : 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
