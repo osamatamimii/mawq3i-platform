@@ -131,7 +131,7 @@ export default function StoreFront() {
   const accentColor = store.primaryColor ?? '#52FF3F';
 
   return (
-    <div className="min-h-screen bg-background" dir={isAr ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen bg-background" dir={isAr ? 'rtl' : 'ltr'} style={{ '--primary': accentColor } as React.CSSProperties}>
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/50">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -237,7 +237,14 @@ export default function StoreFront() {
                     <span className="text-lg font-bold font-mono" style={{ color: accentColor }}>
                       {product.currency === 'ILS' ? '₪' : '﷼'}{product.price}
                     </span>
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded font-mono">{product.currency}</span>
+                    <div className="flex items-center gap-1.5">
+                      {product.stock <= 5 && (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                          {isAr ? `${product.stock} متبقي` : `${product.stock} left`}
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded font-mono">{product.currency}</span>
+                    </div>
                   </div>
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
                     <Button

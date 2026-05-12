@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
 import { Product } from '@/data/mockData';
-import { getProducts, addProduct, updateProduct, deleteProduct } from '@/lib/db';
+import { getProducts, updateProduct, deleteProduct } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Loader2, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Package, Camera } from 'lucide-react';
 
 const emojis = ['🕌', '🌿', '💎', '☕', '🫐', '🪔', '✨', '💍'];
 
@@ -24,6 +25,9 @@ export default function Products() {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const uploadTargetRef = useRef<string | null>(null);
 
   useEffect(() => {
     getProducts(currentStore?.id).then(data => {
@@ -31,6 +35,28 @@ export default function Products() {
       setLoading(false);
     });
   }, [currentStore?.id]);
+
+  const openImageUpload = (productId: string) => {
+    uploadTargetRef.current = productId;
+    imageInputRef.current?.click();
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const productId = uploadTargetRef.current;
+    if (!file || !productId || !currentStore) return;
+    if (imageInputRef.current) imageInputRef.current.value = '';
+
+    setUploadingImageId(productId);
+    const path = `${currentStore.id}/${productId}/${file.name}`;
+    const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: true });
+    if (!error) {
+      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
+      await updateProduct(productId, { imageUrl: publicUrl });
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, imageUrl: publicUrl } : p));
+    }
+    setUploadingImageId(null);
+  };
 
   const toggleVisibility = async (id: string) => {
     const product = products.find(p => p.id === id);
@@ -66,6 +92,7 @@ export default function Products() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
+      <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">{isAr ? 'قائمة المنتجات' : 'Products'}</h2>
@@ -116,10 +143,23 @@ export default function Products() {
                     <motion.tr key={product.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                       className="border-b border-border/30 hover:bg-white/[0.02] transition-colors" data-testid={`row-product-${product.id}`}>
                       <td className="px-6 py-4">
-                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg overflow-hidden">
-                          {product.imageUrl
-                            ? <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
-                            : (emojis[parseInt(product.id) - 1] ?? '📦')}
+                        <div
+                          className="relative w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg overflow-hidden group cursor-pointer"
+                          onClick={() => openImageUpload(product.id)}
+                          title={isAr ? 'انقر لتغيير الصورة' : 'Click to change image'}
+                        >
+                          {uploadingImageId === product.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                          ) : (
+                            <>
+                              {product.imageUrl
+                                ? <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
+                                : <span>{emojis[parseInt(product.id) - 1] ?? '📦'}</span>}
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                <Camera className="w-3.5 h-3.5 text-white" />
+                              </div>
+                            </>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">
