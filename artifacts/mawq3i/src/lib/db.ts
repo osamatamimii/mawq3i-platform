@@ -216,6 +216,20 @@ export async function getStoreBySlug(slug: string): Promise<StoreRecord | null> 
   }
 }
 
+export async function getStoreByDomain(domain: string): Promise<StoreRecord | null> {
+  try {
+    const { data, error } = await supabase
+      .from('stores')
+      .select('*')
+      .eq('domain', domain)
+      .single();
+    if (error || !data) return null;
+    return rowToStore(data);
+  } catch {
+    return null;
+  }
+}
+
 export async function addStore(store: Omit<StoreRecord, 'id'>): Promise<StoreRecord | null> {
   try {
     const row = {

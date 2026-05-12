@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRoute } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
 import { StoreRecord, Product } from '@/data/mockData';
-import { getProducts, createOrder, getStoreBySlug } from '@/lib/db';
+import { getProducts, createOrder, getStoreBySlug, getStoreByDomain } from '@/lib/db';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,9 +40,22 @@ export default function StoreFront() {
   const [formError, setFormError] = useState('');
 
   useEffect(() => {
-    if (!slug) return;
+    const hostname = window.location.hostname;
+    const isCustomDomain =
+      hostname !== 'localhost' &&
+      !hostname.includes('.replit.dev') &&
+      !hostname.includes('.replit.app') &&
+      hostname !== 'mawq3i.co' &&
+      !hostname.endsWith('.mawq3i.co');
+
+    const resolveStore = isCustomDomain
+      ? getStoreByDomain(hostname)
+      : slug
+        ? getStoreBySlug(slug)
+        : Promise.resolve(null);
+
     setStoreLoading(true);
-    getStoreBySlug(slug).then(s => {
+    resolveStore.then(s => {
       setStore(s);
       setStoreLoading(false);
       if (s) {
