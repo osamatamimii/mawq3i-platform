@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { updateStoreSettings } from '@/lib/db';
+import { uploadStoreLogo } from '@/lib/storage';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Check, Loader2 } from 'lucide-react';
+import { Upload, Check, Loader2, ImageIcon } from 'lucide-react';
 
 export default function Settings() {
   const { language, currentStore, storeLoading, refreshStore } = useAppContext();
@@ -18,6 +20,7 @@ export default function Settings() {
 
   const [settings, setSettings] = useState({
     storeName: '',
+    description: '',
     primaryColor: '#52FF3F',
     defaultCurrency: 'ILS' as 'ILS' | 'SAR',
     whatsapp: '',
@@ -26,11 +29,13 @@ export default function Settings() {
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     if (currentStore) {
       setSettings({
         storeName: currentStore.name,
+        description: currentStore.description ?? '',
         primaryColor: currentStore.primaryColor ?? '#52FF3F',
         defaultCurrency: currentStore.currency,
         whatsapp: currentStore.ownerPhone,
@@ -56,16 +61,27 @@ export default function Settings() {
     setSaving(true);
 
     let logoUrl = currentStore.logoUrl ?? '';
+
     if (logoFile) {
-      logoUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.readAsDataURL(logoFile);
-      });
+      setUploadingLogo(true);
+      const uploaded = await uploadStoreLogo(logoFile, currentStore.id);
+      setUploadingLogo(false);
+      if (uploaded) {
+        logoUrl = uploaded;
+      } else {
+        toast({
+          title: isAr ? 'تعذّر رفع الشعار' : 'Logo upload failed',
+          description: isAr
+            ? 'تأكد من وجود bucket باسم store-assets في Supabase Storage'
+            : 'Make sure a bucket named "store-assets" exists in Supabase Storage',
+          variant: 'destructive',
+        });
+      }
     }
 
     await updateStoreSettings(currentStore.id, {
       name: settings.storeName,
+      description: settings.description,
       ownerPhone: settings.whatsapp,
       primaryColor: settings.primaryColor,
       logoUrl,
@@ -79,7 +95,7 @@ export default function Settings() {
 
     toast({
       title: isAr ? 'تم الحفظ بنجاح' : 'Settings saved',
-      description: isAr ? 'تم حفظ إعدادات المتجر وتطبيقها' : 'Store settings have been saved successfully.',
+      description: isAr ? 'تم حفظ إعدادات المتجر وتطبيقها' : 'Store settings have been saved and applied.',
     });
   };
 
@@ -93,8 +109,8 @@ export default function Settings() {
   );
 
   const Field = ({ labelAr, labelEn, children }: { labelAr: string; labelEn: string; children: React.ReactNode }) => (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
-      <Label className="text-sm text-muted-foreground">{isAr ? labelAr : labelEn}</Label>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
+      <Label className="text-sm text-muted-foreground sm:pt-2">{isAr ? labelAr : labelEn}</Label>
       <div className="sm:col-span-2">{children}</div>
     </div>
   );
@@ -133,6 +149,15 @@ export default function Settings() {
           />
         </Field>
 
+        <Field labelAr="وصف المتجر" labelEn="Store Description">
+          <Textarea
+            value={settings.description}
+            onChange={e => set('description', e.target.value)}
+            className="bg-background/50 border-border/50 resize-none h-20"
+            placeholder={isAr ? 'اكتب وصفاً مختصراً لمتجرك...' : 'Write a brief description of your store...'}
+          />
+        </Field>
+
         <Field labelAr="الشعار" labelEn="Logo">
           <div
             className="flex items-center gap-4 px-4 py-3 border border-dashed border-border/60 rounded-lg cursor-pointer hover:border-primary/40 transition-colors bg-background/30"
@@ -141,13 +166,23 @@ export default function Settings() {
             {logoPreview ? (
               <img src={logoPreview} alt="logo" className="w-10 h-10 object-contain rounded-md" />
             ) : (
-              <Upload className="w-5 h-5 text-muted-foreground" />
+              <ImageIcon className="w-5 h-5 text-muted-foreground" />
             )}
-            <span className="text-sm text-muted-foreground">
-              {logoPreview
-                ? (isAr ? 'انقر لتغيير الشعار' : 'Click to change logo')
-                : (isAr ? 'رفع شعار المتجر' : 'Upload store logo')}
-            </span>
+            <div>
+              <span className="text-sm text-muted-foreground block">
+                {logoFile
+                  ? logoFile.name
+                  : logoPreview
+                  ? (isAr ? 'انقر لتغيير الشعار' : 'Click to change logo')
+                  : (isAr ? 'رفع شعار المتجر' : 'Upload store logo')}
+              </span>
+              {logoFile && (
+                <span className="text-xs text-primary">
+                  {isAr ? 'سيُرفع عند الحفظ' : 'Will upload on save'}
+                </span>
+              )}
+            </div>
+            <Upload className="w-4 h-4 text-muted-foreground ms-auto" />
             <input ref={fileRef} type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
           </div>
         </Field>
@@ -165,6 +200,10 @@ export default function Settings() {
               onChange={e => set('primaryColor', e.target.value)}
               className="bg-background/50 border-border/50 font-mono"
               dir="ltr"
+            />
+            <div
+              className="w-10 h-10 rounded-lg border border-border/50 flex-shrink-0"
+              style={{ backgroundColor: settings.primaryColor }}
             />
           </div>
         </Field>
@@ -220,11 +259,18 @@ export default function Settings() {
           className="w-full h-11 font-medium shadow-[0_0_20px_rgba(82,255,63,0.15)] hover:shadow-[0_0_25px_rgba(82,255,63,0.25)] transition-all"
         >
           {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin me-2" />
+            <>
+              <Loader2 className="w-4 h-4 animate-spin me-2" />
+              {uploadingLogo
+                ? (isAr ? 'جاري رفع الشعار...' : 'Uploading logo...')
+                : (isAr ? 'جاري الحفظ...' : 'Saving...')}
+            </>
           ) : (
-            <Check className="w-4 h-4 me-2" />
+            <>
+              <Check className="w-4 h-4 me-2" />
+              {isAr ? 'حفظ الإعدادات' : 'Save Settings'}
+            </>
           )}
-          {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ الإعدادات' : 'Save Settings')}
         </Button>
       </motion.div>
     </motion.div>

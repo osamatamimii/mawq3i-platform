@@ -46,6 +46,7 @@ export type StoreRecord = {
   joinDate: string;
   primaryColor?: string;
   logoUrl?: string;
+  description?: string;
 };
 
 export type Client = {

@@ -70,6 +70,7 @@ function rowToStore(row: any): StoreRecord {
     joinDate: row.join_date ?? '',
     primaryColor: row.primary_color ?? '#52FF3F',
     logoUrl: row.logo_url ?? '',
+    description: row.description ?? '',
   };
 }
 
@@ -271,6 +272,7 @@ export async function updateStoreSettings(id: string, settings: {
   logoUrl?: string;
   currency?: string;
   domain?: string;
+  description?: string;
 }): Promise<boolean> {
   try {
     const row: Record<string, unknown> = {};
@@ -280,8 +282,15 @@ export async function updateStoreSettings(id: string, settings: {
     if (settings.logoUrl !== undefined) row.logo_url = settings.logoUrl;
     if (settings.currency !== undefined) row.currency = settings.currency;
     if (settings.domain !== undefined) row.domain = settings.domain;
+
     const { error } = await supabase.from('stores').update(row).eq('id', id);
-    return !error;
+    if (error) return false;
+
+    if (settings.description !== undefined) {
+      await supabase.from('stores').update({ description: settings.description }).eq('id', id);
+    }
+
+    return true;
   } catch {
     return false;
   }

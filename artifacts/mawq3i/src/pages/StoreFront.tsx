@@ -179,7 +179,9 @@ export default function StoreFront() {
               {isAr ? 'تسوق معنا' : 'Shop With Us'}
             </h1>
             <p className="text-muted-foreground text-lg max-w-xl mx-auto mb-10">
-              {isAr ? 'منتجات أصيلة وفاخرة تصل إليك بكل سهولة وسرعة' : 'Premium authentic products delivered to your door'}
+              {store.description
+                ? store.description
+                : isAr ? 'منتجات أصيلة وفاخرة تصل إليك بكل سهولة وسرعة' : 'Premium authentic products delivered to your door'}
             </p>
           </motion.div>
         </div>
