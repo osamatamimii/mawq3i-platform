@@ -2,8 +2,13 @@ import { useAppContext } from '@/context/AppContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
+import { Menu } from 'lucide-react';
 
-export function Navbar() {
+interface NavbarProps {
+  onMenuClick: () => void;
+}
+
+export function Navbar({ onMenuClick }: NavbarProps) {
   const { language, setLanguage } = useAppContext();
   const [location] = useLocation();
   const isAr = language === 'ar';
@@ -20,10 +25,20 @@ export function Navbar() {
   const title = routeNames[location] ? (isAr ? routeNames[location].ar : routeNames[location].en) : '';
 
   return (
-    <header className="h-16 border-b border-border bg-background/50 backdrop-blur-sm flex items-center justify-between px-6 sticky top-0 z-20">
-      <h2 className="text-xl font-semibold">{title}</h2>
+    <header className="h-16 border-b border-border bg-background/50 backdrop-blur-sm flex items-center justify-between px-4 md:px-6 sticky top-0 z-20">
+      <div className="flex items-center gap-3">
+        {/* Hamburger — mobile only */}
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+          aria-label="Open menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <h2 className="text-lg md:text-xl font-semibold">{title}</h2>
+      </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 md:gap-4">
         <Button
           variant="outline"
           size="sm"
@@ -34,7 +49,7 @@ export function Navbar() {
           {language === 'ar' ? 'EN' : 'AR'}
         </Button>
 
-        <div className="flex items-center gap-3 ps-4 border-s border-border/50">
+        <div className="flex items-center gap-3 ps-3 md:ps-4 border-s border-border/50">
           <div className="text-sm hidden sm:block">
             <p className="font-medium">{isAr ? 'صاحب المتجر' : 'Store Owner'}</p>
             <p className="text-xs text-muted-foreground">owner@mawq3i.com</p>
