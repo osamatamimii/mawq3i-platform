@@ -110,14 +110,8 @@ export default function StoreFront() {
     setCompletedOrderId(orderId);
     setOrderState('done');
 
-    const productName = isAr ? selectedProduct.nameAr : selectedProduct.nameEn;
-    const currencySymbol = selectedProduct.currency === 'ILS' ? '₪' : '﷼';
-    const msg = isAr
-      ? `مرحباً، أود طلب المنتج التالي:\n🛍️ المنتج: ${productName}\n💰 السعر: ${currencySymbol}${selectedProduct.price} ${selectedProduct.currency}\n📋 رقم الطلب: ${orderId}\n👤 الاسم: ${customerName}\n📞 الهاتف: ${customerPhone}`
-      : `Hello, I'd like to order:\n🛍️ Product: ${productName}\n💰 Price: ${currencySymbol}${selectedProduct.price} ${selectedProduct.currency}\n📋 Order ID: ${orderId}\n👤 Name: ${customerName}\n📞 Phone: ${customerPhone}`;
-
-    const phone = (store.ownerPhone ?? '').replace(/\D/g, '');
-    if (phone) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    const msg = `طلب جديد 🛍️%0aالمنتج: ${selectedProduct.nameAr}%0aالعميل: ${customerName}%0aالهاتف: ${customerPhone}%0aالمبلغ: ${selectedProduct.price} ${selectedProduct.currency}`;
+    window.open(`https://wa.me/${store.ownerPhone.replace(/\D/g, '')}?text=${msg}`, '_blank');
   }
 
   if (storeLoading) {

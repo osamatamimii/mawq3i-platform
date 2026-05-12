@@ -297,14 +297,10 @@ export async function updateStoreSettings(id: string, settings: {
     if (settings.currency !== undefined) row.currency = settings.currency;
     if (settings.domain !== undefined) row.domain = settings.domain;
 
+    if (settings.description !== undefined) row.description = settings.description;
+
     const { error } = await supabase.from('stores').update(row).eq('id', id);
-    if (error) return false;
-
-    if (settings.description !== undefined) {
-      await supabase.from('stores').update({ description: settings.description }).eq('id', id);
-    }
-
-    return true;
+    return !error;
   } catch {
     return false;
   }
