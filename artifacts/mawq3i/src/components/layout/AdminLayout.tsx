@@ -72,8 +72,11 @@ function AdminSidebar({ open, onClose }: AdminSidebarProps) {
         className={cn(
           'fixed lg:static inset-y-0 start-0 z-50 w-64 h-full bg-[#080b0f] border-e border-white/[0.06] flex flex-col text-card-foreground flex-shrink-0',
           'transition-transform duration-300 ease-in-out',
-          'ltr:-translate-x-full rtl:translate-x-full lg:translate-x-0',
-          open && 'translate-x-0'
+          open
+            ? 'translate-x-0'
+            : isAr
+            ? 'max-lg:translate-x-full'
+            : 'max-lg:-translate-x-full'
         )}
       >
         {/* Close button — mobile only */}
