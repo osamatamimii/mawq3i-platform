@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, LogIn, ExternalLink, Pencil, BanIcon, CheckCircle2, Loader2, Trash2 } from 'lucide-react';
 
+const SUPABASE_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
+
 const subStatusCfg: Record<string, { ar: string; en: string; cls: string }> = {
   active: { ar: 'نشط', en: 'Active', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
   expired: { ar: 'منتهي', en: 'Expired', cls: 'bg-red-500/15 text-red-400 border-red-500/25' },
@@ -22,6 +24,14 @@ const storStatusCfg: Record<string, { ar: string; en: string; cls: string }> = {
   active: { ar: 'نشط', en: 'Active', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
   suspended: { ar: 'موقوف', en: 'Suspended', cls: 'bg-red-500/15 text-red-400 border-red-500/25' },
 };
+
+type AddAlert = { type: 'success' | 'warning'; message: string } | null;
+
+const emptyNew = { name: '', slug: '', domain: '', currency: 'ILS', ownerName: '', ownerEmail: '', ownerPhone: '', password: '' };
+
+function toSlug(name: string) {
+  return name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+}
 
 export default function AdminStores() {
   const { language } = useAppContext();
@@ -34,7 +44,8 @@ export default function AdminStores() {
   const [showAdd, setShowAdd] = useState(false);
   const [editStore, setEditStore] = useState<StoreRecord | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [newStore, setNewStore] = useState({ name: '', domain: '', currency: 'ILS', ownerName: '', ownerEmail: '', ownerPhone: '' });
+  const [newStore, setNewStore] = useState(emptyNew);
+  const [addAlert, setAddAlert] = useState<AddAlert>(null);
 
   useEffect(() => {
     getAllStores().then(data => {
@@ -42,6 +53,10 @@ export default function AdminStores() {
       setLoading(false);
     });
   }, []);
+
+  function handleNameChange(name: string) {
+    setNewStore(s => ({ ...s, name, slug: toSlug(name) }));
+  }
 
   const toggleStatus = async (id: string) => {
     const store = stores.find(s => s.id === id);
@@ -52,48 +67,69 @@ export default function AdminStores() {
   };
 
   const handleAdd = async () => {
-    if (!newStore.name || !newStore.domain || !newStore.ownerEmail) return;
+    if (!newStore.name || !newStore.ownerEmail || !newStore.password) return;
     setSaving(true);
-    const slug = newStore.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+    setAddAlert(null);
 
+    const slug = newStore.slug || toSlug(newStore.name);
+    const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY as string | undefined;
+
+    let authOk = false;
     try {
-      // 1. Create Supabase auth user + send welcome email via API server
-      const appUrl = window.location.origin;
-      const apiRes = await fetch(`${appUrl}/api/stores/create-with-user`, {
+      const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceKey ?? ''}`,
+          'apikey': serviceKey ?? '',
+        },
         body: JSON.stringify({
-          storeName: newStore.name,
-          storeSlug: slug,
-          ownerEmail: newStore.ownerEmail,
-          ownerName: newStore.ownerName,
-          currency: newStore.currency,
-          appUrl,
+          email: newStore.ownerEmail,
+          password: newStore.password,
+          email_confirm: true,
         }),
       });
-
-      if (!apiRes.ok) {
-        const err = await apiRes.json().catch(() => ({}));
-        throw new Error((err as any).error ?? 'فشل إنشاء حساب المستخدم');
-      }
-    } catch (err: any) {
-      console.error('create-with-user error:', err);
+      authOk = authRes.ok;
+    } catch {
+      authOk = false;
     }
 
-    // 2. Save store record to Supabase DB regardless
     const created = await addStore({
-      name: newStore.name, slug, domain: newStore.domain,
-      ownerName: newStore.ownerName, ownerEmail: newStore.ownerEmail, ownerPhone: newStore.ownerPhone,
-      currency: newStore.currency as 'ILS' | 'SAR', status: 'active',
-      ordersCount: 0, totalSales: 0, subscriptionStatus: 'trial', subscriptionPlan: 'monthly',
+      name: newStore.name,
+      slug,
+      domain: newStore.domain,
+      ownerName: newStore.ownerName,
+      ownerEmail: newStore.ownerEmail,
+      ownerPhone: newStore.ownerPhone,
+      currency: newStore.currency as 'ILS' | 'SAR',
+      status: 'active',
+      ordersCount: 0,
+      totalSales: 0,
+      subscriptionStatus: 'trial',
+      subscriptionPlan: 'monthly',
       subscriptionPaid: false,
       renewalDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
       joinDate: new Date().toISOString().slice(0, 10),
     });
+
     if (created) setStores(prev => [created, ...prev]);
+
     setSaving(false);
     setShowAdd(false);
-    setNewStore({ name: '', domain: '', currency: 'ILS', ownerName: '', ownerEmail: '', ownerPhone: '' });
+
+    if (authOk) {
+      setAddAlert({
+        type: 'success',
+        message: `✅ تم إنشاء المتجر بنجاح - بيانات الدخول: البريد: ${newStore.ownerEmail} | كلمة المرور: ${newStore.password}`,
+      });
+    } else {
+      setAddAlert({
+        type: 'warning',
+        message: `⚠️ تم إنشاء المتجر لكن فشل إنشاء حساب المستخدم. يمكنك إنشاؤه يدوياً لاحقاً.`,
+      });
+    }
+
+    setNewStore(emptyNew);
   };
 
   const saveEdit = async () => {
@@ -128,12 +164,27 @@ export default function AdminStores() {
           <p className="text-sm text-white/40">{stores.length} {isAr ? 'متجر' : 'stores'}</p>
         </div>
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-          <Button onClick={() => setShowAdd(true)} className="gap-2">
+          <Button onClick={() => { setShowAdd(true); setAddAlert(null); }} className="gap-2">
             <Plus className="w-4 h-4" />
             {isAr ? 'إضافة متجر' : 'Add Store'}
           </Button>
         </motion.div>
       </div>
+
+      {addAlert && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`rounded-xl border px-4 py-3 text-sm font-medium ${
+            addAlert.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+          }`}
+          dir="rtl"
+        >
+          {addAlert.message}
+        </motion.div>
+      )}
 
       <Card className="bg-white/[0.03] border-white/[0.07]">
         <CardContent className="p-0">
@@ -226,8 +277,26 @@ export default function AdminStores() {
         <DialogContent className="bg-[#0e1217] border-white/10 sm:max-w-lg">
           <DialogHeader><DialogTitle className="text-white">{isAr ? 'إضافة متجر جديد' : 'Add New Store'}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-white/60 text-xs">{isAr ? 'اسم المتجر' : 'Store Name'}</Label>
+              <Input
+                value={newStore.name}
+                onChange={e => handleNameChange(e.target.value)}
+                placeholder={isAr ? 'مثال: متجر الأناقة' : 'e.g. Elegance Store'}
+                className="bg-white/[0.04] border-white/10 text-white placeholder:text-white/25"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-white/60 text-xs">{isAr ? 'الرابط المختصر (Slug)' : 'Slug'}</Label>
+              <Input
+                value={newStore.slug}
+                onChange={e => setNewStore(s => ({ ...s, slug: e.target.value }))}
+                placeholder="elegance-store"
+                className="bg-white/[0.04] border-white/10 text-white placeholder:text-white/25 font-mono"
+                dir="ltr"
+              />
+            </div>
             {[
-              { key: 'name', labelAr: 'اسم المتجر', labelEn: 'Store Name', ph: isAr ? 'مثال: متجر الأناقة' : 'e.g. Elegance Store' },
               { key: 'domain', labelAr: 'الدومين', labelEn: 'Domain', ph: 'store.mawq3i.com', ltr: true },
               { key: 'ownerName', labelAr: 'اسم المالك', labelEn: 'Owner Name', ph: '' },
               { key: 'ownerEmail', labelAr: 'البريد الإلكتروني', labelEn: 'Owner Email', ph: '', ltr: true },
@@ -235,10 +304,26 @@ export default function AdminStores() {
             ].map(f => (
               <div key={f.key} className="space-y-1.5">
                 <Label className="text-white/60 text-xs">{isAr ? f.labelAr : f.labelEn}</Label>
-                <Input value={(newStore as any)[f.key]} onChange={e => setNewStore(s => ({ ...s, [f.key]: e.target.value }))} placeholder={f.ph}
-                  className="bg-white/[0.04] border-white/10 text-white placeholder:text-white/25" dir={f.ltr ? 'ltr' : undefined} />
+                <Input
+                  value={(newStore as any)[f.key]}
+                  onChange={e => setNewStore(s => ({ ...s, [f.key]: e.target.value }))}
+                  placeholder={f.ph}
+                  className="bg-white/[0.04] border-white/10 text-white placeholder:text-white/25"
+                  dir={f.ltr ? 'ltr' : undefined}
+                />
               </div>
             ))}
+            <div className="space-y-1.5">
+              <Label className="text-white/60 text-xs">{isAr ? 'كلمة المرور' : 'Password'}</Label>
+              <Input
+                value={newStore.password}
+                onChange={e => setNewStore(s => ({ ...s, password: e.target.value }))}
+                type="text"
+                placeholder={isAr ? 'كلمة مرور قوية' : 'Strong password'}
+                className="bg-white/[0.04] border-white/10 text-white placeholder:text-white/25 font-mono"
+                dir="ltr"
+              />
+            </div>
             <div className="space-y-1.5">
               <Label className="text-white/60 text-xs">{isAr ? 'العملة' : 'Currency'}</Label>
               <Select value={newStore.currency} onValueChange={v => setNewStore(s => ({ ...s, currency: v }))}>
@@ -252,7 +337,9 @@ export default function AdminStores() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAdd(false)} className="border-white/10 text-white/60">{isAr ? 'إلغاء' : 'Cancel'}</Button>
-            <Button onClick={handleAdd} disabled={saving}>{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (isAr ? 'إضافة' : 'Add')}</Button>
+            <Button onClick={handleAdd} disabled={saving || !newStore.name || !newStore.ownerEmail || !newStore.password}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (isAr ? 'إضافة' : 'Add')}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
