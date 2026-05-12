@@ -52,9 +52,35 @@ export default function AdminStores() {
   };
 
   const handleAdd = async () => {
-    if (!newStore.name || !newStore.domain) return;
+    if (!newStore.name || !newStore.domain || !newStore.ownerEmail) return;
     setSaving(true);
     const slug = newStore.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+
+    try {
+      // 1. Create Supabase auth user + send welcome email via API server
+      const appUrl = window.location.origin;
+      const apiRes = await fetch(`${appUrl}/api/stores/create-with-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeName: newStore.name,
+          storeSlug: slug,
+          ownerEmail: newStore.ownerEmail,
+          ownerName: newStore.ownerName,
+          currency: newStore.currency,
+          appUrl,
+        }),
+      });
+
+      if (!apiRes.ok) {
+        const err = await apiRes.json().catch(() => ({}));
+        throw new Error((err as any).error ?? 'فشل إنشاء حساب المستخدم');
+      }
+    } catch (err: any) {
+      console.error('create-with-user error:', err);
+    }
+
+    // 2. Save store record to Supabase DB regardless
     const created = await addStore({
       name: newStore.name, slug, domain: newStore.domain,
       ownerName: newStore.ownerName, ownerEmail: newStore.ownerEmail, ownerPhone: newStore.ownerPhone,
