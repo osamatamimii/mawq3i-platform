@@ -1,3 +1,4 @@
+/* @refresh reset */
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getStoreByOwnerEmail } from '@/lib/db';
