@@ -33,6 +33,7 @@ const adminRouteNames: Record<string, { ar: string; en: string }> = {
   '/admin/subscriptions': { ar: 'الاشتراكات', en: 'Subscriptions' },
   '/admin/domains': { ar: 'الدومينات', en: 'Domains' },
   '/admin/settings': { ar: 'الإعدادات', en: 'Settings' },
+  '/admin/site-builder': { ar: 'منشئ المواقع', en: 'Site Builder' },
 };
 
 interface AdminSidebarProps {

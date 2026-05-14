@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, LogIn, ExternalLink, Pencil, BanIcon, CheckCircle2, Loader2, Trash2 } from 'lucide-react';
+import { Plus, LogIn, ExternalLink, Pencil, BanIcon, CheckCircle2, Loader2, Trash2, Globe } from 'lucide-react';
 
 const SUPABASE_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
 
@@ -245,6 +245,9 @@ export default function AdminStores() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-1.5">
+                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-primary/10 hover:border-primary/30 text-white/50 hover:text-primary" title={isAr ? 'منشئ الموقع' : 'Site Builder'} onClick={() => setLocation(`/admin/site-builder/${store.slug}`)}>
+                            <Globe className="w-3 h-3" />
+                          </Button>
                           <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-white/50 hover:text-white" title={isAr ? 'تعديل' : 'Edit'} onClick={() => setEditStore({ ...store })}>
                             <Pencil className="w-3 h-3" />
                           </Button>
