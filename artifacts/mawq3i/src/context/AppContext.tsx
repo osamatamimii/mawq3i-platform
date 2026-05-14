@@ -18,6 +18,7 @@ interface AppContextType {
   authLoading: boolean;
   signOut: () => Promise<void>;
   currentStore: StoreRecord | null;
+  setCurrentStore: (store: StoreRecord | null) => void;
   storeLoading: boolean;
   refreshStore: () => Promise<void>;
 }
@@ -42,20 +43,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.add('dark');
   }, [language, direction]);
 
-  const loadStore = useCallback(async (email: string) => {
+  const loadStore = useCallback(async (email: string, userId?: string) => {
     if (email.toLowerCase() === ADMIN_EMAIL) {
       setCurrentStore(null);
       return;
     }
     setStoreLoading(true);
-    const store = await getStoreByOwnerEmail(email);
+    const store = await getStoreByOwnerEmail(email, userId);
     setCurrentStore(store);
     setStoreLoading(false);
   }, []);
 
   const refreshStore = useCallback(async () => {
     if (!supabaseUser?.email) return;
-    await loadStore(supabaseUser.email);
+    await loadStore(supabaseUser.email, supabaseUser.id);
   }, [supabaseUser, loadStore]);
 
   useEffect(() => {
@@ -64,7 +65,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setSupabaseUser(user);
       if (user?.email?.toLowerCase() === ADMIN_EMAIL) setCurrentUser('admin');
       setAuthLoading(false);
-      if (user?.email) loadStore(user.email);
+      if (user?.email) loadStore(user.email, user.id);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -75,7 +76,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setCurrentStore(null);
       } else {
         setCurrentUser('owner');
-        if (user?.email) loadStore(user.email);
+        if (user?.email) loadStore(user.email, user.id);
         else setCurrentStore(null);
       }
     });
@@ -96,7 +97,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentUser, setCurrentUser,
       supabaseUser, authLoading,
       signOut,
-      currentStore, storeLoading, refreshStore,
+      currentStore, setCurrentStore, storeLoading, refreshStore,
     }}>
       {children}
     </AppContext.Provider>

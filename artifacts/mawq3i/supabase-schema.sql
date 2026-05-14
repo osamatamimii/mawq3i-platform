@@ -66,6 +66,15 @@ create table if not exists orders (
 -- ─── Migration for products table (run if table already exists) ────────────
 -- alter table products add column if not exists image_url text;
 
+
+-- ─── Migration: Add owner_id to stores (run in Supabase SQL Editor) ──────────
+-- alter table stores add column if not exists owner_id uuid references auth.users(id);
+-- update stores s set owner_id = u.id from auth.users u where u.email = s.owner_email;
+-- alter table stores add column if not exists description text;
+-- alter table stores add column if not exists primary_color text default '#52FF3F';
+-- alter table stores add column if not exists logo_url text;
+-- alter table products add column if not exists image_url text;
+
 -- ─── Row Level Security ────────────────────────────────────────────────────
 -- Enable RLS on all tables
 alter table stores   enable row level security;

@@ -34,7 +34,7 @@ function toSlug(name: string) {
 }
 
 export default function AdminStores() {
-  const { language } = useAppContext();
+  const { language, setCurrentStore, setCurrentUser} = useAppContext();
   const isAr = language === 'ar';
   const [, setLocation] = useLocation();
 
@@ -254,7 +254,11 @@ export default function AdminStores() {
                           <a href={store.domain ? `https://${store.domain}` : `/store/${store.slug}`} target="_blank" rel="noopener noreferrer" title={isAr ? 'معاينة' : 'Preview'} className="inline-flex items-center justify-center h-7 w-7 border border-white/10 rounded-md bg-transparent hover:bg-white/5 text-white/50 hover:text-white transition-colors">
                             <ExternalLink className="w-3 h-3" />
                           </a>
-                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-white/50 hover:text-white" title={isAr ? 'دخول كصاحب المتجر' : 'Login as Owner'} onClick={() => setLocation('/dashboard')}>
+                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-white/50 hover:text-white" title={isAr ? 'دخول كصاحب المتجر' : 'Login as Owner'} onClick={() => {
+                            setCurrentStore(store);
+                            setCurrentUser('owner');
+                            setLocation('/dashboard');
+                          }}>
                             <LogIn className="w-3 h-3" />
                           </Button>
                           <Button variant="outline" size="icon" className={`h-7 w-7 border-white/10 bg-transparent ${store.status === 'active' ? 'hover:text-red-400 hover:border-red-500/30' : 'hover:text-emerald-400 hover:border-emerald-500/30'} text-white/50 hover:bg-white/5`}

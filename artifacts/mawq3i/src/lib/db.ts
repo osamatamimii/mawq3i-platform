@@ -188,15 +188,27 @@ export async function getAllStores(): Promise<StoreRecord[]> {
   }
 }
 
-export async function getStoreByOwnerEmail(email: string): Promise<StoreRecord | null> {
+export async function getStoreByOwnerEmail(email: string, userId?: string): Promise<StoreRecord | null> {
   try {
+    // Search by email first
     const { data, error } = await supabase
       .from('stores')
       .select('*')
       .eq('owner_email', email)
-      .single();
-    if (error || !data) return null;
-    return rowToStore(data);
+      .maybeSingle();
+    if (!error && data) return rowToStore(data);
+
+    // Fallback: search by owner_id (auth user ID)
+    if (userId) {
+      const { data: data2, error: error2 } = await supabase
+        .from('stores')
+        .select('*')
+        .eq('owner_id', userId)
+        .maybeSingle();
+      if (!error2 && data2) return rowToStore(data2);
+    }
+
+    return null;
   } catch {
     return null;
   }
