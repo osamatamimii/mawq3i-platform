@@ -113,21 +113,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <div className="p-4 space-y-2 border-t border-border">
-          <button
-            onClick={() => {
-              const url = currentStore?.domain
-                ? `https://${currentStore.domain}`
-                : currentStore?.slug
-                  ? `/store/${currentStore.slug}`
-                  : '/store/';
-              window.open(url, '_blank');
-              onClose();
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors cursor-pointer"
+          <a
+            href={currentStore?.domain ? `https://${currentStore.domain}` : currentStore?.slug ? `/store/${currentStore.slug}` : '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClose}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
           >
             <ExternalLink className="w-5 h-5 flex-shrink-0" />
             <span>{isAr ? 'معاينة المتجر' : 'Preview Store'}</span>
-          </button>
+          </a>
 
           <button
             onClick={handleLogout}

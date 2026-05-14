@@ -251,9 +251,9 @@ export default function AdminStores() {
                           <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-white/50 hover:text-white" title={isAr ? 'تعديل' : 'Edit'} onClick={() => setEditStore({ ...store })}>
                             <Pencil className="w-3 h-3" />
                           </Button>
-                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-white/50 hover:text-white" title={isAr ? 'معاينة' : 'Preview'} onClick={() => { const url = store.domain ? `https://${store.domain}` : `/store/${store.slug}`; window.open(url, '_blank'); }}>
+                          <a href={store.domain ? `https://${store.domain}` : `/store/${store.slug}`} target="_blank" rel="noopener noreferrer" title={isAr ? 'معاينة' : 'Preview'} className="inline-flex items-center justify-center h-7 w-7 border border-white/10 rounded-md bg-transparent hover:bg-white/5 text-white/50 hover:text-white transition-colors">
                             <ExternalLink className="w-3 h-3" />
-                          </Button>
+                          </a>
                           <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-white/50 hover:text-white" title={isAr ? 'دخول كصاحب المتجر' : 'Login as Owner'} onClick={() => setLocation('/dashboard')}>
                             <LogIn className="w-3 h-3" />
                           </Button>
