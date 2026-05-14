@@ -101,7 +101,7 @@ export default function AdminDomains() {
                       </td>
                       <td className="px-6 py-4">
                         <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-white/50 hover:text-white"
-                          onClick={() => window.open(`/store/${store.slug}`, '_blank')}>
+                          onClick={() => { const url = store.domain ? `https://${store.domain}` : `/store/${store.slug}`; window.open(url, '_blank'); }}>
                           <ExternalLink className="w-3 h-3" />
                         </Button>
                       </td>

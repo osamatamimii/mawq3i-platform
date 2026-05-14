@@ -20,7 +20,7 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const [location, setLocation] = useLocation();
-  const { language, signOut } = useAppContext();
+  const { language, signOut, currentStore } = useAppContext();
   const isAr = language === 'ar';
 
   const menuItems = [
@@ -114,7 +114,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <div className="p-4 space-y-2 border-t border-border">
           <button
-            onClick={() => { window.open('/store/elegance', '_blank'); onClose(); }}
+            onClick={() => {
+              const url = currentStore?.domain
+                ? `https://${currentStore.domain}`
+                : currentStore?.slug
+                  ? `/store/${currentStore.slug}`
+                  : '/store/';
+              window.open(url, '_blank');
+              onClose();
+            }}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors cursor-pointer"
           >
             <ExternalLink className="w-5 h-5 flex-shrink-0" />
