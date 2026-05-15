@@ -5,6 +5,7 @@ import { Order, Product } from '@/data/mockData';
 import { getOrders, getProducts } from '@/lib/db';
 import { motion } from 'framer-motion';
 import { TrendingUp, ShoppingCart, Package, AlertTriangle, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { requestNotificationPermission, startOrderPolling } from '@/lib/notifications';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const cardVariants = {
@@ -45,6 +46,11 @@ export default function Dashboard() {
       setLoading(false);
     });
   }, [currentStore?.id]);
+
+  useEffect(() => {
+    // Request notification permission for order alerts
+    requestNotificationPermission();
+  }, []);
 
   const totalSales = orders.reduce((sum, o) => sum + o.amount, 0);
   const lowStockCount = products.filter(p => p.stock <= 5).length;

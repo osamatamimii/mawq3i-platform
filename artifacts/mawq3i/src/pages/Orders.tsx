@@ -5,7 +5,8 @@ import { getOrders, updateOrderStatus } from '@/lib/db';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2, Bell } from 'lucide-react';
+import { sendOrderNotification } from '@/lib/notifications';
 
 const statusConfig: Record<OrderStatus, { ar: string; en: string; className: string }> = {
   new: { ar: 'جديد', en: 'New', className: 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30' },
@@ -44,9 +45,17 @@ export default function Orders() {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
       <Card className="bg-card border-border/50 shadow-lg">
         <CardHeader className="border-b border-border/50 pb-4">
-          <CardTitle className="text-lg font-semibold">
-            {isAr ? 'قائمة الطلبات' : 'Orders List'}
-          </CardTitle>
+          <div className="flex items-center gap-3">
+            <CardTitle className="text-lg font-semibold">
+              {isAr ? 'قائمة الطلبات' : 'Orders List'}
+            </CardTitle>
+            {orders.filter(o => o.status === 'new').length > 0 && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                <Bell className="w-3 h-3" />
+                {orders.filter(o => o.status === 'new').length} {isAr ? 'جديد' : 'new'}
+              </span>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground">{orders.length} {isAr ? 'طلب' : 'orders'}</p>
         </CardHeader>
         <CardContent className="p-0">
