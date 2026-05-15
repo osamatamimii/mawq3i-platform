@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'wouter';
 import { Link } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
 import { Product } from '@/data/mockData';
@@ -19,6 +20,7 @@ const emojis = ['🕌', '🌿', '💎', '☕', '🫐', '🪔', '✨', '💍'];
 
 export default function Products() {
   const { language, currentStore } = useAppContext();
+  const [, setLocation] = useLocation();
   const isAr = language === 'ar';
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,7 +187,7 @@ export default function Products() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/30" onClick={() => setEditProduct({ ...product })} data-testid={`button-edit-${product.id}`}>
+                          <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/30" onClick={() => setLocation(`/dashboard/products/edit/${product.id}`)} data-testid={`button-edit-${product.id}`}>
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
                           <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-red-500/50 hover:text-red-400" onClick={() => setDeleteId(product.id)} data-testid={`button-delete-${product.id}`}>

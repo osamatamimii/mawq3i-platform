@@ -108,3 +108,68 @@ values (
   'ILS', 'active', 1250, 186500,
   'active', 'yearly', true, '2027-01-15', '2025-01-15'
 ) on conflict (slug) do nothing;
+
+-- ─── Migration: Add variants, badge to products; items, address, notes to orders ──
+alter table products add column if not exists variants jsonb default '[]';
+alter table products add column if not exists badge text;
+alter table orders add column if not exists items jsonb;
+alter table orders add column if not exists address text;
+alter table orders add column if not exists notes text;
+
+-- ─── RLS: Products — each store owner sees only their store ──────────────────
+-- Drop permissive policies first (idempotent)
+drop policy if exists "Public read products" on products;
+drop policy if exists "Auth insert products" on products;
+drop policy if exists "Auth update products" on products;
+drop policy if exists "Auth delete products" on products;
+
+-- Re-create with store ownership checks
+create policy "Public read products by store"
+  on products for select using (true);
+
+create policy "Owner insert products"
+  on products for insert
+  with check (
+    store_id in (
+      select id from stores where owner_id = auth.uid() or owner_email = auth.email()
+    )
+  );
+
+create policy "Owner update products"
+  on products for update
+  using (
+    store_id in (
+      select id from stores where owner_id = auth.uid() or owner_email = auth.email()
+    )
+  );
+
+create policy "Owner delete products"
+  on products for delete
+  using (
+    store_id in (
+      select id from stores where owner_id = auth.uid() or owner_email = auth.email()
+    )
+  );
+
+-- ─── RLS: Orders — only store owner can read their orders ───────────────────
+drop policy if exists "Public read orders" on orders;
+drop policy if exists "Auth update orders" on orders;
+
+create policy "Owner read orders"
+  on orders for select
+  using (
+    store_id in (
+      select id from stores where owner_id = auth.uid() or owner_email = auth.email()
+    )
+  );
+
+create policy "Owner update orders"
+  on orders for update
+  using (
+    store_id in (
+      select id from stores where owner_id = auth.uid() or owner_email = auth.email()
+    )
+  );
+
+-- Public can insert orders (storefront visitors)
+-- Already exists: "Public insert orders"

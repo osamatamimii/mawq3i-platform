@@ -16,6 +16,9 @@ function rowToProduct(row: any): Product {
     category: row.category ?? '',
     status: row.status ?? 'visible',
     imageUrl: row.image_url ?? '',
+    badge: row.badge ?? '',
+    variants: row.variants ? (typeof row.variants === 'string' ? JSON.parse(row.variants) : row.variants) : [],
+    storeId: row.store_id ?? '',
   };
 }
 
@@ -32,6 +35,8 @@ function productToRow(p: Partial<Product> & { storeId?: string }) {
     ...(p.status !== undefined && { status: p.status }),
     ...(p.storeId !== undefined && { store_id: p.storeId }),
     ...(p.imageUrl !== undefined && { image_url: p.imageUrl }),
+    ...(p.badge !== undefined && { badge: p.badge }),
+    ...(p.variants !== undefined && { variants: JSON.stringify(p.variants) }),
   };
 }
 
@@ -132,29 +137,37 @@ export async function getOrders(storeId?: string): Promise<Order[]> {
 
 export async function createOrder(params: {
   storeId: string;
-  productId: string;
-  productName: string;
+  items: { productId: string; productName: string; variantLabel?: string; quantity: number; price: number }[];
   customerName: string;
   phone: string;
+  city: string;
+  address?: string;
+  paymentMethod: 'cod' | 'card';
   amount: number;
   currency: 'ILS' | 'SAR';
+  notes?: string;
 }): Promise<Order | null> {
   try {
     const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
     const now = new Date().toISOString().split('T')[0];
+    const firstItem = params.items[0];
+    const productName = params.items.map(i => `${i.productName}${i.variantLabel ? ' (' + i.variantLabel + ')' : ''} x${i.quantity}`).join(', ');
     const { data, error } = await supabase
       .from('orders')
       .insert([{
         id: orderId,
         store_id: params.storeId,
-        product_id: params.productId,
-        product_name: params.productName,
+        product_id: firstItem?.productId ?? '',
+        product_name: productName,
         customer_name: params.customerName,
         phone: params.phone,
-        city: '',
+        city: params.city,
+        address: params.address ?? '',
+        items: JSON.stringify(params.items),
         amount: params.amount,
         currency: params.currency,
-        payment_method: 'واتساب',
+        payment_method: params.paymentMethod,
+        notes: params.notes ?? '',
         status: 'new',
         date: now,
       }])

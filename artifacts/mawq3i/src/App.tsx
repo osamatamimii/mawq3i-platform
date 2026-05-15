@@ -24,6 +24,7 @@ import AdminSubscriptions from "@/pages/admin/Subscriptions";
 import AdminDomains from "@/pages/admin/Domains";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import SiteBuilder from "@/pages/SiteBuilder";
+import EditProduct from "@/pages/EditProduct";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +89,7 @@ function Router() {
               <Route path="/dashboard" component={Dashboard} />
               <Route path="/dashboard/products" component={Products} />
               <Route path="/dashboard/add-product" component={AddProduct} />
+              <Route path="/dashboard/products/edit/:id" component={EditProduct} />
               <Route path="/dashboard/orders" component={Orders} />
               <Route path="/dashboard/analytics" component={Analytics} />
               <Route path="/dashboard/settings" component={Settings} />
