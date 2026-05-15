@@ -46,10 +46,13 @@ function rowToOrder(row: any): Order {
     customerName: row.customer_name ?? '',
     phone: row.phone ?? '',
     city: row.city ?? '',
+    address: row.address ?? '',
     amount: Number(row.amount),
     currency: row.currency ?? 'ILS',
     paymentMethod: row.payment_method ?? '',
     productName: row.product_name ?? '',
+    items: row.items ? (typeof row.items === 'string' ? JSON.parse(row.items) : row.items) : [],
+    notes: row.notes ?? '',
     status: row.status ?? 'new',
     date: row.date ?? '',
   };

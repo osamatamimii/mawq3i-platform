@@ -1,3 +1,10 @@
+export type ProductVariant = {
+  id: string;
+  label: string;
+  imageUrl?: string;
+  stock?: number;
+};
+
 export type Product = {
   id: string;
   nameAr: string;
@@ -10,6 +17,9 @@ export type Product = {
   category: string;
   status: 'visible' | 'hidden';
   imageUrl?: string;
+  badge?: string;
+  variants?: ProductVariant[];
+  storeId?: string;
 };
 
 export type OrderStatus = 'new' | 'processing' | 'delivered' | 'cancelled';
@@ -19,10 +29,13 @@ export type Order = {
   customerName: string;
   phone: string;
   city: string;
+  address?: string;
   amount: number;
   currency: 'ILS' | 'SAR';
   paymentMethod: string;
   productName?: string;
+  items?: { productId: string; productName: string; variantLabel?: string; quantity: number; price: number }[];
+  notes?: string;
   status: OrderStatus;
   date: string;
 };
