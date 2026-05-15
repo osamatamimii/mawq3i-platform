@@ -31,6 +31,18 @@ export default function Orders() {
   const handleStatusChange = async (id: string, status: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
     await updateOrderStatus(id, status);
+    
+    // Notify customer via WhatsApp when order is delivered or confirmed
+    if (status === 'delivered' || status === 'processing') {
+      const order = orders.find(o => o.id === id);
+      if (order?.phone) {
+        const msg = status === 'delivered'
+          ? `مرحباً ${order.customerName}، تم توصيل طلبك رقم ${order.id} بنجاح. شكراً لتسوقك معنا! 🎉`
+          : `مرحباً ${order.customerName}، طلبك رقم ${order.id} قيد التجهيز وسيصلك قريباً. 📦`;
+        const phone = order.phone.replace(/\D/g, '');
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+      }
+    }
   };
 
   if (loading) {
