@@ -106,8 +106,14 @@ export async function getProducts(storeId?: string, useAdmin = false): Promise<P
   }
 }
 
-export async function addProduct(product: Omit<Product, 'id'> & { storeId?: string }): Promise<Product | null> {
+export async function addProduct(product: Omit<Product, 'id'> & { storeId?: string }, useAdmin = false): Promise<Product | null> {
   try {
+    if (useAdmin) {
+      const row = productToRow(product);
+      const data = await adminRest.insert('products', row);
+      if (!data) return null;
+      return rowToProduct(data);
+    }
     const { data, error } = await supabase.from('products').insert([productToRow(product)]).select().single();
     if (error || !data) return null;
     return rowToProduct(data);
@@ -116,8 +122,11 @@ export async function addProduct(product: Omit<Product, 'id'> & { storeId?: stri
   }
 }
 
-export async function updateProduct(id: string, updates: Partial<Product>): Promise<boolean> {
+export async function updateProduct(id: string, updates: Partial<Product>, useAdmin = false): Promise<boolean> {
   try {
+    if (useAdmin) {
+      return await adminRest.update('products', `id=eq.${id}`, productToRow(updates));
+    }
     const { error } = await supabase.from('products').update(productToRow(updates)).eq('id', id);
     return !error;
   } catch {
@@ -125,8 +134,11 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
   }
 }
 
-export async function deleteProduct(id: string): Promise<boolean> {
+export async function deleteProduct(id: string, useAdmin = false): Promise<boolean> {
   try {
+    if (useAdmin) {
+      return await adminRest.delete('products', `id=eq.${id}`);
+    }
     const { error } = await supabase.from('products').delete().eq('id', id);
     return !error;
   } catch {

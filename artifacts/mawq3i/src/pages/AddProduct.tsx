@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2 } from 'lucide-react';
 
 export default function AddProduct() {
-  const { language, currentStore } = useAppContext();
+  const { language, currentStore, isAdminMode } = useAppContext();
   const isAr = language === 'ar';
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -105,7 +105,7 @@ export default function AddProduct() {
       stock: Number(form.stock) || 0, category: form.category,
       status: 'visible', imageUrl, storeId: currentStore.id,
       variants: updatedVariants,
-    });
+    }, isAdminMode);
 
     setSubmitting(false);
     setUploadProgress('');

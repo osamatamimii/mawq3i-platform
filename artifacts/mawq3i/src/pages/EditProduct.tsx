@@ -100,7 +100,7 @@ export default function EditProduct() {
       })
     );
 
-    await updateProduct(product.id, { ...product, imageUrl, variants: updatedVariants });
+    await updateProduct(product.id, { ...product, imageUrl, variants: updatedVariants }, isAdminMode);
     setSaving(false);
     toast({ title: isAr ? 'تم الحفظ' : 'Saved', description: isAr ? 'تم تحديث المنتج بنجاح' : 'Product updated successfully' });
     setLocation('/dashboard/products');

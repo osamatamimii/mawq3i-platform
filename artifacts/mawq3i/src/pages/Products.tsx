@@ -54,7 +54,7 @@ export default function Products() {
     const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: true });
     if (!error) {
       const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path);
-      await updateProduct(productId, { imageUrl: publicUrl });
+      await updateProduct(productId, { imageUrl: publicUrl }, isAdminMode);
       setProducts(prev => prev.map(p => p.id === productId ? { ...p, imageUrl: publicUrl } : p));
     }
     setUploadingImageId(null);
@@ -65,14 +65,14 @@ export default function Products() {
     if (!product) return;
     const newStatus = product.status === 'visible' ? 'hidden' : 'visible';
     setProducts(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
-    await updateProduct(id, { status: newStatus });
+    await updateProduct(id, { status: newStatus }, isAdminMode);
   };
 
   const saveEdit = async () => {
     if (!editProduct) return;
     setSaving(true);
     setProducts(prev => prev.map(p => p.id === editProduct.id ? editProduct : p));
-    await updateProduct(editProduct.id, editProduct);
+    await updateProduct(editProduct.id, editProduct, isAdminMode);
     setSaving(false);
     setEditProduct(null);
   };
@@ -80,7 +80,7 @@ export default function Products() {
   const confirmDelete = async () => {
     if (!deleteId) return;
     setProducts(prev => prev.filter(p => p.id !== deleteId));
-    await deleteProduct(deleteId);
+    await deleteProduct(deleteId, isAdminMode);
     setDeleteId(null);
   };
 
