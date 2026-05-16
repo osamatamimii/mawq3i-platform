@@ -3,16 +3,16 @@ import { useAppContext } from '@/context/AppContext';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, Store, Mail, Phone, ExternalLink } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+
+const SB_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
 
 interface Client {
   id: string;
   email: string;
   store_name: string;
-  store_slug: string;
   domain: string;
   owner_phone: string;
-  subscription: string;
   status: string;
   created_at: string;
 }
@@ -24,37 +24,30 @@ export default function AdminClients() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      const { data } = await supabase
-        .from('stores')
-        .select('id, name, slug, domain, owner_email, owner_phone, subscription, status, created_at')
-        .order('created_at', { ascending: false });
-
-      if (data) {
-        setClients(data.map(s => ({
+    fetch(`${SB_URL}/rest/v1/stores?select=id,name,slug,domain,owner_email,owner_phone,status,created_at&order=created_at.desc`, {
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+    })
+      .then(r => r.json())
+      .then((data: any[]) => {
+        setClients((data || []).map(s => ({
           id: s.id,
           email: s.owner_email || '—',
           store_name: s.name,
-          store_slug: s.slug,
           domain: s.domain || `${s.slug}.mawq3i.co`,
           owner_phone: s.owner_phone || '—',
-          subscription: s.subscription || 'monthly',
           status: s.status || 'active',
           created_at: s.created_at?.split('T')[0] || '—',
         })));
-      }
-      setLoading(false);
-    }
-    load();
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <div className="space-y-5">
@@ -65,13 +58,11 @@ export default function AdminClients() {
 
       {clients.length === 0 ? (
         <Card className="bg-white/[0.03] border-white/[0.07]">
-          <CardContent className="p-0">
-            <div className="flex flex-col items-center justify-center py-24 text-white/30 gap-3">
-              <div className="w-16 h-16 rounded-full bg-white/[0.04] flex items-center justify-center">
-                <Users className="w-7 h-7 text-white/20" />
-              </div>
-              <p className="text-base font-medium text-white/40">{isAr ? 'لا يوجد عملاء بعد' : 'No clients yet'}</p>
+          <CardContent className="flex flex-col items-center justify-center py-24 gap-3">
+            <div className="w-16 h-16 rounded-full bg-white/[0.04] flex items-center justify-center">
+              <Users className="w-7 h-7 text-white/20" />
             </div>
+            <p className="text-base font-medium text-white/40">{isAr ? 'لا يوجد عملاء بعد' : 'No clients yet'}</p>
           </CardContent>
         </Card>
       ) : (
@@ -103,22 +94,19 @@ export default function AdminClients() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5 text-white/60">
-                          <Mail className="w-3.5 h-3.5" />
-                          {c.email}
+                        <div className="flex items-center gap-1.5 text-white/60 text-xs">
+                          <Mail className="w-3.5 h-3.5 shrink-0" />{c.email}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1.5 text-white/60">
-                          <Phone className="w-3.5 h-3.5" />
-                          {c.owner_phone}
+                          <Phone className="w-3.5 h-3.5 shrink-0" />{c.owner_phone}
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <a href={`https://${c.domain}`} target="_blank" rel="noreferrer"
                           className="flex items-center gap-1 text-primary/80 hover:text-primary transition-colors font-mono text-xs">
-                          {c.domain}
-                          <ExternalLink className="w-3 h-3" />
+                          {c.domain}<ExternalLink className="w-3 h-3" />
                         </a>
                       </td>
                       <td className="px-6 py-4 font-mono text-xs text-white/40">{c.created_at}</td>
