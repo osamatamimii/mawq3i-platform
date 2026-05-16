@@ -61,7 +61,7 @@ export default function Orders() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[700px] text-sm">
               <thead>
                 <tr className="border-b border-border/50 text-muted-foreground">
                   <th className="text-start px-6 py-4 font-medium">{isAr ? 'رقم الطلب' : 'Order ID'}</th>
@@ -89,7 +89,13 @@ export default function Orders() {
                     <td className="px-6 py-4 font-mono text-xs text-primary font-bold">{order.id}</td>
                     <td className="px-6 py-4 font-medium">{order.customerName}</td>
                     <td className="px-6 py-4 font-mono text-xs text-muted-foreground" dir="ltr">{order.phone}</td>
-                    <td className="px-6 py-4 text-sm max-w-[140px] truncate">{order.productName || '—'}</td>
+                    <td className="px-6 py-4 text-sm max-w-[140px] truncate">{
+                      order.productName
+                        ? order.productName
+                        : Array.isArray(order.items) && order.items.length > 0
+                          ? (order.items[0] as any).productName || (order.items[0] as any).product_name || '—'
+                          : '—'
+                    }</td>
                     <td className="px-6 py-4">
                       <span className="font-semibold font-mono">{cur(order)}{order.amount}</span>
                       <span className="text-xs text-muted-foreground ms-1">{order.currency}</span>
@@ -180,17 +186,21 @@ export default function Orders() {
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{isAr ? 'المنتجات' : 'Products'}</h3>
                   {(() => {
                     let items: any[] = [];
-                    try { items = JSON.parse((selectedOrder as any).items || '[]'); } catch {}
+                    try {
+                      const raw = (selectedOrder as any).items;
+                      if (Array.isArray(raw)) items = raw;
+                      else if (typeof raw === 'string' && raw) items = JSON.parse(raw);
+                    } catch {}
                     if (items.length > 0) {
                       return items.map((item: any, i: number) => (
                         <div key={i} className="flex justify-between items-center py-1.5 border-b border-border/20 last:border-0">
                           <div>
-                            <p className="text-sm font-medium">{item.productName}</p>
+                            <p className="text-sm font-medium">{item.productName || item.product_name || '—'}</p>
                             {item.variantLabel && <p className="text-xs text-muted-foreground">{item.variantLabel}</p>}
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-mono">{cur(selectedOrder)}{item.price} × {item.qty}</p>
-                            <p className="text-xs text-muted-foreground">{cur(selectedOrder)}{(item.price * item.qty).toFixed(0)}</p>
+                            <p className="text-sm font-mono">{cur(selectedOrder)}{item.price} × {item.qty || item.quantity || 1}</p>
+                            <p className="text-xs text-muted-foreground">{cur(selectedOrder)}{(item.price * (item.qty || item.quantity || 1)).toFixed(0)}</p>
                           </div>
                         </div>
                       ));

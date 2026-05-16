@@ -245,17 +245,21 @@ export default function Settings() {
 
       <div className="p-4 rounded-xl bg-muted/30 border border-border/40 text-xs text-muted-foreground space-y-1">
         <p className="font-medium text-foreground/70">{isAr ? 'معلومات المتجر' : 'Store Info'}</p>
-        <p dir="ltr">
-          {isAr ? 'الرابط العام: ' : 'Public URL: '}
+        <div className="flex items-center gap-1 flex-wrap">
+          <span>{isAr ? 'الرابط العام:' : 'Public URL:'}</span>
           {currentStore.domain ? (
-            <a href={`https://${currentStore.domain}`} target="_blank" rel="noopener noreferrer" className="font-mono text-primary hover:underline">
+            <a href={`https://${currentStore.domain}`} target="_blank" rel="noopener noreferrer"
+              className="font-mono text-primary hover:underline" dir="ltr">
               {currentStore.domain}
             </a>
           ) : (
-            <span className="font-mono text-primary">{currentStore.slug}.mawq3i.co</span>
+            <span className="font-mono text-primary" dir="ltr">{currentStore.slug}.mawq3i.co</span>
           )}
-        </p>
-        <p>{isAr ? 'البريد الإلكتروني: ' : 'Email: '}<span className="font-mono">{currentStore.ownerEmail}</span></p>
+        </div>
+        <div className="flex items-center gap-1 flex-wrap">
+          <span>{isAr ? 'البريد الإلكتروني:' : 'Email:'}</span>
+          <span className="font-mono" dir="ltr">{currentStore.ownerEmail}</span>
+        </div>
       </div>
 
       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>

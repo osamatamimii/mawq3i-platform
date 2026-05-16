@@ -6,6 +6,9 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Store, DollarSign, TrendingUp, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 
+const SB_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
+
 const cardV = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.07, duration: 0.4 } }),
@@ -24,17 +27,36 @@ export default function AdminOverview() {
 
   const [stores, setStores] = useState<StoreRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [realRevenue, setRealRevenue] = useState(0);
+  const [realOrdersCount, setRealOrdersCount] = useState(0);
+  const [storeOrderCounts, setStoreOrderCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     getAllStores().then(data => {
       setStores(data);
       setLoading(false);
     });
+    // Fetch all orders to compute per-store counts and total revenue
+    fetch(`${SB_URL}/rest/v1/orders?select=store_id,amount,status`, {
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+    })
+      .then(r => r.json())
+      .then((rows: any[]) => {
+        const counts: Record<string, number> = {};
+        let revenue = 0;
+        (rows || []).forEach((r: any) => {
+          counts[r.store_id] = (counts[r.store_id] || 0) + 1;
+          if (r.status !== 'cancelled') revenue += Number(r.amount || 0);
+        });
+        setStoreOrderCounts(counts);
+        setRealRevenue(revenue);
+        setRealOrdersCount(rows?.length || 0);
+      })
+      .catch(() => {});
   }, []);
 
   const totalStores = stores.length;
   const activeStores = stores.filter(s => s.status === 'active').length;
-  const totalRevenue = stores.reduce((a, s) => a + s.totalSales, 0);
   const expiredSubs = stores.filter(s => s.subscriptionStatus === 'expired').length;
   const unpaidSubs = stores.filter(s => !s.subscriptionPaid).length;
   const trialStores = stores.filter(s => s.subscriptionStatus === 'trial').length;
@@ -42,7 +64,7 @@ export default function AdminOverview() {
   const stats = [
     { titleAr: 'إجمالي المتاجر', titleEn: 'Total Stores', value: totalStores, icon: Store, color: 'text-blue-400', bg: 'bg-blue-400/10' },
     { titleAr: 'المتاجر النشطة', titleEn: 'Active Stores', value: activeStores, icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    { titleAr: 'إجمالي المبيعات', titleEn: 'Total Revenue', value: totalRevenue.toLocaleString(), icon: DollarSign, color: 'text-primary', bg: 'bg-primary/10', prefix: '₪' },
+    { titleAr: 'إجمالي الإيرادات', titleEn: 'Total Revenue', value: realRevenue.toLocaleString(), icon: DollarSign, color: 'text-primary', bg: 'bg-primary/10', prefix: '₪' },
     { titleAr: 'اشتراكات منتهية', titleEn: 'Expired Subs', value: expiredSubs, icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-400/10' },
   ];
 
@@ -125,7 +147,7 @@ export default function AdminOverview() {
                           <p className="text-xs text-white/35 font-mono">{store.domain}</p>
                         </td>
                         <td className="px-6 py-4 text-white/60">{store.ownerName || '—'}</td>
-                        <td className="px-6 py-4 font-mono font-semibold text-white">{store.ordersCount.toLocaleString()}</td>
+                        <td className="px-6 py-4 font-mono font-semibold text-white">{(storeOrderCounts[store.id] || 0).toLocaleString()}</td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusConfig[store.subscriptionStatus]?.cls}`}>
                             {isAr ? statusConfig[store.subscriptionStatus]?.ar : statusConfig[store.subscriptionStatus]?.en}

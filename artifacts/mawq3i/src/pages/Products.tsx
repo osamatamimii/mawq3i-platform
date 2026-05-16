@@ -128,7 +128,7 @@ export default function Products() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-border/50 text-muted-foreground">
                     <th className="text-start px-6 py-4 font-medium">{isAr ? 'الصورة' : 'Image'}</th>

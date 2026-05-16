@@ -42,7 +42,7 @@ export default function Analytics() {
   const totalOrders = orders.length;
   const deliveredOrders = orders.filter(o => o.status === 'delivered').length;
   const avgOrder = totalOrders > 0 ? Math.round(totalSales / totalOrders) : 0;
-  const currency = orders[0]?.currency === 'SAR' ? '﷼' : '₪';
+  const currency = currentStore?.currency === 'SAR' ? '﷼' : '₪';
 
   // Sales by day (last 7 days)
   const dailyMap: Record<string, number> = {};
@@ -66,11 +66,19 @@ export default function Analytics() {
     acc[o.status] = (acc[o.status] || 0) + 1; return acc;
   }, {} as Record<string, number>);
 
-  // Top products by order count
+  // Top products by order count — read from items array, fallback to product_name
   const productSales: Record<string, number> = {};
   orders.forEach(o => {
-    const name = o.productName || 'Unknown';
-    productSales[name] = (productSales[name] || 0) + 1;
+    const items = Array.isArray(o.items) ? o.items : [];
+    if (items.length > 0) {
+      items.forEach((item: any) => {
+        const name = item.productName || item.product_name || 'Unknown';
+        productSales[name] = (productSales[name] || 0) + (item.qty || item.quantity || 1);
+      });
+    } else {
+      const name = (o as any).product_name || o.productName || '';
+      if (name) productSales[name] = (productSales[name] || 0) + 1;
+    }
   });
   const topProducts = Object.entries(productSales).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
