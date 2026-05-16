@@ -25,6 +25,7 @@ import AdminDomains from "@/pages/admin/Domains";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import SiteBuilder from "@/pages/SiteBuilder";
 import EditProduct from "@/pages/EditProduct";
+import Promotions from "@/pages/Promotions";
 
 const queryClient = new QueryClient();
 
