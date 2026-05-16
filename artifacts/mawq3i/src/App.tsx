@@ -1,11 +1,12 @@
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AppProvider } from "@/context/AppContext";
+import { AppProvider, useAppContext } from "@/context/AppContext";
 import { Layout } from "@/components/layout/Layout";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AnimatePresence, motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
@@ -36,10 +37,27 @@ const pageMotion = {
   transition: { duration: 0.4 },
 };
 
+const ADMIN_EMAIL = "admin@mawq3i.com";
+
 function Router() {
   const [location] = useLocation();
+  const { supabaseUser, authLoading, currentUser } = useAppContext();
 
+  // Show loading spinner while Supabase session is being checked
+  if (authLoading) {
+    return (
+      <div className="min-h-[100dvh] bg-[#060809] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Public routes — always accessible
   if (location === "/" || location === "/login") {
+    // If already logged in, redirect to the right place
+    if (supabaseUser) {
+      return <Redirect to={supabaseUser.email?.toLowerCase() === ADMIN_EMAIL ? "/admin" : "/dashboard"} />;
+    }
     return (
       <AnimatePresence mode="wait">
         <motion.div key="login" {...pageMotion} className="min-h-[100dvh] bg-background">
@@ -52,6 +70,7 @@ function Router() {
     );
   }
 
+  // Store front — public
   if (location.startsWith("/store/")) {
     return (
       <Switch>
@@ -60,7 +79,10 @@ function Router() {
     );
   }
 
+  // Protected: /admin — must be logged in as admin
   if (location.startsWith("/admin")) {
+    if (!supabaseUser) return <Redirect to="/login" />;
+    if (currentUser !== "admin") return <Redirect to="/dashboard" />;
     return (
       <AdminLayout>
         <AnimatePresence mode="wait">
@@ -82,7 +104,10 @@ function Router() {
     );
   }
 
+  // Protected: /dashboard — must be logged in
   if (location.startsWith("/dashboard")) {
+    if (!supabaseUser) return <Redirect to="/login" />;
+    if (currentUser === "admin") return <Redirect to="/admin" />;
     return (
       <Layout>
         <AnimatePresence mode="wait">
@@ -95,7 +120,7 @@ function Router() {
               <Route path="/dashboard/orders" component={Orders} />
               <Route path="/dashboard/analytics" component={Analytics} />
               <Route path="/dashboard/settings" component={Settings} />
-          <Route path="/dashboard/promotions" component={Promotions} />
+              <Route path="/dashboard/promotions" component={Promotions} />
               <Route component={NotFound} />
             </Switch>
           </motion.div>
