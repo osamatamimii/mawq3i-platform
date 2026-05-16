@@ -19,7 +19,7 @@ import { Plus, Pencil, Trash2, Loader2, Package, Camera } from 'lucide-react';
 const emojis = ['🕌', '🌿', '💎', '☕', '🫐', '🪔', '✨', '💍'];
 
 export default function Products() {
-  const { language, currentStore } = useAppContext();
+  const { language, currentStore, isAdminMode } = useAppContext();
   const [, setLocation] = useLocation();
   const isAr = language === 'ar';
   const [products, setProducts] = useState<Product[]>([]);
@@ -32,7 +32,7 @@ export default function Products() {
   const uploadTargetRef = useRef<string | null>(null);
 
   useEffect(() => {
-    getProducts(currentStore?.id).then(data => {
+    getProducts(currentStore?.id, isAdminMode).then(data => {
       setProducts(data);
       setLoading(false);
     });

@@ -15,20 +15,20 @@ const statusConfig: Record<OrderStatus, { ar: string; en: string; className: str
 };
 
 export default function Orders() {
-  const { language, currentStore } = useAppContext();
+  const { language, currentStore, isAdminMode } = useAppContext();
   const isAr = language === 'ar';
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
-    getOrders(currentStore?.id).then(data => { setOrders(data); setLoading(false); });
+    getOrders(currentStore?.id, isAdminMode).then(data => { setOrders(data); setLoading(false); });
   }, [currentStore?.id]);
 
   const handleStatusChange = async (id: string, status: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
     if (selectedOrder?.id === id) setSelectedOrder(prev => prev ? { ...prev, status } : null);
-    await updateOrderStatus(id, status);
+    await updateOrderStatus(id, status, isAdminMode);
     if (status === 'delivered' || status === 'processing') {
       const order = orders.find(o => o.id === id);
       if (order?.phone) {

@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2 } from 'lucide-react';
 
 export default function EditProduct() {
-  const { language, currentStore } = useAppContext();
+  const { language, currentStore, isAdminMode } = useAppContext();
   const isAr = language === 'ar';
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -36,7 +36,7 @@ export default function EditProduct() {
 
   useEffect(() => {
     if (!currentStore?.id) return;
-    getProducts(currentStore.id).then(products => {
+    getProducts(currentStore.id, isAdminMode).then(products => {
       const found = products.find(p => p.id === params.id);
       if (found) {
         setProduct(found);

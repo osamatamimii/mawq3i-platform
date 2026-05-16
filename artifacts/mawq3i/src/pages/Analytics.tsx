@@ -24,7 +24,7 @@ function useCountUp(target: number, duration = 1200) {
 }
 
 export default function Analytics() {
-  const { language, currentStore } = useAppContext();
+  const { language, currentStore, isAdminMode } = useAppContext();
   const isAr = language === 'ar';
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -32,8 +32,8 @@ export default function Analytics() {
 
   useEffect(() => {
     Promise.all([
-      getOrders(currentStore?.id),
-      getProducts(currentStore?.id),
+      getOrders(currentStore?.id, isAdminMode),
+      getProducts(currentStore?.id, isAdminMode),
     ]).then(([o, p]) => { setOrders(o); setProducts(p); setLoading(false); });
   }, [currentStore?.id]);
 

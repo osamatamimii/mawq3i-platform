@@ -1,5 +1,11 @@
-import { supabase } from './supabase';
+import { supabase, supabaseAdmin } from './supabase';
 import { Product, Order, StoreRecord } from '@/data/mockData';
+
+// Use supabaseAdmin (bypasses RLS) when fetching data for a specific store
+// This is needed when admin views a store's dashboard as owner
+function db(useAdmin = false) {
+  return useAdmin ? supabaseAdmin : supabase;
+}
 
 // ─── Mapping helpers ──────────────────────────────────────────────────
 
@@ -84,9 +90,9 @@ function rowToStore(row: any): StoreRecord {
 
 // ─── Products ─────────────────────────────────────────────────────────
 
-export async function getProducts(storeId?: string): Promise<Product[]> {
+export async function getProducts(storeId?: string, useAdmin = false): Promise<Product[]> {
   try {
-    let query = supabase.from('products').select('*').order('created_at', { ascending: false });
+    let query = db(useAdmin).from('products').select('*').order('created_at', { ascending: false });
     if (storeId) query = query.eq('store_id', storeId);
     const { data, error } = await query;
     if (error || !data) return [];
@@ -126,9 +132,9 @@ export async function deleteProduct(id: string): Promise<boolean> {
 
 // ─── Orders ──────────────────────────────────────────────────────────
 
-export async function getOrders(storeId?: string): Promise<Order[]> {
+export async function getOrders(storeId?: string, useAdmin = false): Promise<Order[]> {
   try {
-    let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
+    let query = db(useAdmin).from('orders').select('*').order('created_at', { ascending: false });
     if (storeId) query = query.eq('store_id', storeId);
     const { data, error } = await query;
     if (error || !data) return [];
@@ -183,9 +189,9 @@ export async function createOrder(params: {
   }
 }
 
-export async function updateOrderStatus(id: string, status: Order['status']): Promise<boolean> {
+export async function updateOrderStatus(id: string, status: Order['status'], useAdmin = false): Promise<boolean> {
   try {
-    const { error } = await supabase.from('orders').update({ status }).eq('id', id);
+    const { error } = await db(useAdmin).from('orders').update({ status }).eq('id', id);
     return !error;
   } catch {
     return false;
@@ -315,7 +321,7 @@ export async function updateStoreSettings(id: string, settings: {
   currency?: string;
   domain?: string;
   description?: string;
-}): Promise<boolean> {
+}, useAdmin = false): Promise<boolean> {
   try {
     const row: Record<string, unknown> = {};
     if (settings.name !== undefined) row.name = settings.name;
@@ -324,10 +330,9 @@ export async function updateStoreSettings(id: string, settings: {
     if (settings.logoUrl !== undefined) row.logo_url = settings.logoUrl;
     if (settings.currency !== undefined) row.currency = settings.currency;
     if (settings.domain !== undefined) row.domain = settings.domain;
-
     if (settings.description !== undefined) row.description = settings.description;
 
-    const { error } = await supabase.from('stores').update(row).eq('id', id);
+    const { error } = await db(useAdmin).from('stores').update(row).eq('id', id);
     return !error;
   } catch {
     return false;

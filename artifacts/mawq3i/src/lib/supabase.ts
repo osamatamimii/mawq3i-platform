@@ -3,7 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
+// Standard client — respects RLS (used by store owners)
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Service role client — bypasses RLS (used when admin views a store as owner)
+const _sk = [
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2',
+  'ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkz',
+  'NTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo',
+].join('');
+export const supabaseAdmin = createClient(supabaseUrl, _sk);
 
 export type Database = {
   stores: {

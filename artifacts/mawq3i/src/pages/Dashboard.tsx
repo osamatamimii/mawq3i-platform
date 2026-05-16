@@ -29,7 +29,7 @@ const statusLabels: Record<string, { ar: string; en: string }> = {
 };
 
 export default function Dashboard() {
-  const { language, currentStore } = useAppContext();
+  const { language, currentStore, isAdminMode } = useAppContext();
   const isAr = language === 'ar';
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -39,8 +39,8 @@ export default function Dashboard() {
   useEffect(() => {
     if (!currentStore?.id) return;
     Promise.all([
-      getOrders(currentStore.id),
-      getProducts(currentStore.id),
+      getOrders(currentStore.id, isAdminMode),
+      getProducts(currentStore.id, isAdminMode),
     ]).then(([o, p]) => {
       setOrders(o);
       setProducts(p);

@@ -21,6 +21,7 @@ interface AppContextType {
   setCurrentStore: (store: StoreRecord | null) => void;
   storeLoading: boolean;
   refreshStore: () => Promise<void>;
+  isAdminMode: boolean; // true when admin@mawq3i.com is viewing a store as owner
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -91,6 +92,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrentStore(null);
   };
 
+  const isAdminMode = supabaseUser?.email?.toLowerCase() === ADMIN_EMAIL && currentStore !== null;
+
   return (
     <AppContext.Provider value={{
       language, setLanguage, direction,
@@ -98,6 +101,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       supabaseUser, authLoading,
       signOut,
       currentStore, setCurrentStore, storeLoading, refreshStore,
+      isAdminMode,
     }}>
       {children}
     </AppContext.Provider>

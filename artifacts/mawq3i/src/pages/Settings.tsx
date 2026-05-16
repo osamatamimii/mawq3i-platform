@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Upload, Check, Loader2, ImageIcon } from 'lucide-react';
 
 export default function Settings() {
-  const { language, currentStore, storeLoading, refreshStore } = useAppContext();
+  const { language, currentStore, storeLoading, refreshStore, isAdminMode } = useAppContext();
   const isAr = language === 'ar';
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -87,7 +87,7 @@ export default function Settings() {
       logoUrl,
       currency: settings.defaultCurrency,
       domain: settings.domain,
-    });
+    }, isAdminMode);
 
     await refreshStore();
     setSaving(false);
