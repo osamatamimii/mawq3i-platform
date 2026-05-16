@@ -20,9 +20,17 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     '/dashboard/orders': { ar: 'الطلبات', en: 'Orders' },
     '/dashboard/analytics': { ar: 'الإحصائيات', en: 'Analytics' },
     '/dashboard/settings': { ar: 'إعدادات المتجر', en: 'Store Settings' },
+    '/dashboard/promotions': { ar: 'العروض', en: 'Promotions' },
   };
 
-  const title = routeNames[location] ? (isAr ? routeNames[location].ar : routeNames[location].en) : '';
+  // Handle dynamic routes like /dashboard/products/edit/:id
+  const getTitle = () => {
+    if (routeNames[location]) return routeNames[location];
+    if (location.startsWith('/dashboard/products/edit/')) return { ar: 'تعديل المنتج', en: 'Edit Product' };
+    return null;
+  };
+
+  const title = getTitle();
 
   return (
     <header className="h-16 border-b border-border bg-background/50 backdrop-blur-sm flex items-center justify-between px-4 md:px-6 sticky top-0 z-20">
@@ -35,7 +43,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         >
           <Menu className="w-5 h-5" />
         </button>
-        <h2 className="text-lg md:text-xl font-semibold">{title}</h2>
+        <h2 className="text-lg md:text-xl font-semibold">{title ? (isAr ? title.ar : title.en) : ''}</h2>
       </div>
 
       <div className="flex items-center gap-3 md:gap-4">
