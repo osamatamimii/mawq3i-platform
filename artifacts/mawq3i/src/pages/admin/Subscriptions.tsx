@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, AlertTriangle, DollarSign, Clock, Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+const SB_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
 
 interface StoreRow {
   id: string;
@@ -28,17 +29,22 @@ export default function AdminSubscriptions() {
   }, []);
 
   async function load() {
-    const { data } = await supabase
-      .from('stores')
-      .select('id, name, owner_email, subscription, status, created_at, subscription_paid')
-      .order('created_at', { ascending: false });
-    setStores(data || []);
+    const res = await fetch(
+      `${SB_URL}/rest/v1/stores?select=id,name,owner_email,subscription,subscription_plan,subscription_status,status,created_at,subscription_paid&order=created_at.desc`,
+      { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
+    );
+    const data = await res.json();
+    setStores(Array.isArray(data) ? data : []);
     setLoading(false);
   }
 
   async function togglePaid(id: string, current: boolean) {
     setSaving(id);
-    await supabase.from('stores').update({ subscription_paid: !current }).eq('id', id);
+    await fetch(`${SB_URL}/rest/v1/stores?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription_paid: !current })
+    });
     setStores(prev => prev.map(s => s.id === id ? { ...s, subscription_paid: !current } : s));
     setSaving(null);
   }
@@ -111,7 +117,7 @@ export default function AdminSubscriptions() {
                       <td className="px-6 py-4 text-white/60 text-xs">{store.owner_email || '—'}</td>
                       <td className="px-6 py-4">
                         <span className="text-xs font-medium bg-white/[0.06] px-2.5 py-1 rounded-full text-white/60 font-mono">
-                          {store.subscription === 'yearly' ? (isAr ? 'سنوي' : 'Yearly') : (isAr ? 'شهري' : 'Monthly')}
+                          {(store.subscription_plan || store.subscription) === 'yearly' ? (isAr ? 'سنوي' : 'Yearly') : (store.subscription === 'trial' ? (isAr ? 'تجريبي' : 'Trial') : (isAr ? 'شهري' : 'Monthly'))}
                         </span>
                       </td>
                       <td className="px-6 py-4">
