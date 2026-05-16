@@ -6,6 +6,7 @@ import {
   ShoppingCart,
   BarChart3,
   Settings,
+  Tag,
   LogOut,
   ExternalLink,
   X,
