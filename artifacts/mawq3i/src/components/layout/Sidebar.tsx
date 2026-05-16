@@ -28,6 +28,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: '/dashboard/products', icon: Package, labelAr: 'المنتجات', labelEn: 'Products', exact: false },
     { href: '/dashboard/orders', icon: ShoppingCart, labelAr: 'الطلبات', labelEn: 'Orders', exact: false },
     { href: '/dashboard/analytics', icon: BarChart3, labelAr: 'الإحصائيات', labelEn: 'Analytics', exact: false },
+    { href: '/dashboard/promotions', icon: Tag, labelAr: 'العروض', labelEn: 'Promotions', exact: false },
     { href: '/dashboard/settings', icon: Settings, labelAr: 'إعدادات المتجر', labelEn: 'Store Settings', exact: false },
   ];
 
