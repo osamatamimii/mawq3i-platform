@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { supabase, adminRest } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,6 @@ interface Promotion {
 
 export default function Promotions() {
   const { language, currentStore, isAdminMode } = useAppContext();
-  const db = isAdminMode ? supabaseAdmin : supabase;
   const isAr = language === 'ar';
   const { toast } = useToast();
 
@@ -39,17 +38,23 @@ export default function Promotions() {
 
   useEffect(() => {
     if (!currentStore?.id) { setLoading(false); return; }
-    db.from('promotions')
-      .select('*')
-      .eq('store_id', currentStore.id)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => { setPromos(data || []); setLoading(false); });
-  }, [currentStore?.id]);
+    if (isAdminMode) {
+      adminRest.select('promotions',
+        `store_id=eq.${currentStore.id}&order=created_at.desc`
+      ).then(data => { setPromos(data || []); setLoading(false); });
+    } else {
+      supabase.from('promotions')
+        .select('*')
+        .eq('store_id', currentStore.id)
+        .order('created_at', { ascending: false })
+        .then(({ data }) => { setPromos(data || []); setLoading(false); });
+    }
+  }, [currentStore?.id, isAdminMode]);
 
   const handleSave = async () => {
     if (!form.title_ar || !currentStore) return;
     setSaving(true);
-    const { data, error } = await db.from('promotions').insert([{
+    const body = {
       store_id: currentStore.id,
       title_ar: form.title_ar, title_en: form.title_en || null,
       subtitle_ar: form.subtitle_ar || null,
@@ -57,9 +62,16 @@ export default function Promotions() {
       badge_color: form.badge_color,
       expires_at: form.expires_at || null,
       is_active: true,
-    }]).select().single();
+    };
+    let data: any = null;
+    if (isAdminMode) {
+      data = await adminRest.insert('promotions', body);
+    } else {
+      const res = await supabase.from('promotions').insert([body]).select().single();
+      data = res.error ? null : res.data;
+    }
     setSaving(false);
-    if (!error && data) {
+    if (data) {
       setPromos(prev => [data, ...prev]);
       setForm({ title_ar: '', title_en: '', subtitle_ar: '', discount_text: '', badge_color: '#52FF3F', expires_at: '' });
       setShowForm(false);
@@ -68,12 +80,20 @@ export default function Promotions() {
   };
 
   const toggleActive = async (id: string, current: boolean) => {
-    await db.from('promotions').update({ is_active: !current }).eq('id', id);
+    if (isAdminMode) {
+      await adminRest.update('promotions', `id=eq.${id}`, { is_active: !current });
+    } else {
+      await supabase.from('promotions').update({ is_active: !current }).eq('id', id);
+    }
     setPromos(prev => prev.map(p => p.id === id ? { ...p, is_active: !current } : p));
   };
 
   const deletePromo = async (id: string) => {
-    await db.from('promotions').delete().eq('id', id);
+    if (isAdminMode) {
+      await adminRest.delete('promotions', `id=eq.${id}`);
+    } else {
+      await supabase.from('promotions').delete().eq('id', id);
+    }
     setPromos(prev => prev.filter(p => p.id !== id));
     toast({ title: isAr ? 'تم حذف العرض' : 'Promotion deleted' });
   };

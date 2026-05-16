@@ -1,11 +1,9 @@
-import { supabase, supabaseAdmin } from './supabase';
+import { supabase, adminRest } from './supabase';
 import { Product, Order, StoreRecord } from '@/data/mockData';
 
-// Use supabaseAdmin (bypasses RLS) when fetching data for a specific store
-// This is needed when admin views a store's dashboard as owner
-function db(useAdmin = false) {
-  return useAdmin ? supabaseAdmin : supabase;
-}
+// When useAdmin=true, use adminRest (REST API with service key, no extra GoTrueClient)
+// When useAdmin=false, use standard supabase client (respects RLS)
+
 
 // ─── Mapping helpers ──────────────────────────────────────────────────
 
@@ -92,7 +90,13 @@ function rowToStore(row: any): StoreRecord {
 
 export async function getProducts(storeId?: string, useAdmin = false): Promise<Product[]> {
   try {
-    let query = db(useAdmin).from('products').select('*').order('created_at', { ascending: false });
+    if (useAdmin && storeId) {
+      const rows = await adminRest.select('products',
+        `store_id=eq.${storeId}&order=created_at.desc`
+      );
+      return rows.map(rowToProduct);
+    }
+    let query = supabase.from('products').select('*').order('created_at', { ascending: false });
     if (storeId) query = query.eq('store_id', storeId);
     const { data, error } = await query;
     if (error || !data) return [];
@@ -134,7 +138,13 @@ export async function deleteProduct(id: string): Promise<boolean> {
 
 export async function getOrders(storeId?: string, useAdmin = false): Promise<Order[]> {
   try {
-    let query = db(useAdmin).from('orders').select('*').order('created_at', { ascending: false });
+    if (useAdmin && storeId) {
+      const rows = await adminRest.select('orders',
+        `store_id=eq.${storeId}&order=created_at.desc`
+      );
+      return rows.map(rowToOrder);
+    }
+    let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
     if (storeId) query = query.eq('store_id', storeId);
     const { data, error } = await query;
     if (error || !data) return [];
@@ -191,7 +201,10 @@ export async function createOrder(params: {
 
 export async function updateOrderStatus(id: string, status: Order['status'], useAdmin = false): Promise<boolean> {
   try {
-    const { error } = await db(useAdmin).from('orders').update({ status }).eq('id', id);
+    if (useAdmin) {
+      return await adminRest.update('orders', `id=eq.${id}`, { status });
+    }
+    const { error } = await supabase.from('orders').update({ status }).eq('id', id);
     return !error;
   } catch {
     return false;
@@ -332,7 +345,10 @@ export async function updateStoreSettings(id: string, settings: {
     if (settings.domain !== undefined) row.domain = settings.domain;
     if (settings.description !== undefined) row.description = settings.description;
 
-    const { error } = await db(useAdmin).from('stores').update(row).eq('id', id);
+    if (useAdmin) {
+      return await adminRest.update('stores', `id=eq.${id}`, row);
+    }
+    const { error } = await supabase.from('stores').update(row).eq('id', id);
     return !error;
   } catch {
     return false;
