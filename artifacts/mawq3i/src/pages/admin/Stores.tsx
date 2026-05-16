@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, LogIn, ExternalLink, Pencil, BanIcon, CheckCircle2, Loader2, Trash2, Globe } from 'lucide-react';
 
 const SUPABASE_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
+const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
 
 const subStatusCfg: Record<string, { ar: string; en: string; cls: string }> = {
   active: { ar: 'نشط', en: 'Active', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
@@ -72,16 +73,17 @@ export default function AdminStores() {
     setAddAlert(null);
 
     const slug = newStore.slug || toSlug(newStore.name);
-    const serviceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY as string | undefined;
 
+    // 1. Create auth user
+    let newUserId: string | null = null;
     let authOk = false;
     try {
       const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${serviceKey ?? ''}`,
-          'apikey': serviceKey ?? '',
+          'Authorization': `Bearer ${SERVICE_KEY}`,
+          'apikey': SERVICE_KEY,
         },
         body: JSON.stringify({
           email: newStore.ownerEmail,
@@ -89,11 +91,16 @@ export default function AdminStores() {
           email_confirm: true,
         }),
       });
-      authOk = authRes.ok;
+      if (authRes.ok) {
+        const userData = await authRes.json();
+        newUserId = userData?.id ?? null;
+        authOk = true;
+      }
     } catch {
       authOk = false;
     }
 
+    // 2. Create store record
     const created = await addStore({
       name: newStore.name,
       slug,
@@ -112,20 +119,33 @@ export default function AdminStores() {
       joinDate: new Date().toISOString().slice(0, 10),
     });
 
+    // 3. Link owner_id to store so the owner can access their dashboard
+    if (created && newUserId) {
+      await fetch(`${SUPABASE_URL}/rest/v1/stores?id=eq.${created.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SERVICE_KEY}`,
+          'apikey': SERVICE_KEY,
+        },
+        body: JSON.stringify({ owner_id: newUserId }),
+      });
+    }
+
     if (created) setStores(prev => [created, ...prev]);
 
     setSaving(false);
     setShowAdd(false);
 
-    if (authOk) {
+    if (authOk && newUserId) {
       setAddAlert({
         type: 'success',
-        message: `✅ تم إنشاء المتجر بنجاح - بيانات الدخول: البريد: ${newStore.ownerEmail} | كلمة المرور: ${newStore.password}`,
+        message: `✅ تم إنشاء المتجر وحساب المستخدم بنجاح — البريد: ${newStore.ownerEmail} | كلمة المرور: ${newStore.password}`,
       });
-    } else {
+    } else if (created) {
       setAddAlert({
         type: 'warning',
-        message: `⚠️ تم إنشاء المتجر لكن فشل إنشاء حساب المستخدم. يمكنك إنشاؤه يدوياً لاحقاً.`,
+        message: `⚠️ تم إنشاء المتجر لكن فشل إنشاء حساب المستخدم. أنشئه يدوياً من Supabase ثم شغّل:\nUPDATE stores SET owner_id = '[user-uuid]' WHERE owner_email = '${newStore.ownerEmail}'`,
       });
     }
 
