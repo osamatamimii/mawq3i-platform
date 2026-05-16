@@ -75,8 +75,8 @@ function rowToStore(row: any): StoreRecord {
     status: row.status ?? 'active',
     ordersCount: Number(row.orders_count ?? 0),
     totalSales: Number(row.total_sales ?? 0),
-    subscriptionStatus: row.subscription_status ?? 'trial',
-    subscriptionPlan: row.subscription_plan ?? 'monthly',
+    subscriptionStatus: row.subscription_status ?? (row.subscription === 'active' ? 'active' : 'trial'),
+    subscriptionPlan: row.subscription_plan ?? (row.subscription === 'yearly' ? 'yearly' : 'monthly'),
     subscriptionPaid: Boolean(row.subscription_paid),
     renewalDate: row.renewal_date ?? '',
     joinDate: row.join_date ?? '',
@@ -227,9 +227,23 @@ export async function updateOrderStatus(id: string, status: Order['status'], use
 
 export async function getAllStores(): Promise<StoreRecord[]> {
   try {
-    const { data, error } = await supabase.from('stores').select('*').order('join_date', { ascending: false });
+    const { data, error } = await supabase.from('stores').select('*').order('created_at', { ascending: false });
     if (error || !data) return [];
-    return data.map(rowToStore);
+
+    const { data: orders } = await supabase.from('orders').select('store_id, amount, status');
+    const stats: Record<string, { count: number; sales: number }> = {};
+    (orders || []).forEach((o: any) => {
+      if (!stats[o.store_id]) stats[o.store_id] = { count: 0, sales: 0 };
+      stats[o.store_id].count += 1;
+      if (o.status !== 'cancelled') stats[o.store_id].sales += Number(o.amount || 0);
+    });
+
+    return data.map(row => {
+      const s = rowToStore(row);
+      const st = stats[row.id];
+      if (st) { s.ordersCount = st.count; s.totalSales = st.sales; }
+      return s;
+    });
   } catch {
     return [];
   }

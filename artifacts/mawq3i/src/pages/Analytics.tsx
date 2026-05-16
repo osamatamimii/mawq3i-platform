@@ -72,7 +72,7 @@ export default function Analytics() {
     const items = Array.isArray(o.items) ? o.items : [];
     if (items.length > 0) {
       items.forEach((item: any) => {
-        const name = item.productName || item.product_name || 'Unknown';
+        const name = item.name || item.productName || item.product_name || 'Unknown';
         productSales[name] = (productSales[name] || 0) + (item.qty || item.quantity || 1);
       });
     } else {

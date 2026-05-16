@@ -195,7 +195,7 @@ export default function Orders() {
                       return items.map((item: any, i: number) => (
                         <div key={i} className="flex justify-between items-center py-1.5 border-b border-border/20 last:border-0">
                           <div>
-                            <p className="text-sm font-medium">{item.productName || item.product_name || '—'}</p>
+                            <p className="text-sm font-medium">{item.name || item.productName || item.product_name || '—'}</p>
                             {item.variantLabel && <p className="text-xs text-muted-foreground">{item.variantLabel}</p>}
                           </div>
                           <div className="text-right">
