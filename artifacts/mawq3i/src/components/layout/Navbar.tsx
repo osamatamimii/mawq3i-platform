@@ -9,7 +9,7 @@ interface NavbarProps {
 }
 
 export function Navbar({ onMenuClick }: NavbarProps) {
-  const { language, setLanguage } = useAppContext();
+  const { language, setLanguage, currentStore, supabaseUser } = useAppContext();
   const [location] = useLocation();
   const isAr = language === 'ar';
 
@@ -51,11 +51,13 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
         <div className="flex items-center gap-3 ps-3 md:ps-4 border-s border-border/50">
           <div className="text-sm hidden sm:block">
-            <p className="font-medium">{isAr ? 'صاحب المتجر' : 'Store Owner'}</p>
-            <p className="text-xs text-muted-foreground">owner@mawq3i.com</p>
+            <p className="font-medium">{currentStore?.name || (isAr ? 'صاحب المتجر' : 'Store Owner')}</p>
+            <p className="text-xs text-muted-foreground">{supabaseUser?.email || currentStore?.ownerEmail || ''}</p>
           </div>
           <Avatar className="border border-primary/20">
-            <AvatarFallback className="bg-primary/10 text-primary text-xs">م</AvatarFallback>
+            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+              {(currentStore?.name || supabaseUser?.email || 'م').charAt(0)}
+            </AvatarFallback>
           </Avatar>
         </div>
       </div>

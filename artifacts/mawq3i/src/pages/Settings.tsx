@@ -247,7 +247,13 @@ export default function Settings() {
         <p className="font-medium text-foreground/70">{isAr ? 'معلومات المتجر' : 'Store Info'}</p>
         <p dir="ltr">
           {isAr ? 'الرابط العام: ' : 'Public URL: '}
-          <span className="font-mono text-primary">/store/{currentStore.slug}</span>
+          {currentStore.domain ? (
+            <a href={`https://${currentStore.domain}`} target="_blank" rel="noopener noreferrer" className="font-mono text-primary hover:underline">
+              {currentStore.domain}
+            </a>
+          ) : (
+            <span className="font-mono text-primary">{currentStore.slug}.mawq3i.co</span>
+          )}
         </p>
         <p>{isAr ? 'البريد الإلكتروني: ' : 'Email: '}<span className="font-mono">{currentStore.ownerEmail}</span></p>
       </div>

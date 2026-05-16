@@ -116,7 +116,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <div className="p-4 space-y-2 border-t border-border">
           <a
-            href={currentStore?.domain ? `https://${currentStore.domain}` : currentStore?.slug ? `/store/${currentStore.slug}` : '#'}
+            href={currentStore?.domain ? `https://${currentStore.domain}` : currentStore?.slug ? `https://${currentStore.slug}.mawq3i.co` : '#'}
             target="_blank"
             rel="noopener noreferrer"
             onClick={onClose}
