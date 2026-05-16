@@ -139,6 +139,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           {isAdminInOwnerMode && (
             <button
               onClick={() => {
+                try { sessionStorage.removeItem('mawq3i_admin_store'); } catch {}
                 setCurrentUser('admin');
                 setCurrentStore(null);
                 setLocation('/admin');
