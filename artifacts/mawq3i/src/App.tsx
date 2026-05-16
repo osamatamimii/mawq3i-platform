@@ -79,10 +79,10 @@ function Router() {
     );
   }
 
-  // Protected: /admin — must be logged in as admin
+  // Protected: /admin — must be logged in AND email is admin
   if (location.startsWith("/admin")) {
     if (!supabaseUser) return <Redirect to="/login" />;
-    if (currentUser !== "admin") return <Redirect to="/dashboard" />;
+    if (supabaseUser.email?.toLowerCase() !== ADMIN_EMAIL) return <Redirect to="/dashboard" />;
     return (
       <AdminLayout>
         <AnimatePresence mode="wait">
@@ -105,9 +105,13 @@ function Router() {
   }
 
   // Protected: /dashboard — must be logged in
+  // Admin can access dashboard when "entered as owner" via setCurrentStore
   if (location.startsWith("/dashboard")) {
     if (!supabaseUser) return <Redirect to="/login" />;
-    if (currentUser === "admin") return <Redirect to="/admin" />;
+    // If admin and NOT entered as owner (no currentStore set), redirect to /admin
+    if (supabaseUser.email?.toLowerCase() === ADMIN_EMAIL && currentUser === "admin") {
+      return <Redirect to="/admin" />;
+    }
     return (
       <Layout>
         <AnimatePresence mode="wait">

@@ -10,6 +10,7 @@ import {
   LogOut,
   ExternalLink,
   X,
+  Shield,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -21,8 +22,10 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const [location, setLocation] = useLocation();
-  const { language, signOut, currentStore } = useAppContext();
+  const { language, signOut, currentStore, supabaseUser, setCurrentUser, setCurrentStore } = useAppContext();
   const isAr = language === 'ar';
+  const ADMIN_EMAIL = 'admin@mawq3i.com';
+  const isAdminInOwnerMode = supabaseUser?.email?.toLowerCase() === ADMIN_EMAIL;
 
   const menuItems = [
     { href: '/dashboard', icon: LayoutDashboard, labelAr: 'لوحة التحكم', labelEn: 'Dashboard', exact: true },
@@ -133,6 +136,20 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span>{isAr ? 'تسجيل الخروج' : 'Logout'}</span>
           </button>
+          {isAdminInOwnerMode && (
+            <button
+              onClick={() => {
+                setCurrentUser('admin');
+                setCurrentStore(null);
+                setLocation('/admin');
+                onClose();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border border-red-500/20"
+            >
+              <Shield className="w-5 h-5 flex-shrink-0" />
+              <span>{isAr ? 'العودة للوحة الأدمن' : 'Back to Admin Panel'}</span>
+            </button>
+          )}
         </div>
       </div>
     </>
