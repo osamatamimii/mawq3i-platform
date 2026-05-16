@@ -30,7 +30,7 @@ export default function AdminSubscriptions() {
 
   async function load() {
     const res = await fetch(
-      `${SB_URL}/rest/v1/stores?select=id,name,owner_email,subscription,subscription_plan,subscription_status,status,created_at,subscription_paid&order=created_at.desc`,
+      `${SB_URL}/rest/v1/stores?select=id,name,owner_email,subscription_plan,subscription_status,status,created_at,subscription_paid&order=created_at.desc`,
       { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
     );
     const data = await res.json();
@@ -117,7 +117,7 @@ export default function AdminSubscriptions() {
                       <td className="px-6 py-4 text-white/60 text-xs">{store.owner_email || '—'}</td>
                       <td className="px-6 py-4">
                         <span className="text-xs font-medium bg-white/[0.06] px-2.5 py-1 rounded-full text-white/60 font-mono">
-                          {(store.subscription_plan || store.subscription) === 'yearly' ? (isAr ? 'سنوي' : 'Yearly') : (store.subscription === 'trial' ? (isAr ? 'تجريبي' : 'Trial') : (isAr ? 'شهري' : 'Monthly'))}
+                          {store.subscription_plan === 'yearly' ? (isAr ? 'سنوي' : 'Yearly') : store.subscription_status === 'trial' ? (isAr ? 'تجريبي' : 'Trial') : (isAr ? 'شهري' : 'Monthly')}
                         </span>
                       </td>
                       <td className="px-6 py-4">
