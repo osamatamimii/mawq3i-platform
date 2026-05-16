@@ -173,3 +173,51 @@ create policy "Owner update orders"
 
 -- Public can insert orders (storefront visitors)
 -- Already exists: "Public insert orders"
+
+-- ─── Promotions table ────────────────────────────────────────────────────────
+create table if not exists promotions (
+  id uuid primary key default gen_random_uuid(),
+  store_id uuid references stores(id) on delete cascade,
+  title_ar text not null,
+  title_en text,
+  subtitle_ar text,
+  discount_text text,
+  badge_color text default '#52FF3F',
+  expires_at date,
+  is_active boolean default true,
+  created_at timestamptz default now()
+);
+
+alter table promotions enable row level security;
+
+create policy "Owner read promotions"
+  on promotions for select
+  using (
+    store_id in (
+      select id from stores where owner_id = auth.uid() or owner_email = auth.email()
+    )
+  );
+
+create policy "Owner insert promotions"
+  on promotions for insert
+  with check (
+    store_id in (
+      select id from stores where owner_id = auth.uid() or owner_email = auth.email()
+    )
+  );
+
+create policy "Owner update promotions"
+  on promotions for update
+  using (
+    store_id in (
+      select id from stores where owner_id = auth.uid() or owner_email = auth.email()
+    )
+  );
+
+create policy "Owner delete promotions"
+  on promotions for delete
+  using (
+    store_id in (
+      select id from stores where owner_id = auth.uid() or owner_email = auth.email()
+    )
+  );
