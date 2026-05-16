@@ -37,9 +37,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!currentStore?.id) return;
     Promise.all([
-      getOrders(currentStore?.id),
-      getProducts(currentStore?.id),
+      getOrders(currentStore.id),
+      getProducts(currentStore.id),
     ]).then(([o, p]) => {
       setOrders(o);
       setProducts(p);
@@ -48,7 +49,6 @@ export default function Dashboard() {
   }, [currentStore?.id]);
 
   useEffect(() => {
-    // Request notification permission for order alerts
     requestNotificationPermission();
   }, []);
 

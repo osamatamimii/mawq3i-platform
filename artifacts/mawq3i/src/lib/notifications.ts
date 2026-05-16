@@ -36,17 +36,15 @@ export function sendOrderNotification(orderDetails: {
 }
 
 // Poll for new orders every 30 seconds
-let lastOrderId: string | null = null;
-let pollInterval: ReturnType<typeof setInterval> | null = null;
-
+// Returns a cleanup function — always call it on component unmount
 export function startOrderPolling(
   storeId: string,
   supabase: any,
   onNewOrder: (order: any) => void
-) {
-  if (pollInterval) clearInterval(pollInterval);
-  
-  pollInterval = setInterval(async () => {
+): () => void {
+  let lastOrderId: string | null = null;
+
+  const interval = setInterval(async () => {
     try {
       const { data } = await supabase
         .from('orders')
@@ -58,8 +56,7 @@ export function startOrderPolling(
       
       if (data && data.length > 0) {
         const latest = data[0];
-        if (lastOrderId && latest.id !== lastOrderId) {
-          // New order!
+        if (lastOrderId !== null && latest.id !== lastOrderId) {
           onNewOrder(latest);
           sendOrderNotification({
             orderId: latest.id,
@@ -73,10 +70,10 @@ export function startOrderPolling(
         }
         lastOrderId = latest.id;
       }
-    } catch (e) {
-      // Ignore polling errors
+    } catch {
+      // Ignore polling errors silently
     }
-  }, 30000); // Poll every 30s
-  
-  return () => { if (pollInterval) clearInterval(pollInterval); };
+  }, 30000);
+
+  return () => clearInterval(interval);
 }
