@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +29,20 @@ export default function AdminSettings() {
 
   const set = (key: string, value: string | boolean) => setSettings(s => ({ ...s, [key]: value }));
 
+  const STORAGE_KEY = 'mawq3i_platform_settings';
+
+  // Load saved settings on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setSettings(s => ({ ...s, ...JSON.parse(saved) }));
+    } catch {}
+  }, []);
+
   const save = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    } catch {}
     toast({
       title: isAr ? 'تم الحفظ' : 'Saved',
       description: isAr ? 'تم حفظ إعدادات المنصة بنجاح' : 'Platform settings saved successfully.',

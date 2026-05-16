@@ -98,10 +98,16 @@ export default function StoreFront() {
 
     const saved = await createOrder({
       storeId: store.id,
-      productId: selectedProduct.id,
-      productName: isAr ? selectedProduct.nameAr : selectedProduct.nameEn,
+      items: [{
+        productId: selectedProduct.id,
+        productName: isAr ? selectedProduct.nameAr : (selectedProduct.nameEn || selectedProduct.nameAr),
+        quantity: 1,
+        price: selectedProduct.price,
+      }],
       customerName: customerName.trim(),
       phone: customerPhone.trim(),
+      city: '',
+      paymentMethod: 'cod',
       amount: selectedProduct.price,
       currency: selectedProduct.currency,
     });

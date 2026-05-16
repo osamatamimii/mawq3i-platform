@@ -52,7 +52,8 @@ export default function Dashboard() {
     requestNotificationPermission();
   }, []);
 
-  const totalSales = orders.reduce((sum, o) => sum + o.amount, 0);
+  const totalSales = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + o.amount, 0);
+  const currency = currentStore?.currency === 'SAR' ? '﷼' : '₪';
   const lowStockCount = products.filter(p => p.stock <= 5).length;
   const recentOrders = orders.slice(0, 5);
   const topProducts = products.filter(p => p.status === 'visible').slice(0, 3);
@@ -60,7 +61,7 @@ export default function Dashboard() {
   const statCards = [
     {
       titleAr: 'إجمالي المبيعات', titleEn: 'Total Sales',
-      value: `${orders[0]?.currency === 'SAR' ? '﷼' : '₪'}${totalSales.toLocaleString()}`,
+      value: `${currency}${totalSales.toLocaleString()}`,
       icon: TrendingUp, color: 'text-primary', bg: 'bg-primary/10',
     },
     {
