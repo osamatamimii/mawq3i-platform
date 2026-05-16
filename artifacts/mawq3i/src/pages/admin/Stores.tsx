@@ -47,12 +47,30 @@ export default function AdminStores() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [newStore, setNewStore] = useState(emptyNew);
   const [addAlert, setAddAlert] = useState<AddAlert>(null);
+  const [storeOrderCounts, setStoreOrderCounts] = useState<Record<string, number>>({});
+  const [storeSales, setStoreSales] = useState<Record<string, number>>({});
 
   useEffect(() => {
     getAllStores().then(data => {
       setStores(data);
       setLoading(false);
     });
+    // Fetch real order counts and revenue per store
+    fetch(`${SUPABASE_URL}/rest/v1/orders?select=store_id,amount,status`, {
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` }
+    })
+      .then(r => r.json())
+      .then((rows: any[]) => {
+        const counts: Record<string, number> = {};
+        const sales: Record<string, number> = {};
+        (rows || []).forEach((r: any) => {
+          counts[r.store_id] = (counts[r.store_id] || 0) + 1;
+          if (r.status !== 'cancelled') sales[r.store_id] = (sales[r.store_id] || 0) + Number(r.amount || 0);
+        });
+        setStoreOrderCounts(counts);
+        setStoreSales(sales);
+      })
+      .catch(() => {});
   }, []);
 
   function handleNameChange(name: string) {
@@ -216,7 +234,7 @@ export default function AdminStores() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[900px] text-sm">
                 <thead>
                   <tr className="border-b border-white/[0.06] text-white/35">
                     <th className="text-start px-5 py-3.5 font-medium">{isAr ? 'المتجر' : 'Store'}</th>
@@ -243,10 +261,10 @@ export default function AdminStores() {
                         <p className="text-xs text-white/35">{store.ownerEmail}</p>
                       </td>
                       <td className="px-5 py-4 font-mono text-xs text-white/40" dir="ltr">{store.domain || '—'}</td>
-                      <td className="px-5 py-4 font-mono font-semibold text-white">{store.ordersCount.toLocaleString()}</td>
+                      <td className="px-5 py-4 font-mono font-semibold text-white">{(storeOrderCounts[store.id] || 0).toLocaleString()}</td>
                       <td className="px-5 py-4">
                         <span className="font-mono font-semibold text-white">
-                          {store.currency === 'ILS' ? '₪' : '﷼'}{store.totalSales.toLocaleString()}
+                          {store.currency === 'ILS' ? '₪' : '﷼'}{(storeSales[store.id] || 0).toLocaleString()}
                         </span>
                       </td>
                       <td className="px-5 py-4">
