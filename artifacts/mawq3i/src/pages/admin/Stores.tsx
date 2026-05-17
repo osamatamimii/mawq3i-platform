@@ -31,7 +31,8 @@ type AddAlert = { type: 'success' | 'warning'; message: string } | null;
 const emptyNew = { name: '', slug: '', domain: '', currency: 'ILS', ownerName: '', ownerEmail: '', ownerPhone: '', password: '' };
 
 function toSlug(name: string) {
-  return name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+  const s = name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+  return s || 'store-' + Date.now().toString(36);
 }
 
 export default function AdminStores() {
