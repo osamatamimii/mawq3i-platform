@@ -36,6 +36,8 @@ export default function StoreFront() {
   const [orderState, setOrderState] = useState<OrderState>('idle');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [customerCity, setCustomerCity] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
   const [completedOrderId, setCompletedOrderId] = useState('');
   const [formError, setFormError] = useState('');
 
@@ -73,6 +75,8 @@ export default function StoreFront() {
     setSelectedProduct(product);
     setCustomerName('');
     setCustomerPhone('');
+    setCustomerCity('');
+    setCustomerAddress('');
     setFormError('');
     setOrderState('form');
   }
@@ -92,6 +96,10 @@ export default function StoreFront() {
       setFormError(isAr ? 'يرجى إدخال رقم هاتفك' : 'Please enter your phone number');
       return;
     }
+    if (!customerCity.trim()) {
+      setFormError(isAr ? 'يرجى إدخال مدينتك' : 'Please enter your city');
+      return;
+    }
 
     setFormError('');
     setOrderState('saving');
@@ -106,7 +114,8 @@ export default function StoreFront() {
       }],
       customerName: customerName.trim(),
       phone: customerPhone.trim(),
-      city: '',
+      city: customerCity.trim(),
+      address: customerAddress.trim(),
       paymentMethod: 'cod',
       amount: selectedProduct.price,
       currency: selectedProduct.currency,
@@ -116,7 +125,7 @@ export default function StoreFront() {
     setCompletedOrderId(orderId);
     setOrderState('done');
 
-    const msg = `طلب جديد 🛍️%0aالمنتج: ${selectedProduct.nameAr}%0aالعميل: ${customerName}%0aالهاتف: ${customerPhone}%0aالمبلغ: ${selectedProduct.price} ${selectedProduct.currency}`;
+    const msg = `طلب جديد 🛍️%0aالمنتج: ${selectedProduct.nameAr}%0aالعميل: ${customerName}%0aالهاتف: ${customerPhone}%0aالمدينة: ${customerCity}${customerAddress ? `%0aالعنوان: ${customerAddress}` : ''}%0aالمبلغ: ${selectedProduct.price} ${selectedProduct.currency}`;
     window.open(`https://wa.me/${store.ownerPhone.replace(/\D/g, '')}?text=${msg}`, '_blank');
   }
 
@@ -362,6 +371,14 @@ export default function StoreFront() {
                     <div className="space-y-1.5">
                       <Label className="text-sm">{isAr ? 'رقم هاتفك *' : 'Phone Number *'}</Label>
                       <Input placeholder={isAr ? 'مثال: 0591234567' : 'e.g. +1234567890'} value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} disabled={orderState === 'saving'} className="bg-muted/50" dir="ltr" type="tel" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">{isAr ? 'المدينة *' : 'City *'}</Label>
+                      <Input placeholder={isAr ? 'مثال: نابلس' : 'e.g. Nablus'} value={customerCity} onChange={e => setCustomerCity(e.target.value)} disabled={orderState === 'saving'} className="bg-muted/50" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm">{isAr ? 'العنوان التفصيلي' : 'Address (optional)'}</Label>
+                      <Input placeholder={isAr ? 'مثال: شارع الإرسال، بناية 3' : 'e.g. Main St, Building 3'} value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} disabled={orderState === 'saving'} className="bg-muted/50" />
                     </div>
                     {formError && <p className="text-red-400 text-xs">{formError}</p>}
                     <Button className="w-full h-10 gap-2 mt-2 text-black font-semibold" style={{ backgroundColor: accentColor }} onClick={handleSubmitOrder} disabled={orderState === 'saving'}>

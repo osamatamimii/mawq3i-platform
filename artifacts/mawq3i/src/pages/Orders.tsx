@@ -93,7 +93,7 @@ export default function Orders() {
                       order.productName
                         ? order.productName
                         : Array.isArray(order.items) && order.items.length > 0
-                          ? (order.items[0] as any).productName || (order.items[0] as any).product_name || '—'
+                          ? (order.items[0] as any).productName || (order.items[0] as any).product_name || (order.items[0] as any).name || '—'
                           : '—'
                     }</td>
                     <td className="px-6 py-4">
