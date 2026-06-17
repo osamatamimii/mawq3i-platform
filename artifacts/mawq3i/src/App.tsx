@@ -27,6 +27,7 @@ import AdminSettings from "@/pages/admin/AdminSettings";
 import SiteBuilder from "@/pages/SiteBuilder";
 import EditProduct from "@/pages/EditProduct";
 import Promotions from "@/pages/Promotions";
+import AbandonedCarts from "@/pages/AbandonedCarts";
 
 const queryClient = new QueryClient();
 
@@ -125,6 +126,7 @@ function Router() {
               <Route path="/dashboard/analytics" component={Analytics} />
               <Route path="/dashboard/settings" component={Settings} />
               <Route path="/dashboard/promotions" component={Promotions} />
+              <Route path="/dashboard/abandoned-carts" component={AbandonedCarts} />
               <Route component={NotFound} />
             </Switch>
           </motion.div>
