@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { Order, OrderStatus } from '@/data/mockData';
 import { getOrders, updateOrderStatus } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -21,9 +22,80 @@ export default function Orders() {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // Track last known order IDs to detect new ones
+  const knownOrderIdsRef = useRef<Set<string> | null>(null);
+
+  const sendWhatsAppToOwner = (order: Order) => {
+    if (!currentStore?.owner_phone) return;
+    const phone = currentStore.ownerPhone.replace(/\D/g, '');
+    if (!phone) return;
+    const cur = order.currency === 'ILS' ? '₪' : '﷼';
+    const msg =
+      `🛍️ طلب جديد!\n` +
+      `رقم الطلب: ${order.id}\n` +
+      `العميل: ${order.customerName}\n` +
+      `الهاتف: ${order.phone}\n` +
+      `المنتج: ${order.productName || '—'}\n` +
+      `المبلغ: ${cur}${order.amount}\n` +
+      `الدفع: ${(order as any).paymentMethod === 'card' ? 'بطاقة' : 'عند الاستلام'}`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  // Load orders initially
   useEffect(() => {
-    getOrders(currentStore?.id, isAdminMode).then(data => { setOrders(data); setLoading(false); });
+    if (!currentStore?.id) return;
+    getOrders(currentStore?.id, isAdminMode).then(data => {
+      setOrders(data);
+      // Initialize known IDs — don't fire WA on first load
+      knownOrderIdsRef.current = new Set(data.map((o: Order) => o.id));
+      setLoading(false);
+    });
   }, [currentStore?.id]);
+
+  // Poll every 30s for new orders
+  useEffect(() => {
+    if (!currentStore?.id) return;
+
+    const poll = async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('store_id', currentStore.id)
+        .order('date', { ascending: false });
+
+      if (!data) return;
+      const fresh = data as Order[];
+
+      // Detect new orders
+      if (knownOrderIdsRef.current !== null) {
+        const newOrders = fresh.filter(o => !knownOrderIdsRef.current!.has(o.id));
+        if (newOrders.length > 0) {
+          // Notify via WA for the first new order (avoid opening multiple tabs)
+          sendWhatsAppToOwner(newOrders[0]);
+          // Browser notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(`🛍️ طلب جديد! ${newOrders[0].id}`, {
+              body: `${newOrders[0].customerName} — ${newOrders[0].currency === 'ILS' ? '₪' : '﷼'}${newOrders[0].amount}`,
+              icon: '/favicon.ico',
+            });
+          }
+        }
+      }
+
+      knownOrderIdsRef.current = new Set(fresh.map(o => o.id));
+      setOrders(fresh);
+    };
+
+    const interval = setInterval(poll, 30000);
+    return () => clearInterval(interval);
+  }, [currentStore?.id, currentStore?.owner_phone]);
+
+  // Request browser notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
 
   const handleStatusChange = async (id: string, status: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));

@@ -1,5 +1,7 @@
 import { Link, useLocation } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import {
   LayoutDashboard,
   Package,
@@ -28,10 +30,37 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const ADMIN_EMAIL = 'admin@mawq3i.com';
   const isAdminInOwnerMode = supabaseUser?.email?.toLowerCase() === ADMIN_EMAIL;
 
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+
+  // Poll for new orders count every 30s
+  useEffect(() => {
+    if (!currentStore?.id) return;
+
+    const fetchCount = async () => {
+      const { count } = await supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('store_id', currentStore.id)
+        .eq('status', 'new');
+      setNewOrdersCount(count ?? 0);
+    };
+
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, [currentStore?.id]);
+
+  // Reset badge when user visits orders page
+  useEffect(() => {
+    if (location.startsWith('/dashboard/orders')) {
+      setNewOrdersCount(0);
+    }
+  }, [location]);
+
   const menuItems = [
     { href: '/dashboard', icon: LayoutDashboard, labelAr: 'لوحة التحكم', labelEn: 'Dashboard', exact: true },
     { href: '/dashboard/products', icon: Package, labelAr: 'المنتجات', labelEn: 'Products', exact: false },
-    { href: '/dashboard/orders', icon: ShoppingCart, labelAr: 'الطلبات', labelEn: 'Orders', exact: false },
+    { href: '/dashboard/orders', icon: ShoppingCart, labelAr: 'الطلبات', labelEn: 'Orders', exact: false, badge: newOrdersCount },
     { href: '/dashboard/abandoned-carts', icon: ShoppingBag, labelAr: 'سلات متروكة', labelEn: 'Abandoned Carts', exact: false },
     { href: '/dashboard/analytics', icon: BarChart3, labelAr: 'الإحصائيات', labelEn: 'Analytics', exact: false },
     { href: '/dashboard/promotions', icon: Tag, labelAr: 'العروض', labelEn: 'Promotions', exact: false },
@@ -57,7 +86,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             />
           )}
           <item.icon className="w-5 h-5 relative z-10 flex-shrink-0" />
-          <span className="relative z-10">{isAr ? item.labelAr : item.labelEn}</span>
+          <span className="relative z-10 flex-1">{isAr ? item.labelAr : item.labelEn}</span>
+          {(item as any).badge > 0 && (
+            <span className="relative z-10 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+              {(item as any).badge > 99 ? '99+' : (item as any).badge}
+            </span>
+          )}
         </div>
       </Link>
     );
