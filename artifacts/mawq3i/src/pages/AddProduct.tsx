@@ -389,9 +389,10 @@ export default function AddProduct() {
                             </button>
                           </div>
                         ))}
-                        <label className="w-16 h-16 border-2 border-dashed border-border/60 rounded-lg flex items-center justify-center cursor-pointer hover:border-primary/40 transition-colors">
+                        <label className="w-16 h-16 border-2 border-dashed border-primary/40 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all gap-1">
                           <input type="file" accept="image/*" multiple className="hidden" onChange={e => addColorImages(color.id, e.target.files)} />
-                          <Plus className="w-4 h-4 text-muted-foreground" />
+                          <Plus className="w-4 h-4 text-primary" />
+                          <span className="text-[9px] text-primary">{isAr ? 'صورة' : 'Photo'}</span>
                         </label>
                       </div>
                     </div>
