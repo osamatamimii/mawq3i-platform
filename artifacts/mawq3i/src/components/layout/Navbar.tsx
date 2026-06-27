@@ -2,14 +2,14 @@ import { useAppContext } from '@/context/AppContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useLocation } from 'wouter';
-import { Menu } from 'lucide-react';
+import { Menu, Sun, Moon } from 'lucide-react';
 
 interface NavbarProps {
   onMenuClick: () => void;
 }
 
 export function Navbar({ onMenuClick }: NavbarProps) {
-  const { language, setLanguage, currentStore, supabaseUser } = useAppContext();
+  const { language, setLanguage, currentStore, supabaseUser, theme, toggleTheme } = useAppContext();
   const [location] = useLocation();
   const isAr = language === 'ar';
 
@@ -23,7 +23,6 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     '/dashboard/promotions': { ar: 'العروض', en: 'Promotions' },
   };
 
-  // Handle dynamic routes like /dashboard/products/edit/:id
   const getTitle = () => {
     if (routeNames[location]) return routeNames[location];
     if (location.startsWith('/dashboard/products/edit/')) return { ar: 'تعديل المنتج', en: 'Edit Product' };
@@ -35,7 +34,6 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   return (
     <header className="h-16 border-b border-border bg-background/50 backdrop-blur-sm flex items-center justify-between px-4 md:px-6 sticky top-0 z-20">
       <div className="flex items-center gap-3">
-        {/* Hamburger — mobile only */}
         <button
           onClick={onMenuClick}
           className="lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
@@ -46,7 +44,44 @@ export function Navbar({ onMenuClick }: NavbarProps) {
         <h2 className="text-lg md:text-xl font-semibold">{title ? (isAr ? title.ar : title.en) : ''}</h2>
       </div>
 
-      <div className="flex items-center gap-3 md:gap-4">
+      <div className="flex items-center gap-2 md:gap-3">
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="relative w-14 h-7 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          style={{
+            background: theme === 'dark'
+              ? 'linear-gradient(135deg, #1a1f35 0%, #2d3561 100%)'
+              : 'linear-gradient(135deg, #87CEEB 0%, #FDB97D 100%)',
+          }}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? (isAr ? 'الوضع النهاري' : 'Light mode') : (isAr ? 'الوضع الليلي' : 'Dark mode')}
+        >
+          {/* Stars (dark mode) */}
+          {theme === 'dark' && (
+            <>
+              <span className="absolute top-1 left-2 w-0.5 h-0.5 bg-white rounded-full opacity-80" />
+              <span className="absolute top-2.5 left-3.5 w-0.5 h-0.5 bg-white rounded-full opacity-60" />
+              <span className="absolute top-1.5 left-5 w-0.5 h-0.5 bg-white rounded-full opacity-70" />
+            </>
+          )}
+          {/* Sliding circle with icon */}
+          <span
+            className="absolute top-0.5 flex items-center justify-center w-6 h-6 rounded-full shadow-md transition-all duration-300"
+            style={{
+              left: theme === 'dark' ? '2px' : 'calc(100% - 26px)',
+              background: theme === 'dark'
+                ? 'linear-gradient(135deg, #c8d6f0 0%, #e8edf5 100%)'
+                : 'linear-gradient(135deg, #FFE066 0%, #FFB800 100%)',
+            }}
+          >
+            {theme === 'dark'
+              ? <Moon className="w-3.5 h-3.5 text-slate-600" />
+              : <Sun className="w-3.5 h-3.5 text-amber-700" />
+            }
+          </span>
+        </button>
+
         <Button
           variant="outline"
           size="sm"
