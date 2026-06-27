@@ -50,9 +50,9 @@ export default function AdminSettings() {
   };
 
   const Section = ({ titleAr, titleEn, children }: { titleAr: string; titleEn: string; children: React.ReactNode }) => (
-    <Card className="bg-white/[0.03] border-white/[0.07]">
-      <CardHeader className="border-b border-white/[0.07] pb-4">
-        <CardTitle className="text-sm font-semibold text-white/70 uppercase tracking-wide">{isAr ? titleAr : titleEn}</CardTitle>
+    <Card className="bg-card border-border">
+      <CardHeader className="border-b border-border pb-4">
+        <CardTitle className="text-sm font-semibold text-foreground/70 uppercase tracking-wide">{isAr ? titleAr : titleEn}</CardTitle>
       </CardHeader>
       <CardContent className="pt-5 space-y-4">{children}</CardContent>
     </Card>
@@ -60,7 +60,7 @@ export default function AdminSettings() {
 
   const Field = ({ labelAr, labelEn, children }: { labelAr: string; labelEn: string; children: React.ReactNode }) => (
     <div className="grid grid-cols-3 gap-4 items-center">
-      <Label className="text-sm text-white/50 col-span-1">{isAr ? labelAr : labelEn}</Label>
+      <Label className="text-sm text-muted-foreground col-span-1">{isAr ? labelAr : labelEn}</Label>
       <div className="col-span-2">{children}</div>
     </div>
   );
@@ -72,38 +72,38 @@ export default function AdminSettings() {
           <Shield className="w-5 h-5 text-red-400" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-white">{isAr ? 'إعدادات المنصة' : 'Platform Settings'}</h2>
-          <p className="text-xs text-white/40">{isAr ? 'الإعدادات العامة للمنصة' : 'Global platform configuration'}</p>
+          <h2 className="text-lg font-semibold text-foreground">{isAr ? 'إعدادات المنصة' : 'Platform Settings'}</h2>
+          <p className="text-xs text-muted-foreground">{isAr ? 'الإعدادات العامة للمنصة' : 'Global platform configuration'}</p>
         </div>
       </div>
 
       <Section titleAr="معلومات المنصة" titleEn="Platform Info">
         <Field labelAr="اسم المنصة" labelEn="Platform Name">
           <Input value={settings.platformName} onChange={e => set('platformName', e.target.value)}
-            className="bg-white/[0.04] border-white/[0.08] text-white" />
+            className="bg-card border-border text-foreground" />
         </Field>
         <Field labelAr="بريد المدير" labelEn="Admin Email">
           <Input value={settings.adminEmail} onChange={e => set('adminEmail', e.target.value)}
-            className="bg-white/[0.04] border-white/[0.08] text-white font-mono" dir="ltr" />
+            className="bg-card border-border text-foreground font-mono" dir="ltr" />
         </Field>
         <Field labelAr="بريد الدعم" labelEn="Support Email">
           <Input value={settings.supportEmail} onChange={e => set('supportEmail', e.target.value)}
-            className="bg-white/[0.04] border-white/[0.08] text-white font-mono" dir="ltr" />
+            className="bg-card border-border text-foreground font-mono" dir="ltr" />
         </Field>
       </Section>
 
       <Section titleAr="أسعار الاشتراك" titleEn="Subscription Pricing">
         <Field labelAr="السعر الشهري (₪)" labelEn="Monthly Price (₪)">
           <Input type="number" value={settings.monthlyPrice} onChange={e => set('monthlyPrice', e.target.value)}
-            className="bg-white/[0.04] border-white/[0.08] text-white font-mono" />
+            className="bg-card border-border text-foreground font-mono" />
         </Field>
         <Field labelAr="السعر السنوي (₪)" labelEn="Yearly Price (₪)">
           <Input type="number" value={settings.yearlyPrice} onChange={e => set('yearlyPrice', e.target.value)}
-            className="bg-white/[0.04] border-white/[0.08] text-white font-mono" />
+            className="bg-card border-border text-foreground font-mono" />
         </Field>
         <Field labelAr="فترة التجربة (أيام)" labelEn="Trial Period (days)">
           <Input type="number" value={settings.trialDays} onChange={e => set('trialDays', e.target.value)}
-            className="bg-white/[0.04] border-white/[0.08] text-white font-mono" />
+            className="bg-card border-border text-foreground font-mono" />
         </Field>
       </Section>
 
@@ -115,8 +115,8 @@ export default function AdminSettings() {
         ].map(item => (
           <div key={item.key} className="flex items-center justify-between py-1">
             <div>
-              <p className="text-sm font-medium text-white">{isAr ? item.ar : item.en}</p>
-              <p className="text-xs text-white/35 mt-0.5">{isAr ? item.desc_ar : item.desc_en}</p>
+              <p className="text-sm font-medium text-foreground">{isAr ? item.ar : item.en}</p>
+              <p className="text-xs text-muted-foreground/60 mt-0.5">{isAr ? item.desc_ar : item.desc_en}</p>
             </div>
             <Switch checked={(settings as any)[item.key]} onCheckedChange={v => set(item.key, v)} />
           </div>

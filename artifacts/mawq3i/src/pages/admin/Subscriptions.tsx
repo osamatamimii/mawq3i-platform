@@ -62,8 +62,8 @@ export default function AdminSubscriptions() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-white">{isAr ? 'الاشتراكات' : 'Subscriptions'}</h2>
-        <p className="text-sm text-white/40">{stores.length} {isAr ? 'اشتراك' : 'subscriptions'}</p>
+        <h2 className="text-lg font-semibold text-foreground">{isAr ? 'الاشتراكات' : 'Subscriptions'}</h2>
+        <p className="text-sm text-muted-foreground">{stores.length} {isAr ? 'اشتراك' : 'subscriptions'}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -73,14 +73,14 @@ export default function AdminSubscriptions() {
           { titleAr: 'إجمالي الاشتراكات', titleEn: 'Total', value: stores.length.toString(), icon: DollarSign, color: 'text-blue-400', bg: 'bg-blue-400/10' },
         ].map((s, i) => (
           <motion.div key={s.titleAr} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
-            <Card className="bg-white/[0.03] border-white/[0.07]">
+            <Card className="bg-card border-border">
               <CardContent className="p-5 flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.bg}`}>
                   <s.icon className={`w-5 h-5 ${s.color}`} />
                 </div>
                 <div>
-                  <p className="text-xs text-white/40">{isAr ? s.titleAr : s.titleEn}</p>
-                  <p className="text-xl font-bold text-white font-mono">{s.value}</p>
+                  <p className="text-xs text-muted-foreground">{isAr ? s.titleAr : s.titleEn}</p>
+                  <p className="text-xl font-bold text-foreground font-mono">{s.value}</p>
                 </div>
               </CardContent>
             </Card>
@@ -88,10 +88,10 @@ export default function AdminSubscriptions() {
         ))}
       </div>
 
-      <Card className="bg-white/[0.03] border-white/[0.07]">
+      <Card className="bg-card border-border">
         <CardContent className="p-0">
           {stores.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-white/30 gap-2">
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/50 gap-2">
               <span className="text-4xl">💳</span>
               <p className="text-sm">{isAr ? 'لا توجد اشتراكات بعد' : 'No subscriptions yet'}</p>
             </div>
@@ -99,7 +99,7 @@ export default function AdminSubscriptions() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/[0.06] text-white/35">
+                  <tr className="border-b border-border text-muted-foreground/60">
                     <th className="text-start px-6 py-3.5 font-medium">{isAr ? 'المتجر' : 'Store'}</th>
                     <th className="text-start px-6 py-3.5 font-medium">{isAr ? 'المالك' : 'Owner'}</th>
                     <th className="text-start px-6 py-3.5 font-medium">{isAr ? 'الخطة' : 'Plan'}</th>
@@ -112,11 +112,11 @@ export default function AdminSubscriptions() {
                   {stores.map((store, i) => (
                     <motion.tr key={store.id}
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}
-                      className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors">
-                      <td className="px-6 py-4 font-semibold text-white">{store.name}</td>
-                      <td className="px-6 py-4 text-white/60 text-xs">{store.owner_email || '—'}</td>
+                      className="border-b border-border/40 hover:bg-white/[0.025] transition-colors">
+                      <td className="px-6 py-4 font-semibold text-foreground">{store.name}</td>
+                      <td className="px-6 py-4 text-muted-foreground text-xs">{store.owner_email || '—'}</td>
                       <td className="px-6 py-4">
-                        <span className="text-xs font-medium bg-white/[0.06] px-2.5 py-1 rounded-full text-white/60 font-mono">
+                        <span className="text-xs font-medium bg-card px-2.5 py-1 rounded-full text-muted-foreground font-mono">
                           {store.subscription_plan === 'yearly' ? (isAr ? 'سنوي' : 'Yearly') : store.subscription_status === 'trial' ? (isAr ? 'تجريبي' : 'Trial') : (isAr ? 'شهري' : 'Monthly')}
                         </span>
                       </td>

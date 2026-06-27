@@ -35,8 +35,8 @@ export default function AdminDomains() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-white">{isAr ? 'إدارة الدومينات' : 'Domain Management'}</h2>
-        <p className="text-sm text-white/40">{stores.length} {isAr ? 'دومين مسجل' : 'registered domains'}</p>
+        <h2 className="text-lg font-semibold text-foreground">{isAr ? 'إدارة الدومينات' : 'Domain Management'}</h2>
+        <p className="text-sm text-muted-foreground">{stores.length} {isAr ? 'دومين مسجل' : 'registered domains'}</p>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -46,14 +46,14 @@ export default function AdminDomains() {
           { labelAr: 'الإجمالي', labelEn: 'Total', value: stores.length, color: 'text-blue-400', bg: 'bg-blue-400/10' },
         ].map((s, i) => (
           <motion.div key={s.labelAr} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
-            <Card className="bg-white/[0.03] border-white/[0.07]">
+            <Card className="bg-card border-border">
               <CardContent className="p-5 flex items-center gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.bg}`}>
                   <Globe className={`w-5 h-5 ${s.color}`} />
                 </div>
                 <div>
-                  <p className="text-xs text-white/40">{isAr ? s.labelAr : s.labelEn}</p>
-                  <p className="text-2xl font-bold text-white">{s.value}</p>
+                  <p className="text-xs text-muted-foreground">{isAr ? s.labelAr : s.labelEn}</p>
+                  <p className="text-2xl font-bold text-foreground">{s.value}</p>
                 </div>
               </CardContent>
             </Card>
@@ -61,10 +61,10 @@ export default function AdminDomains() {
         ))}
       </div>
 
-      <Card className="bg-white/[0.03] border-white/[0.07]">
+      <Card className="bg-card border-border">
         <CardContent className="p-0">
           {stores.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-white/30 gap-2">
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/50 gap-2">
               <span className="text-4xl">🌐</span>
               <p className="text-sm">{isAr ? 'لا توجد دومينات بعد' : 'No domains yet'}</p>
               <p className="text-xs opacity-60">{isAr ? 'ستظهر هنا دومينات المتاجر المسجلة' : 'Store domains will appear here'}</p>
@@ -73,7 +73,7 @@ export default function AdminDomains() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/[0.06] text-white/35">
+                  <tr className="border-b border-border text-muted-foreground/60">
                     <th className="text-start px-6 py-3.5 font-medium">{isAr ? 'المتجر' : 'Store'}</th>
                     <th className="text-start px-6 py-3.5 font-medium">{isAr ? 'الدومين' : 'Domain'}</th>
                     <th className="text-start px-6 py-3.5 font-medium">{isAr ? 'النطاق' : 'Slug'}</th>
@@ -84,10 +84,10 @@ export default function AdminDomains() {
                 <tbody>
                   {stores.map((store, i) => (
                     <motion.tr key={store.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}
-                      className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors">
-                      <td className="px-6 py-4 font-semibold text-white">{store.name}</td>
-                      <td className="px-6 py-4 font-mono text-xs text-white/50" dir="ltr">{store.domain || '—'}</td>
-                      <td className="px-6 py-4 font-mono text-xs text-white/40" dir="ltr">{store.slug}</td>
+                      className="border-b border-border/40 hover:bg-white/[0.025] transition-colors">
+                      <td className="px-6 py-4 font-semibold text-foreground">{store.name}</td>
+                      <td className="px-6 py-4 font-mono text-xs text-muted-foreground" dir="ltr">{store.domain || '—'}</td>
+                      <td className="px-6 py-4 font-mono text-xs text-muted-foreground" dir="ltr">{store.slug}</td>
                       <td className="px-6 py-4">
                         {store.status === 'active' ? (
                           <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
@@ -100,7 +100,7 @@ export default function AdminDomains() {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-white/50 hover:text-white"
+                        <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-muted-foreground hover:text-foreground"
                           onClick={() => { const url = store.domain ? `https://${store.domain}` : `/store/${store.slug}`; window.open(url, '_blank'); }}>
                           <ExternalLink className="w-3 h-3" />
                         </Button>

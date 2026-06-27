@@ -52,26 +52,26 @@ export default function AdminClients() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-white">{isAr ? 'العملاء' : 'Clients'}</h2>
-        <p className="text-sm text-white/40">{clients.length} {isAr ? 'عميل مسجل' : 'registered clients'}</p>
+        <h2 className="text-lg font-semibold text-foreground">{isAr ? 'العملاء' : 'Clients'}</h2>
+        <p className="text-sm text-muted-foreground">{clients.length} {isAr ? 'عميل مسجل' : 'registered clients'}</p>
       </div>
 
       {clients.length === 0 ? (
-        <Card className="bg-white/[0.03] border-white/[0.07]">
+        <Card className="bg-card border-border">
           <CardContent className="flex flex-col items-center justify-center py-24 gap-3">
-            <div className="w-16 h-16 rounded-full bg-white/[0.04] flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-card flex items-center justify-center">
               <Users className="w-7 h-7 text-white/20" />
             </div>
-            <p className="text-base font-medium text-white/40">{isAr ? 'لا يوجد عملاء بعد' : 'No clients yet'}</p>
+            <p className="text-base font-medium text-muted-foreground">{isAr ? 'لا يوجد عملاء بعد' : 'No clients yet'}</p>
           </CardContent>
         </Card>
       ) : (
-        <Card className="bg-white/[0.03] border-white/[0.07]">
+        <Card className="bg-card border-border">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/[0.06] text-white/35">
+                  <tr className="border-b border-border text-muted-foreground/60">
                     <th className="text-start px-6 py-3.5 font-medium">{isAr ? 'المتجر' : 'Store'}</th>
                     <th className="text-start px-6 py-3.5 font-medium">{isAr ? 'البريد' : 'Email'}</th>
                     <th className="text-start px-6 py-3.5 font-medium">{isAr ? 'الهاتف' : 'Phone'}</th>
@@ -84,22 +84,22 @@ export default function AdminClients() {
                   {clients.map((c, i) => (
                     <motion.tr key={c.id}
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}
-                      className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors">
+                      className="border-b border-border/40 hover:bg-white/[0.025] transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
                             <Store className="w-3.5 h-3.5 text-primary" />
                           </div>
-                          <span className="font-semibold text-white">{c.store_name}</span>
+                          <span className="font-semibold text-foreground">{c.store_name}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5 text-white/60 text-xs">
+                        <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
                           <Mail className="w-3.5 h-3.5 shrink-0" />{c.email}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-1.5 text-white/60">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
                           <Phone className="w-3.5 h-3.5 shrink-0" />{c.owner_phone}
                         </div>
                       </td>
@@ -109,7 +109,7 @@ export default function AdminClients() {
                           {c.domain}<ExternalLink className="w-3 h-3" />
                         </a>
                       </td>
-                      <td className="px-6 py-4 font-mono text-xs text-white/40">{c.created_at}</td>
+                      <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{c.created_at}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
                           c.status === 'active'

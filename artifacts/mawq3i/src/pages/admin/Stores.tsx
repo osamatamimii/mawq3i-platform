@@ -199,8 +199,8 @@ export default function AdminStores() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-white">{isAr ? 'جميع المتاجر' : 'All Stores'}</h2>
-          <p className="text-sm text-white/40">{stores.length} {isAr ? 'متجر' : 'stores'}</p>
+          <h2 className="text-lg font-semibold text-foreground">{isAr ? 'جميع المتاجر' : 'All Stores'}</h2>
+          <p className="text-sm text-muted-foreground">{stores.length} {isAr ? 'متجر' : 'stores'}</p>
         </div>
         <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
           <Button onClick={() => { setShowAdd(true); setAddAlert(null); }} className="gap-2">
@@ -225,10 +225,10 @@ export default function AdminStores() {
         </motion.div>
       )}
 
-      <Card className="bg-white/[0.03] border-white/[0.07]">
+      <Card className="bg-card border-border">
         <CardContent className="p-0">
           {stores.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-white/30 gap-2">
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground/50 gap-2">
               <span className="text-4xl">🏪</span>
               <p className="text-sm">{isAr ? 'لا توجد متاجر بعد' : 'No stores yet'}</p>
               <p className="text-xs opacity-60">{isAr ? 'اضغط "إضافة متجر" لإنشاء أول متجر' : 'Click "Add Store" to create the first store'}</p>
@@ -237,7 +237,7 @@ export default function AdminStores() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-sm">
                 <thead>
-                  <tr className="border-b border-white/[0.06] text-white/35">
+                  <tr className="border-b border-border text-muted-foreground/60">
                     <th className="text-start px-5 py-3.5 font-medium">{isAr ? 'المتجر' : 'Store'}</th>
                     <th className="text-start px-5 py-3.5 font-medium">{isAr ? 'المالك' : 'Owner'}</th>
                     <th className="text-start px-5 py-3.5 font-medium">{isAr ? 'الدومين' : 'Domain'}</th>
@@ -252,19 +252,19 @@ export default function AdminStores() {
                 <tbody>
                   {stores.map((store, i) => (
                     <motion.tr key={store.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-                      className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors">
+                      className="border-b border-border/40 hover:bg-white/[0.025] transition-colors">
                       <td className="px-5 py-4">
-                        <p className="font-semibold text-white">{store.name}</p>
-                        <p className="text-xs text-white/35 font-mono">{store.currency}</p>
+                        <p className="font-semibold text-foreground">{store.name}</p>
+                        <p className="text-xs text-muted-foreground/60 font-mono">{store.currency}</p>
                       </td>
                       <td className="px-5 py-4">
-                        <p className="text-white/80">{store.ownerName || '—'}</p>
-                        <p className="text-xs text-white/35">{store.ownerEmail}</p>
+                        <p className="text-foreground/80">{store.ownerName || '—'}</p>
+                        <p className="text-xs text-muted-foreground/60">{store.ownerEmail}</p>
                       </td>
-                      <td className="px-5 py-4 font-mono text-xs text-white/40" dir="ltr">{store.domain || '—'}</td>
-                      <td className="px-5 py-4 font-mono font-semibold text-white">{(storeOrderCounts[store.id] || 0).toLocaleString()}</td>
+                      <td className="px-5 py-4 font-mono text-xs text-muted-foreground" dir="ltr">{store.domain || '—'}</td>
+                      <td className="px-5 py-4 font-mono font-semibold text-foreground">{(storeOrderCounts[store.id] || 0).toLocaleString()}</td>
                       <td className="px-5 py-4">
-                        <span className="font-mono font-semibold text-white">
+                        <span className="font-mono font-semibold text-foreground">
                           {store.currency === 'ILS' ? '₪' : '﷼'}{(storeSales[store.id] || 0).toLocaleString()}
                         </span>
                       </td>
@@ -273,10 +273,10 @@ export default function AdminStores() {
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border ${subStatusCfg[store.subscriptionStatus]?.cls}`}>
                             {isAr ? subStatusCfg[store.subscriptionStatus]?.ar : subStatusCfg[store.subscriptionStatus]?.en}
                           </span>
-                          <span className="text-[10px] text-white/30 font-mono">{store.subscriptionPlan === 'yearly' ? (isAr ? 'سنوي' : 'Yearly') : (isAr ? 'شهري' : 'Monthly')}</span>
+                          <span className="text-[10px] text-muted-foreground/50 font-mono">{store.subscriptionPlan === 'yearly' ? (isAr ? 'سنوي' : 'Yearly') : (isAr ? 'شهري' : 'Monthly')}</span>
                         </div>
                       </td>
-                      <td className="px-5 py-4 font-mono text-xs text-white/40">{store.renewalDate || '—'}</td>
+                      <td className="px-5 py-4 font-mono text-xs text-muted-foreground">{store.renewalDate || '—'}</td>
                       <td className="px-5 py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${storStatusCfg[store.status]?.cls}`}>
                           {isAr ? storStatusCfg[store.status]?.ar : storStatusCfg[store.status]?.en}
@@ -284,27 +284,27 @@ export default function AdminStores() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-1.5">
-                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-primary/10 hover:border-primary/30 text-white/50 hover:text-primary" title={isAr ? 'منشئ الموقع' : 'Site Builder'} onClick={() => setLocation(`/admin/site-builder/${store.slug}`)}>
+                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-primary/10 hover:border-primary/30 text-muted-foreground hover:text-primary" title={isAr ? 'منشئ الموقع' : 'Site Builder'} onClick={() => setLocation(`/admin/site-builder/${store.slug}`)}>
                             <Globe className="w-3 h-3" />
                           </Button>
-                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-white/50 hover:text-white" title={isAr ? 'تعديل' : 'Edit'} onClick={() => setEditStore({ ...store })}>
+                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-muted-foreground hover:text-foreground" title={isAr ? 'تعديل' : 'Edit'} onClick={() => setEditStore({ ...store })}>
                             <Pencil className="w-3 h-3" />
                           </Button>
-                          <a href={store.domain ? `https://${store.domain}` : `/store/${store.slug}`} target="_blank" rel="noopener noreferrer" title={isAr ? 'معاينة' : 'Preview'} className="inline-flex items-center justify-center h-7 w-7 border border-white/10 rounded-md bg-transparent hover:bg-white/5 text-white/50 hover:text-white transition-colors">
+                          <a href={store.domain ? `https://${store.domain}` : `/store/${store.slug}`} target="_blank" rel="noopener noreferrer" title={isAr ? 'معاينة' : 'Preview'} className="inline-flex items-center justify-center h-7 w-7 border border-white/10 rounded-md bg-transparent hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors">
                             <ExternalLink className="w-3 h-3" />
                           </a>
-                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-white/50 hover:text-white" title={isAr ? 'دخول كصاحب المتجر' : 'Login as Owner'} onClick={() => {
+                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-white/5 text-muted-foreground hover:text-foreground" title={isAr ? 'دخول كصاحب المتجر' : 'Login as Owner'} onClick={() => {
                             setCurrentStore(store);
                             setCurrentUser('owner');
                             setLocation('/dashboard');
                           }}>
                             <LogIn className="w-3 h-3" />
                           </Button>
-                          <Button variant="outline" size="icon" className={`h-7 w-7 border-white/10 bg-transparent ${store.status === 'active' ? 'hover:text-red-400 hover:border-red-500/30' : 'hover:text-emerald-400 hover:border-emerald-500/30'} text-white/50 hover:bg-white/5`}
+                          <Button variant="outline" size="icon" className={`h-7 w-7 border-white/10 bg-transparent ${store.status === 'active' ? 'hover:text-red-400 hover:border-red-500/30' : 'hover:text-emerald-400 hover:border-emerald-500/30'} text-muted-foreground hover:bg-white/5`}
                             title={store.status === 'active' ? (isAr ? 'تعليق' : 'Suspend') : (isAr ? 'تفعيل' : 'Activate')} onClick={() => toggleStatus(store.id)}>
                             {store.status === 'active' ? <BanIcon className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
                           </Button>
-                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-red-500/10 hover:border-red-500/40 text-white/50 hover:text-red-400"
+                          <Button variant="outline" size="icon" className="h-7 w-7 border-white/10 bg-transparent hover:bg-red-500/10 hover:border-red-500/40 text-muted-foreground hover:text-red-400"
                             title={isAr ? 'حذف المتجر' : 'Delete Store'} onClick={() => setDeleteId(store.id)}>
                             <Trash2 className="w-3 h-3" />
                           </Button>
@@ -321,24 +321,24 @@ export default function AdminStores() {
 
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="bg-[#0e1217] border-white/10 sm:max-w-lg">
-          <DialogHeader><DialogTitle className="text-white">{isAr ? 'إضافة متجر جديد' : 'Add New Store'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-foreground">{isAr ? 'إضافة متجر جديد' : 'Add New Store'}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
-              <Label className="text-white/60 text-xs">{isAr ? 'اسم المتجر' : 'Store Name'}</Label>
+              <Label className="text-muted-foreground text-xs">{isAr ? 'اسم المتجر' : 'Store Name'}</Label>
               <Input
                 value={newStore.name}
                 onChange={e => handleNameChange(e.target.value)}
                 placeholder={isAr ? 'مثال: متجر الأناقة' : 'e.g. Elegance Store'}
-                className="bg-white/[0.04] border-white/10 text-white placeholder:text-white/25"
+                className="bg-card border-white/10 text-foreground placeholder:text-white/25"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/60 text-xs">{isAr ? 'الرابط المختصر (Slug)' : 'Slug'}</Label>
+              <Label className="text-muted-foreground text-xs">{isAr ? 'الرابط المختصر (Slug)' : 'Slug'}</Label>
               <Input
                 value={newStore.slug}
                 onChange={e => setNewStore(s => ({ ...s, slug: e.target.value }))}
                 placeholder="elegance-store"
-                className="bg-white/[0.04] border-white/10 text-white placeholder:text-white/25 font-mono"
+                className="bg-card border-white/10 text-foreground placeholder:text-white/25 font-mono"
                 dir="ltr"
               />
             </div>
@@ -349,31 +349,31 @@ export default function AdminStores() {
               { key: 'ownerPhone', labelAr: 'رقم الهاتف', labelEn: 'Phone', ph: '', ltr: true },
             ].map(f => (
               <div key={f.key} className="space-y-1.5">
-                <Label className="text-white/60 text-xs">{isAr ? f.labelAr : f.labelEn}</Label>
+                <Label className="text-muted-foreground text-xs">{isAr ? f.labelAr : f.labelEn}</Label>
                 <Input
                   value={(newStore as any)[f.key]}
                   onChange={e => setNewStore(s => ({ ...s, [f.key]: e.target.value }))}
                   placeholder={f.ph}
-                  className="bg-white/[0.04] border-white/10 text-white placeholder:text-white/25"
+                  className="bg-card border-white/10 text-foreground placeholder:text-white/25"
                   dir={f.ltr ? 'ltr' : undefined}
                 />
               </div>
             ))}
             <div className="space-y-1.5">
-              <Label className="text-white/60 text-xs">{isAr ? 'كلمة المرور' : 'Password'}</Label>
+              <Label className="text-muted-foreground text-xs">{isAr ? 'كلمة المرور' : 'Password'}</Label>
               <Input
                 value={newStore.password}
                 onChange={e => setNewStore(s => ({ ...s, password: e.target.value }))}
                 type="text"
                 placeholder={isAr ? 'كلمة مرور قوية' : 'Strong password'}
-                className="bg-white/[0.04] border-white/10 text-white placeholder:text-white/25 font-mono"
+                className="bg-card border-white/10 text-foreground placeholder:text-white/25 font-mono"
                 dir="ltr"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-white/60 text-xs">{isAr ? 'العملة' : 'Currency'}</Label>
+              <Label className="text-muted-foreground text-xs">{isAr ? 'العملة' : 'Currency'}</Label>
               <Select value={newStore.currency} onValueChange={v => setNewStore(s => ({ ...s, currency: v }))}>
-                <SelectTrigger className="bg-white/[0.04] border-white/10 text-white"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="bg-card border-white/10 text-foreground"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-[#0e1217] border-white/10">
                   <SelectItem value="ILS">₪ ILS</SelectItem>
                   <SelectItem value="SAR">﷼ SAR</SelectItem>
@@ -382,7 +382,7 @@ export default function AdminStores() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAdd(false)} className="border-white/10 text-white/60">{isAr ? 'إلغاء' : 'Cancel'}</Button>
+            <Button variant="outline" onClick={() => setShowAdd(false)} className="border-white/10 text-muted-foreground">{isAr ? 'إلغاء' : 'Cancel'}</Button>
             <Button onClick={handleAdd} disabled={saving || !newStore.name || !newStore.ownerEmail || !newStore.password}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (isAr ? 'إضافة' : 'Add')}
             </Button>
@@ -392,7 +392,7 @@ export default function AdminStores() {
 
       <Dialog open={!!editStore} onOpenChange={o => !o && setEditStore(null)}>
         <DialogContent className="bg-[#0e1217] border-white/10 sm:max-w-lg">
-          <DialogHeader><DialogTitle className="text-white">{isAr ? 'تعديل بيانات المتجر' : 'Edit Store'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-foreground">{isAr ? 'تعديل بيانات المتجر' : 'Edit Store'}</DialogTitle></DialogHeader>
           {editStore && (
             <div className="space-y-3 py-2">
               {[
@@ -403,15 +403,15 @@ export default function AdminStores() {
                 { key: 'ownerPhone', labelAr: 'الهاتف', labelEn: 'Phone', ltr: true },
               ].map(f => (
                 <div key={f.key} className="space-y-1.5">
-                  <Label className="text-white/60 text-xs">{isAr ? f.labelAr : f.labelEn}</Label>
+                  <Label className="text-muted-foreground text-xs">{isAr ? f.labelAr : f.labelEn}</Label>
                   <Input value={(editStore as any)[f.key]} onChange={e => setEditStore(s => s ? { ...s, [f.key]: e.target.value } : s)}
-                    className="bg-white/[0.04] border-white/10 text-white" dir={f.ltr ? 'ltr' : undefined} />
+                    className="bg-card border-white/10 text-foreground" dir={f.ltr ? 'ltr' : undefined} />
                 </div>
               ))}
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditStore(null)} className="border-white/10 text-white/60">{isAr ? 'إلغاء' : 'Cancel'}</Button>
+            <Button variant="outline" onClick={() => setEditStore(null)} className="border-white/10 text-muted-foreground">{isAr ? 'إلغاء' : 'Cancel'}</Button>
             <Button onClick={saveEdit} disabled={saving}>{saving ? <Loader2 className="w-4 h-4 animate-spin" /> : (isAr ? 'حفظ' : 'Save')}</Button>
           </DialogFooter>
         </DialogContent>
@@ -420,22 +420,22 @@ export default function AdminStores() {
       <AlertDialog open={!!deleteId} onOpenChange={o => !o && setDeleteId(null)}>
         <AlertDialogContent className="bg-[#0e1217] border-white/10">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">
+            <AlertDialogTitle className="text-foreground">
               {isAr ? 'حذف المتجر' : 'Delete Store'}
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-white/50">
+            <AlertDialogDescription className="text-muted-foreground">
               {isAr
                 ? 'هل أنت متأكد من حذف هذا المتجر؟ سيتم حذف جميع بياناته بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.'
                 : 'Are you sure you want to delete this store? All data will be permanently removed and this action cannot be undone.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-white/10 text-white/60 bg-transparent hover:bg-white/5">
+            <AlertDialogCancel className="border-white/10 text-muted-foreground bg-transparent hover:bg-white/5">
               {isAr ? 'إلغاء' : 'Cancel'}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700 text-white border-0"
+              className="bg-red-600 hover:bg-red-700 text-foreground border-0"
             >
               {isAr ? 'حذف نهائي' : 'Delete'}
             </AlertDialogAction>

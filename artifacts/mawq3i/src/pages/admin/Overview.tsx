@@ -81,15 +81,15 @@ export default function AdminOverview() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s, i) => (
           <motion.div key={s.titleAr} custom={i} initial="hidden" animate="visible" variants={cardV} whileHover={{ y: -3, transition: { duration: 0.2 } }}>
-            <Card className="bg-white/[0.03] border-white/[0.07] hover:border-white/[0.12] transition-colors">
+            <Card className="bg-card border-border hover:border-border transition-colors">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between mb-3">
-                  <p className="text-xs text-white/40 font-medium uppercase tracking-wide">{isAr ? s.titleAr : s.titleEn}</p>
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{isAr ? s.titleAr : s.titleEn}</p>
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${s.bg}`}>
                     <s.icon className={`w-4 h-4 ${s.color}`} />
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-white font-mono">{s.prefix}{s.value}</p>
+                <p className="text-2xl font-bold text-foreground font-mono">{s.prefix}{s.value}</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -114,15 +114,15 @@ export default function AdminOverview() {
       )}
 
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.4 }}>
-        <Card className="bg-white/[0.03] border-white/[0.07]">
-          <CardHeader className="border-b border-white/[0.07] pb-4">
-            <CardTitle className="text-sm font-semibold text-white/80">
+        <Card className="bg-card border-border">
+          <CardHeader className="border-b border-border pb-4">
+            <CardTitle className="text-sm font-semibold text-foreground/80">
               {isAr ? 'أحدث المتاجر' : 'Recent Stores'}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {stores.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-white/30 gap-2">
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground/50 gap-2">
                 <span className="text-4xl">🏪</span>
                 <p className="text-sm">{isAr ? 'لا توجد متاجر بعد' : 'No stores yet'}</p>
                 <p className="text-xs opacity-60">{isAr ? 'ستظهر هنا المتاجر المسجلة في المنصة' : 'Registered stores will appear here'}</p>
@@ -131,7 +131,7 @@ export default function AdminOverview() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-white/[0.06] text-white/35">
+                    <tr className="border-b border-border text-muted-foreground/60">
                       <th className="text-start px-6 py-3 font-medium">{isAr ? 'المتجر' : 'Store'}</th>
                       <th className="text-start px-6 py-3 font-medium">{isAr ? 'المالك' : 'Owner'}</th>
                       <th className="text-start px-6 py-3 font-medium">{isAr ? 'الطلبات' : 'Orders'}</th>
@@ -141,13 +141,13 @@ export default function AdminOverview() {
                   </thead>
                   <tbody>
                     {stores.map((store, i) => (
-                      <motion.tr key={store.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 + i * 0.04 }} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
+                      <motion.tr key={store.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 + i * 0.04 }} className="border-b border-border/40 hover:bg-accent/30 transition-colors">
                         <td className="px-6 py-4">
-                          <p className="font-medium text-white">{store.name}</p>
-                          <p className="text-xs text-white/35 font-mono">{store.domain}</p>
+                          <p className="font-medium text-foreground">{store.name}</p>
+                          <p className="text-xs text-muted-foreground/60 font-mono">{store.domain}</p>
                         </td>
-                        <td className="px-6 py-4 text-white/60">{store.ownerName || '—'}</td>
-                        <td className="px-6 py-4 font-mono font-semibold text-white">{(storeOrderCounts[store.id] || 0).toLocaleString()}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{store.ownerName || '—'}</td>
+                        <td className="px-6 py-4 font-mono font-semibold text-foreground">{(storeOrderCounts[store.id] || 0).toLocaleString()}</td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusConfig[store.subscriptionStatus]?.cls}`}>
                             {isAr ? statusConfig[store.subscriptionStatus]?.ar : statusConfig[store.subscriptionStatus]?.en}
