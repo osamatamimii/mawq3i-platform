@@ -10,7 +10,7 @@ import {
   BarChart3,
   Settings,
   Tag,
-  TicketPercent,
+  Percent,
   LogOut,
   ExternalLink,
   X,
@@ -65,7 +65,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: '/dashboard/abandoned-carts', icon: ShoppingBag, labelAr: 'سلات متروكة', labelEn: 'Abandoned Carts', exact: false },
     { href: '/dashboard/analytics', icon: BarChart3, labelAr: 'الإحصائيات', labelEn: 'Analytics', exact: false },
     { href: '/dashboard/promotions', icon: Tag, labelAr: 'العروض', labelEn: 'Promotions', exact: false },
-    { href: '/dashboard/discount-codes', icon: TicketPercent, labelAr: 'أكواد الخصم', labelEn: 'Discount Codes', exact: false },
+    { href: '/dashboard/discount-codes', icon: Percent, labelAr: 'أكواد الخصم', labelEn: 'Discount Codes', exact: false },
     { href: '/dashboard/settings', icon: Settings, labelAr: 'إعدادات المتجر', labelEn: 'Store Settings', exact: false },
   ];
 
