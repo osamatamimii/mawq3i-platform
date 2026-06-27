@@ -28,6 +28,7 @@ import SiteBuilder from "@/pages/SiteBuilder";
 import EditProduct from "@/pages/EditProduct";
 import Promotions from "@/pages/Promotions";
 import AbandonedCarts from "@/pages/AbandonedCarts";
+import DiscountCodes from "@/pages/DiscountCodes";
 
 const queryClient = new QueryClient();
 
@@ -126,6 +127,7 @@ function Router() {
               <Route path="/dashboard/analytics" component={Analytics} />
               <Route path="/dashboard/settings" component={Settings} />
               <Route path="/dashboard/promotions" component={Promotions} />
+              <Route path="/dashboard/discount-codes" component={DiscountCodes} />
               <Route path="/dashboard/abandoned-carts" component={AbandonedCarts} />
               <Route component={NotFound} />
             </Switch>

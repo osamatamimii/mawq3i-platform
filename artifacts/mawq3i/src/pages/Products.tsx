@@ -14,7 +14,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Loader2, Package, Camera } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Package, Camera, Upload, Download, FileSpreadsheet } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const emojis = ['🕌', '🌿', '💎', '☕', '🫐', '🪔', '✨', '💍'];
 
@@ -28,6 +29,9 @@ export default function Products() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const csvInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
   const imageInputRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<string | null>(null);
 
@@ -92,22 +96,82 @@ export default function Products() {
     );
   }
 
+
+  // ── CSV Import ──────────────────────────────────────────
+  const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentStore?.id) return;
+    setCsvImporting(true);
+    const text = await file.text();
+    const lines = text.trim().split('\n').filter(Boolean);
+    if (lines.length < 2) { setCsvImporting(false); return; }
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
+    let added = 0, failed = 0;
+    for (let i = 1; i < lines.length; i++) {
+      const vals = lines[i].match(/(".*?"|[^,]+)/g)?.map(v => v.trim().replace(/^"|"$/g, '')) || [];
+      const row: any = {};
+      headers.forEach((h, idx) => { row[h] = vals[idx] || ''; });
+      const price = parseFloat(row['price'] || row['السعر'] || '0');
+      const stock = parseInt(row['stock'] || row['المخزون'] || '0');
+      const name = row['name'] || row['name_ar'] || row['الاسم'] || row['اسم المنتج'] || '';
+      if (!name || isNaN(price)) { failed++; continue; }
+      const { error } = await supabase.from('products').insert([{
+        store_id: currentStore.id,
+        name_ar: name,
+        name_en: row['name_en'] || row['english name'] || name,
+        desc_ar: row['desc'] || row['description'] || row['الوصف'] || '',
+        price,
+        stock,
+        category: row['category'] || row['الفئة'] || '',
+        status: 'visible',
+        image_url: row['image'] || row['image_url'] || null,
+        currency: currentStore.currency || 'ILS',
+        variants: [],
+      }]);
+      if (!error) added++; else failed++;
+    }
+    setCsvImporting(false);
+    if (csvInputRef.current) csvInputRef.current.value = '';
+    // Refresh products
+    const { data } = await supabase.from('products').select('*').eq('store_id', currentStore.id).order('created_at', { ascending: false });
+    if (data) setProducts(data.map((p: any) => ({ id: p.id, nameAr: p.name_ar, nameEn: p.name_en, descAr: p.desc_ar, price: p.price, stock: p.stock, category: p.category, status: p.status, imageUrl: p.image_url, variants: p.variants || [], badge: p.badge })));
+    toast({ title: isAr ? \`✅ تم استيراد \${added} منتج\${failed ? \` (فشل \${failed})\` : ''}\` : \`✅ Imported \${added} products\${failed ? \` (\${failed} failed)\` : ''}\` });
+  };
+
+  const downloadTemplate = () => {
+    const csv = 'name_ar,name_en,price,stock,category,desc\nاسم المنتج,Product Name,99,10,ملابس,وصف المنتج';
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'products-template.csv'; a.click();
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+      <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvImport} />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">{isAr ? 'قائمة المنتجات' : 'Products'}</h2>
           <p className="text-sm text-muted-foreground">{products.length} {isAr ? 'منتج' : 'products'}</p>
         </div>
-        <Link href="/dashboard/add-product">
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-            <Button className="gap-2 shadow-[0_0_15px_rgba(82,255,63,0.1)] hover:shadow-[0_0_20px_rgba(82,255,63,0.2)] transition-all" data-testid="button-add-product">
-              <Plus className="w-4 h-4" />
-              {isAr ? 'إضافة منتج' : 'Add Product'}
-            </Button>
-          </motion.div>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={downloadTemplate} className="gap-1.5 text-xs h-8">
+            <Download className="w-3.5 h-3.5" />
+            {isAr ? 'قالب CSV' : 'CSV Template'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => csvInputRef.current?.click()} disabled={csvImporting} className="gap-1.5 text-xs h-8">
+            {csvImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            {isAr ? 'استيراد CSV' : 'Import CSV'}
+          </Button>
+          <Link href="/dashboard/add-product">
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Button className="gap-2 shadow-[0_0_15px_rgba(82,255,63,0.1)] hover:shadow-[0_0_20px_rgba(82,255,63,0.2)] transition-all" data-testid="button-add-product">
+                <Plus className="w-4 h-4" />
+                {isAr ? 'إضافة منتج' : 'Add Product'}
+              </Button>
+            </motion.div>
+          </Link>
+        </div>
       </div>
 
       <Card className="bg-card border-border/50 shadow-lg">

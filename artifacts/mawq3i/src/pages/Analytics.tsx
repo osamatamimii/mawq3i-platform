@@ -5,7 +5,7 @@ import { Order, Product } from '@/data/mockData';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Loader2, TrendingUp, ShoppingBag, Package, Star } from 'lucide-react';
+import { Loader2, TrendingUp, ShoppingBag, Package, Star, FileDown } from 'lucide-react';
 
 function useCountUp(target: number, duration = 1200) {
   const [value, setValue] = useState(0);
@@ -94,10 +94,134 @@ export default function Analytics() {
     { titleAr: 'متوسط قيمة الطلب', titleEn: 'Avg Order', value: `${currency}${animAvg}`, icon: Star, color: 'text-amber-400', bg: 'bg-amber-400/10' },
   ];
 
+
+  // ── PDF Export ──────────────────────────────────────────
+  const exportPDF = () => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString(isAr ? 'ar-PS' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const storeName = currentStore?.name || 'Store';
+    const curr = currentStore?.currency === 'SAR' ? '﷼' : '₪';
+
+    const topProducts = [...products]
+      .map(p => ({
+        name: p.nameAr,
+        count: orders.filter(o => o.items?.some((i: any) => i.productId === p.id || i.product_id === p.id)).length,
+        revenue: orders.filter(o => o.status !== 'cancelled' && o.items?.some((i: any) => i.productId === p.id || i.product_id === p.id)).reduce((s, o) => s + o.amount, 0),
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    const statusRows = ['new', 'processing', 'delivered', 'cancelled'].map(s => ({
+      label: s === 'new' ? (isAr ? 'جديد' : 'New') : s === 'processing' ? (isAr ? 'قيد التجهيز' : 'Processing') : s === 'delivered' ? (isAr ? 'تم التسليم' : 'Delivered') : (isAr ? 'ملغي' : 'Cancelled'),
+      count: orders.filter(o => o.status === s).length,
+      pct: orders.length > 0 ? Math.round(orders.filter(o => o.status === s).length / orders.length * 100) : 0,
+    }));
+
+    const html = \`<!DOCTYPE html>
+<html dir="\${isAr ? 'rtl' : 'ltr'}" lang="\${isAr ? 'ar' : 'en'}">
+<head>
+<meta charset="UTF-8">
+<title>\${isAr ? 'تقرير المبيعات' : 'Sales Report'} - \${storeName}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Cairo', sans-serif; background: #f8fafc; color: #1e293b; padding: 32px; }
+  .header { background: linear-gradient(135deg, #0d1117 0%, #1a2332 100%); color: white; padding: 32px; border-radius: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-dot { width: 40px; height: 40px; background: #52FF3F; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; color: #0d1117; }
+  .brand-name { font-size: 22px; font-weight: 700; }
+  .brand-sub { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  .report-meta { text-align: \${isAr ? 'left' : 'right'}; }
+  .report-title { font-size: 14px; color: rgba(255,255,255,0.6); }
+  .report-date { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: white; border-radius: 12px; padding: 20px; border: 1px solid #e2e8f0; }
+  .stat-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .stat-value { font-size: 26px; font-weight: 700; color: #0f172a; }
+  .stat-accent { color: #52FF3F; }
+  .section { background: white; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; overflow: hidden; }
+  .section-header { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; background: #f8fafc; }
+  .section-title { font-size: 14px; font-weight: 600; color: #374151; }
+  table { width: 100%; border-collapse: collapse; }
+  th { padding: 10px 20px; text-align: \${isAr ? 'right' : 'left'}; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; background: #f8fafc; }
+  td { padding: 12px 20px; border-top: 1px solid #f1f5f9; font-size: 13px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #dcfce7; color: #16a34a; }
+  .badge-yellow { background: #fef9c3; color: #ca8a04; }
+  .badge-blue { background: #dbeafe; color: #2563eb; }
+  .badge-red { background: #fee2e2; color: #dc2626; }
+  .footer { text-align: center; margin-top: 32px; font-size: 11px; color: #94a3b8; }
+  @media print { body { padding: 16px; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="brand">
+    <div class="brand-dot">M</div>
+    <div>
+      <div class="brand-name">\${storeName}</div>
+      <div class="brand-sub">Powered by Mawq3i | موقعي</div>
+    </div>
+  </div>
+  <div class="report-meta">
+    <div class="report-title">\${isAr ? 'تقرير المبيعات الشامل' : 'Comprehensive Sales Report'}</div>
+    <div class="report-date">\${dateStr}</div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-label">\${isAr ? 'إجمالي المبيعات' : 'Total Revenue'}</div><div class="stat-value stat-accent">\${curr}\${totalSales.toLocaleString()}</div></div>
+  <div class="stat-card"><div class="stat-label">\${isAr ? 'إجمالي الطلبات' : 'Total Orders'}</div><div class="stat-value">\${totalOrders}</div></div>
+  <div class="stat-card"><div class="stat-label">\${isAr ? 'تم التسليم' : 'Delivered'}</div><div class="stat-value">\${deliveredOrders}</div></div>
+  <div class="stat-card"><div class="stat-label">\${isAr ? 'متوسط الطلب' : 'Avg Order'}</div><div class="stat-value">\${curr}\${avgOrder.toLocaleString()}</div></div>
+</div>
+
+<div class="section">
+  <div class="section-header"><div class="section-title">\${isAr ? 'حالة الطلبات' : 'Orders by Status'}</div></div>
+  <table>
+    <thead><tr><th>\${isAr ? 'الحالة' : 'Status'}</th><th>\${isAr ? 'العدد' : 'Count'}</th><th>\${isAr ? 'النسبة' : 'Percentage'}</th></tr></thead>
+    <tbody>
+      \${statusRows.map(r => \`<tr><td>\${r.label}</td><td><strong>\${r.count}</strong></td><td>\${r.pct}%</td></tr>\`).join('')}
+    </tbody>
+  </table>
+</div>
+
+\${topProducts.length > 0 ? \`
+<div class="section">
+  <div class="section-header"><div class="section-title">\${isAr ? 'أفضل المنتجات مبيعاً' : 'Top Products'}</div></div>
+  <table>
+    <thead><tr><th>#</th><th>\${isAr ? 'المنتج' : 'Product'}</th><th>\${isAr ? 'الطلبات' : 'Orders'}</th><th>\${isAr ? 'الإيرادات' : 'Revenue'}</th></tr></thead>
+    <tbody>
+      \${topProducts.map((p, i) => \`<tr><td>\${i + 1}</td><td>\${p.name}</td><td>\${p.count}</td><td>\${curr}\${p.revenue.toLocaleString()}</td></tr>\`).join('')}
+    </tbody>
+  </table>
+</div>\` : ''}
+
+<div class="footer">Mawq3i | موقعي — \${dateStr}</div>
+</body></html>\`;
+
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      setTimeout(() => win.print(), 800);
+    }
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">{isAr ? 'الإحصائيات' : 'Analytics'}</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'تقارير مبيعاتك الحقيقية' : 'Your real sales reports'}</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={exportPDF} className="gap-2 h-9">
+          <FileDown className="w-4 h-4" />
+          {isAr ? 'تصدير PDF' : 'Export PDF'}
+        </Button>
+      </div>
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card, i) => (
