@@ -14,7 +14,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Loader2, Package, Camera, Upload, Download, FileSpreadsheet } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Package, Camera, Upload, Download, Share2 } from 'lucide-react';
+import ShareProductModal from '@/components/ShareProductModal';
 import { useToast } from '@/hooks/use-toast';
 
 const emojis = ['🕌', '🌿', '💎', '☕', '🫐', '🪔', '✨', '💍'];
@@ -27,6 +28,7 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [shareProduct, setShareProduct] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
   const [csvImporting, setCsvImporting] = useState(false);
@@ -252,6 +254,9 @@ export default function Products() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
+                          <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/40 hover:text-primary" onClick={() => setShareProduct(product)} title={isAr ? 'مشاركة المنتج' : 'Share product'} data-testid={`button-share-${product.id}`}>
+                            <Share2 className="w-3.5 h-3.5" />
+                          </Button>
                           <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/30" onClick={() => setLocation(`/dashboard/products/edit/${product.id}`)} data-testid={`button-edit-${product.id}`}>
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
@@ -331,6 +336,16 @@ export default function Products() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {shareProduct && currentStore && (
+        <ShareProductModal
+          open={!!shareProduct}
+          onOpenChange={(o) => !o && setShareProduct(null)}
+          product={shareProduct}
+          store={currentStore}
+          language={language}
+        />
+      )}
     </motion.div>
   );
 }
