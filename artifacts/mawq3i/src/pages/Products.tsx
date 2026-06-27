@@ -134,8 +134,9 @@ export default function Products() {
     if (csvInputRef.current) csvInputRef.current.value = '';
     // Refresh products
     const { data } = await supabase.from('products').select('*').eq('store_id', currentStore.id).order('created_at', { ascending: false });
-    if (data) setProducts(data.map((p: any) => ({ id: p.id, nameAr: p.name_ar, nameEn: p.name_en, descAr: p.desc_ar, price: p.price, stock: p.stock, category: p.category, status: p.status, imageUrl: p.image_url, variants: p.variants || [], badge: p.badge })));
-    toast({ title: isAr ? \`✅ تم استيراد \${added} منتج\${failed ? \` (فشل \${failed})\` : ''}\` : \`✅ Imported \${added} products\${failed ? \` (\${failed} failed)\` : ''}\` });
+    if (data) setProducts(data.map((p: any) => ({ id: p.id, nameAr: p.name_ar, nameEn: p.name_en, descAr: p.desc_ar, descEn: p.desc_en || '', price: p.price, stock: p.stock, category: p.category, status: p.status, imageUrl: p.image_url, variants: p.variants || [], badge: p.badge, currency: p.currency || 'ILS' })));
+    const msg = isAr ? `✅ تم استيراد ${added} منتج` + (failed ? ` (فشل ${failed})` : '') : `✅ Imported ${added} products` + (failed ? ` (${failed} failed)` : '');
+    toast({ title: msg });
   };
 
   const downloadTemplate = () => {

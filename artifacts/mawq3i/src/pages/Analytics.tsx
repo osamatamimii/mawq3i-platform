@@ -4,6 +4,7 @@ import { getOrders, getProducts } from '@/lib/db';
 import { Order, Product } from '@/data/mockData';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Loader2, TrendingUp, ShoppingBag, Package, Star, FileDown } from 'lucide-react';
 
@@ -117,11 +118,11 @@ export default function Analytics() {
       pct: orders.length > 0 ? Math.round(orders.filter(o => o.status === s).length / orders.length * 100) : 0,
     }));
 
-    const html = \`<!DOCTYPE html>
-<html dir="\${isAr ? 'rtl' : 'ltr'}" lang="\${isAr ? 'ar' : 'en'}">
+    const html = `<!DOCTYPE html>
+<html dir="${isAr ? 'rtl' : 'ltr'}" lang="${isAr ? 'ar' : 'en'}">
 <head>
 <meta charset="UTF-8">
-<title>\${isAr ? 'تقرير المبيعات' : 'Sales Report'} - \${storeName}</title>
+<title>${isAr ? 'تقرير المبيعات' : 'Sales Report'} - ${storeName}</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -131,7 +132,7 @@ export default function Analytics() {
   .brand-dot { width: 40px; height: 40px; background: #52FF3F; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 18px; color: #0d1117; }
   .brand-name { font-size: 22px; font-weight: 700; }
   .brand-sub { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 2px; }
-  .report-meta { text-align: \${isAr ? 'left' : 'right'}; }
+  .report-meta { text-align: ${isAr ? 'left' : 'right'}; }
   .report-title { font-size: 14px; color: rgba(255,255,255,0.6); }
   .report-date { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 4px; }
   .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
@@ -143,7 +144,7 @@ export default function Analytics() {
   .section-header { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; background: #f8fafc; }
   .section-title { font-size: 14px; font-weight: 600; color: #374151; }
   table { width: 100%; border-collapse: collapse; }
-  th { padding: 10px 20px; text-align: \${isAr ? 'right' : 'left'}; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; background: #f8fafc; }
+  th { padding: 10px 20px; text-align: ${isAr ? 'right' : 'left'}; font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; background: #f8fafc; }
   td { padding: 12px 20px; border-top: 1px solid #f1f5f9; font-size: 13px; }
   .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
   .badge-green { background: #dcfce7; color: #16a34a; }
@@ -159,46 +160,46 @@ export default function Analytics() {
   <div class="brand">
     <div class="brand-dot">M</div>
     <div>
-      <div class="brand-name">\${storeName}</div>
+      <div class="brand-name">${storeName}</div>
       <div class="brand-sub">Powered by Mawq3i | موقعي</div>
     </div>
   </div>
   <div class="report-meta">
-    <div class="report-title">\${isAr ? 'تقرير المبيعات الشامل' : 'Comprehensive Sales Report'}</div>
-    <div class="report-date">\${dateStr}</div>
+    <div class="report-title">${isAr ? 'تقرير المبيعات الشامل' : 'Comprehensive Sales Report'}</div>
+    <div class="report-date">${dateStr}</div>
   </div>
 </div>
 
 <div class="stats-grid">
-  <div class="stat-card"><div class="stat-label">\${isAr ? 'إجمالي المبيعات' : 'Total Revenue'}</div><div class="stat-value stat-accent">\${curr}\${totalSales.toLocaleString()}</div></div>
-  <div class="stat-card"><div class="stat-label">\${isAr ? 'إجمالي الطلبات' : 'Total Orders'}</div><div class="stat-value">\${totalOrders}</div></div>
-  <div class="stat-card"><div class="stat-label">\${isAr ? 'تم التسليم' : 'Delivered'}</div><div class="stat-value">\${deliveredOrders}</div></div>
-  <div class="stat-card"><div class="stat-label">\${isAr ? 'متوسط الطلب' : 'Avg Order'}</div><div class="stat-value">\${curr}\${avgOrder.toLocaleString()}</div></div>
+  <div class="stat-card"><div class="stat-label">${isAr ? 'إجمالي المبيعات' : 'Total Revenue'}</div><div class="stat-value stat-accent">${curr}${totalSales.toLocaleString()}</div></div>
+  <div class="stat-card"><div class="stat-label">${isAr ? 'إجمالي الطلبات' : 'Total Orders'}</div><div class="stat-value">${totalOrders}</div></div>
+  <div class="stat-card"><div class="stat-label">${isAr ? 'تم التسليم' : 'Delivered'}</div><div class="stat-value">${deliveredOrders}</div></div>
+  <div class="stat-card"><div class="stat-label">${isAr ? 'متوسط الطلب' : 'Avg Order'}</div><div class="stat-value">${curr}${avgOrder.toLocaleString()}</div></div>
 </div>
 
 <div class="section">
-  <div class="section-header"><div class="section-title">\${isAr ? 'حالة الطلبات' : 'Orders by Status'}</div></div>
+  <div class="section-header"><div class="section-title">${isAr ? 'حالة الطلبات' : 'Orders by Status'}</div></div>
   <table>
-    <thead><tr><th>\${isAr ? 'الحالة' : 'Status'}</th><th>\${isAr ? 'العدد' : 'Count'}</th><th>\${isAr ? 'النسبة' : 'Percentage'}</th></tr></thead>
+    <thead><tr><th>${isAr ? 'الحالة' : 'Status'}</th><th>${isAr ? 'العدد' : 'Count'}</th><th>${isAr ? 'النسبة' : 'Percentage'}</th></tr></thead>
     <tbody>
-      \${statusRows.map(r => \`<tr><td>\${r.label}</td><td><strong>\${r.count}</strong></td><td>\${r.pct}%</td></tr>\`).join('')}
+      ${statusRows.map(r => `<tr><td>${r.label}</td><td><strong>${r.count}</strong></td><td>${r.pct}%</td></tr>`).join('')}
     </tbody>
   </table>
 </div>
 
-\${topProducts.length > 0 ? \`
+${topProducts.length > 0 ? `
 <div class="section">
-  <div class="section-header"><div class="section-title">\${isAr ? 'أفضل المنتجات مبيعاً' : 'Top Products'}</div></div>
+  <div class="section-header"><div class="section-title">${isAr ? 'أفضل المنتجات مبيعاً' : 'Top Products'}</div></div>
   <table>
-    <thead><tr><th>#</th><th>\${isAr ? 'المنتج' : 'Product'}</th><th>\${isAr ? 'الطلبات' : 'Orders'}</th><th>\${isAr ? 'الإيرادات' : 'Revenue'}</th></tr></thead>
+    <thead><tr><th>#</th><th>${isAr ? 'المنتج' : 'Product'}</th><th>${isAr ? 'الطلبات' : 'Orders'}</th><th>${isAr ? 'الإيرادات' : 'Revenue'}</th></tr></thead>
     <tbody>
-      \${topProducts.map((p, i) => \`<tr><td>\${i + 1}</td><td>\${p.name}</td><td>\${p.count}</td><td>\${curr}\${p.revenue.toLocaleString()}</td></tr>\`).join('')}
+      ${topProducts.map((p, i) => `<tr><td>${i + 1}</td><td>${p.name}</td><td>${p.count}</td><td>${curr}${p.revenue.toLocaleString()}</td></tr>`).join('')}
     </tbody>
   </table>
-</div>\` : ''}
+</div>` : ''}
 
-<div class="footer">Mawq3i | موقعي — \${dateStr}</div>
-</body></html>\`;
+<div class="footer">Mawq3i | موقعي — ${dateStr}</div>
+</body></html>`;
 
     const win = window.open('', '_blank');
     if (win) {
