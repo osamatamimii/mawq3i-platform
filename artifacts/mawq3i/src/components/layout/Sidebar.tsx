@@ -142,7 +142,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <div className="p-5 flex items-center gap-3 border-b border-border/50">
           <img src="/logo.png" alt="Mawq3i Logo" className="w-9 h-9 object-contain flex-shrink-0" />
-          <h1 className="text-xl font-bold tracking-tight text-white">
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
             Mawq3i | موقعي
           </h1>
         </div>

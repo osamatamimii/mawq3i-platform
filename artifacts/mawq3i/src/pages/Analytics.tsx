@@ -24,7 +24,7 @@ function useCountUp(target: number, duration = 1200) {
 }
 
 export default function Analytics() {
-  const { language, currentStore, isAdminMode } = useAppContext();
+  const { language, currentStore, isAdminMode, theme } = useAppContext();
   const isAr = language === 'ar';
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -133,10 +133,10 @@ export default function Analytics() {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={weeklyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(240,237,232,0.06)" />
-                <XAxis dataKey="day" tick={{ fill: 'rgba(240,237,232,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'rgba(240,237,232,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: '#1a1a1a', border: '1px solid rgba(240,237,232,0.1)', borderRadius: 4, color: '#f0ede8', fontSize: 12 }} formatter={(v: any) => [`${currency}${v}`, isAr ? 'المبيعات' : 'Sales']} />
+                <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'} />
+                <XAxis dataKey="day" tick={{ fill: theme === 'dark' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: theme === 'dark' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: theme === 'dark' ? '#1a1a1a' : '#ffffff', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)', borderRadius: 4, color: theme === 'dark' ? '#f0ede8' : '#111', fontSize: 12 }} formatter={(v: any) => [`${currency}${v}`, isAr ? 'المبيعات' : 'Sales']} />
                 <Bar dataKey="sales" fill="#52FF3F" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

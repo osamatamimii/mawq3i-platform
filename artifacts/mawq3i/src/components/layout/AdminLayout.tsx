@@ -12,6 +12,8 @@ import {
   Shield,
   X,
   Menu,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -159,7 +161,7 @@ interface AdminNavbarProps {
 
 function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
   const [location] = useLocation();
-  const { language, setLanguage } = useAppContext();
+  const { language, setLanguage, theme, toggleTheme } = useAppContext();
   const isAr = language === 'ar';
   const title = adminRouteNames[location];
 
@@ -180,6 +182,39 @@ function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
         </h2>
       </div>
       <div className="flex items-center gap-3 md:gap-4">
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="relative w-14 h-7 rounded-full transition-all duration-300 focus:outline-none"
+          style={{
+            background: theme === 'dark'
+              ? 'linear-gradient(135deg, #1a1f35 0%, #2d3561 100%)'
+              : 'linear-gradient(135deg, #87CEEB 0%, #FDB97D 100%)',
+          }}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' && (
+            <>
+              <span className="absolute top-1 left-2 w-0.5 h-0.5 bg-white rounded-full opacity-80" />
+              <span className="absolute top-2.5 left-3.5 w-0.5 h-0.5 bg-white rounded-full opacity-60" />
+              <span className="absolute top-1.5 left-5 w-0.5 h-0.5 bg-white rounded-full opacity-70" />
+            </>
+          )}
+          <span
+            className="absolute top-0.5 flex items-center justify-center w-6 h-6 rounded-full shadow-md transition-all duration-300"
+            style={{
+              left: theme === 'dark' ? '2px' : 'calc(100% - 26px)',
+              background: theme === 'dark'
+                ? 'linear-gradient(135deg, #c8d6f0 0%, #e8edf5 100%)'
+                : 'linear-gradient(135deg, #FFE066 0%, #FFB800 100%)',
+            }}
+          >
+            {theme === 'dark'
+              ? <Moon className="w-3.5 h-3.5 text-slate-600" />
+              : <Sun className="w-3.5 h-3.5 text-amber-700" />
+            }
+          </span>
+        </button>
         <Button
           variant="outline"
           size="sm"
