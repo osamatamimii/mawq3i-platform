@@ -137,7 +137,7 @@ export default function Analytics() {
                 <XAxis dataKey="day" tick={{ fill: theme === 'dark' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: theme === 'dark' ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.5)', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: theme === 'dark' ? '#1a1a1a' : '#ffffff', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)', borderRadius: 4, color: theme === 'dark' ? '#f0ede8' : '#111', fontSize: 12 }} formatter={(v: any) => [`${currency}${v}`, isAr ? 'المبيعات' : 'Sales']} />
-                <Bar dataKey="sales" fill="#52FF3F" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="sales" fill={theme === 'dark' ? '#52FF3F' : '#16a34a'} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
