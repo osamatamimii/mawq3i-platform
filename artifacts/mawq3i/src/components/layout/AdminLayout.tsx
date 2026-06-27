@@ -73,7 +73,7 @@ function AdminSidebar({ open, onClose }: AdminSidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          'fixed lg:static inset-y-0 start-0 z-50 w-64 h-full bg-[#080b0f] border-e border-white/[0.06] flex flex-col text-card-foreground flex-shrink-0',
+          'fixed lg:static inset-y-0 start-0 z-50 w-64 h-full bg-sidebar border-e border-sidebar-border flex flex-col text-sidebar-foreground flex-shrink-0',
           'transition-transform duration-300 ease-in-out',
           open
             ? 'translate-x-0'
@@ -92,14 +92,14 @@ function AdminSidebar({ open, onClose }: AdminSidebarProps) {
         </button>
 
         {/* Brand */}
-        <div className="p-5 border-b border-white/[0.06]">
+        <div className="p-5 border-b border-sidebar-border">
           <div className="flex items-center gap-3 mb-1">
             <img src="/logo.png" alt="Mawq3i" className="w-8 h-8 object-contain flex-shrink-0" />
-            <span className="text-lg font-bold text-white">Mawq3i</span>
+            <span className="text-lg font-bold text-sidebar-foreground">Mawq3i</span>
           </div>
           <div className="flex items-center gap-2 mt-2">
             <div className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-            <span className="text-[11px] font-mono text-red-400/80 tracking-wider uppercase">
+            <span className="text-[11px] font-mono text-red-400 tracking-wider uppercase">
               {isAr ? 'لوحة المدير' : 'Admin Panel'}
             </span>
           </div>
@@ -114,8 +114,8 @@ function AdminSidebar({ open, onClose }: AdminSidebarProps) {
                 <div className={cn(
                   "relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all cursor-pointer",
                   isActive
-                    ? "text-white bg-white/[0.08] border border-white/10"
-                    : "text-white/50 hover:text-white/80 hover:bg-white/[0.04]"
+                    ? "text-sidebar-primary-foreground bg-sidebar-primary/20 border border-sidebar-primary/30"
+                    : "text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
                 )}>
                   {isActive && (
                     <motion.div
@@ -135,17 +135,17 @@ function AdminSidebar({ open, onClose }: AdminSidebarProps) {
         </div>
 
         {/* Bottom */}
-        <div className="p-4 border-t border-white/[0.06]">
-          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.06] mb-3">
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-sidebar-accent/30 border border-sidebar-border mb-3">
             <div className="w-8 h-8 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center flex-shrink-0">
               <Shield className="w-4 h-4 text-red-400" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-white truncate">أسامة</p>
-              <p className="text-[10px] text-white/40 truncate">super admin</p>
+              <p className="text-xs font-semibold text-sidebar-foreground truncate">أسامة</p>
+              <p className="text-[10px] text-sidebar-foreground/40 truncate">super admin</p>
             </div>
           </div>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-white/40 hover:text-red-400 hover:bg-red-500/5 transition-colors cursor-pointer">
+          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-sidebar-foreground/40 hover:text-red-400 hover:bg-red-500/5 transition-colors cursor-pointer">
             <LogOut className="w-4 h-4 flex-shrink-0" />
             <span>{isAr ? 'تسجيل الخروج' : 'Logout'}</span>
           </button>
@@ -166,7 +166,7 @@ function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
   const title = adminRouteNames[location];
 
   return (
-    <header className="h-16 border-b border-white/[0.06] bg-[#080b0f]/80 backdrop-blur-sm flex items-center justify-between px-4 md:px-6 sticky top-0 z-20">
+    <header className="h-16 border-b border-sidebar-border bg-sidebar/80 backdrop-blur-sm flex items-center justify-between px-4 md:px-6 sticky top-0 z-20">
       <div className="flex items-center gap-3">
         {/* Hamburger — mobile only */}
         <button
@@ -177,7 +177,7 @@ function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
           <Menu className="w-5 h-5" />
         </button>
         <div className="w-2 h-2 rounded-full bg-red-400" />
-        <h2 className="text-base font-semibold text-white">
+        <h2 className="text-base font-semibold text-sidebar-foreground">
           {title ? (isAr ? title.ar : title.en) : ''}
         </h2>
       </div>
@@ -224,7 +224,7 @@ function AdminNavbar({ onMenuClick }: AdminNavbarProps) {
           {language === 'ar' ? 'EN' : 'AR'}
         </Button>
         <div className="flex items-center gap-2 ps-3 md:ps-4 border-s border-white/[0.06]">
-          <p className="text-sm text-white/60 hidden sm:block">{isAr ? 'أسامة' : 'Osama'}</p>
+          <p className="text-sm text-sidebar-foreground/60 hidden sm:block">{isAr ? 'أسامة' : 'Osama'}</p>
           <div className="w-8 h-8 rounded-full bg-red-500/20 border border-red-500/30 flex items-center justify-center">
             <Shield className="w-4 h-4 text-red-400" />
           </div>
@@ -238,7 +238,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-[100dvh] bg-[#060809] overflow-hidden">
+    <div className="flex h-[100dvh] bg-background overflow-hidden">
       <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
         <AdminNavbar onMenuClick={() => setSidebarOpen(true)} />
