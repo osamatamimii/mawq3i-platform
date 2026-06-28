@@ -26,12 +26,7 @@ function getProductUrl(product: Product, store: StoreRecord): string {
   const base = store.domain
     ? `https://${store.domain}`
     : `https://${store.slug}.mawq3i.co`;
-  // Use Arabic name to build a slug-like path
-  const slug = product.nameAr
-    .replace(/\s+/g, '-')
-    .replace(/[^\u0600-\u06FFa-zA-Z0-9-]/g, '')
-    .toLowerCase() || product.id;
-  return `${base}/products/${slug}`;
+  return `${base}/product?id=${product.id}`;
 }
 
 function getCurrencySymbol(currency: string): string {
