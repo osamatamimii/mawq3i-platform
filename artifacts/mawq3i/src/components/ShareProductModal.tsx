@@ -132,166 +132,215 @@ export default function ShareProductModal({
     canvas.height = H;
     const ctx = canvas.getContext('2d')!;
 
-    // Background gradient
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-    bgGrad.addColorStop(0, '#0a0a0a');
-    bgGrad.addColorStop(0.5, '#111111');
-    bgGrad.addColorStop(1, '#0a0a0a');
-    ctx.fillStyle = bgGrad;
+    // ── helpers ────────────────────────────────────────────────────────────
+    function roundRect(x: number, y: number, w: number, h: number, r: number) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function wrapText(text: string, maxW: number, fontStr: string): string[] {
+      ctx.font = fontStr;
+      const words = text.split(' ');
+      let line = '';
+      const result: string[] = [];
+      for (const w of words) {
+        const test = line ? line + ' ' + w : w;
+        if (ctx.measureText(test).width > maxW && line) {
+          result.push(line);
+          line = w;
+        } else { line = test; }
+      }
+      if (line) result.push(line);
+      return result;
+    }
+
+    // ── 1. BACKGROUND: solid dark ──────────────────────────────────────────
+    ctx.fillStyle = '#0c0c0c';
     ctx.fillRect(0, 0, W, H);
 
-    // Glow circle background
-    const glowGrad = ctx.createRadialGradient(W / 2, H * 0.4, 0, W / 2, H * 0.4, 480);
-    glowGrad.addColorStop(0, primaryColor + '22');
-    glowGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = glowGrad;
+    // subtle grain texture (noise overlay)
+    const grainCanvas = document.createElement('canvas');
+    grainCanvas.width = 200; grainCanvas.height = 200;
+    const gctx = grainCanvas.getContext('2d')!;
+    const imageData = gctx.createImageData(200, 200);
+    for (let i = 0; i < imageData.data.length; i += 4) {
+      const v = Math.random() * 255;
+      imageData.data[i] = v; imageData.data[i+1] = v;
+      imageData.data[i+2] = v; imageData.data[i+3] = 8;
+    }
+    gctx.putImageData(imageData, 0, 0);
+    const grainPat = ctx.createPattern(grainCanvas, 'repeat')!;
+    ctx.fillStyle = grainPat;
     ctx.fillRect(0, 0, W, H);
 
-    // Decorative top bar
-    ctx.fillStyle = primaryColor;
-    ctx.fillRect(0, 0, W, 8);
-
-    // Store name top
-    ctx.fillStyle = primaryColor;
-    ctx.font = 'bold 52px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(storeName, W / 2, 110);
-
-    // Separator line
-    ctx.strokeStyle = primaryColor + '44';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(W / 2 - 200, 140);
-    ctx.lineTo(W / 2 + 200, 140);
-    ctx.stroke();
-
-    // Product image area — rounded rect
-    const imgX = W / 2 - 380, imgY = 180, imgW = 760, imgH = 760;
-    const r = 48;
+    // ── 2. NAV BAR (simulating the store nav) ────────────────────────────
+    // Frosted pill nav like the real site
+    const navH = 110, navY = 80, navPad = 60;
     ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(imgX + r, imgY);
-    ctx.lineTo(imgX + imgW - r, imgY);
-    ctx.quadraticCurveTo(imgX + imgW, imgY, imgX + imgW, imgY + r);
-    ctx.lineTo(imgX + imgW, imgY + imgH - r);
-    ctx.quadraticCurveTo(imgX + imgW, imgY + imgH, imgX + imgW - r, imgY + imgH);
-    ctx.lineTo(imgX + r, imgY + imgH);
-    ctx.quadraticCurveTo(imgX, imgY + imgH, imgX, imgY + imgH - r);
-    ctx.lineTo(imgX, imgY + r);
-    ctx.quadraticCurveTo(imgX, imgY, imgX + r, imgY);
-    ctx.closePath();
+    roundRect(navPad, navY, W - navPad * 2, navH, navH / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
 
-    // Image shadow
-    ctx.shadowColor = primaryColor + '40';
-    ctx.shadowBlur = 60;
-    ctx.shadowOffsetY = 20;
+    // Store name in nav (right side for RTL)
+    ctx.fillStyle = '#f0ede8';
+    ctx.font = 'bold 46px serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(storeName, W - navPad - 50, navY + navH * 0.64);
+
+    // "← المتجر" back button (left side)
+    ctx.fillStyle = 'rgba(240,237,232,0.55)';
+    ctx.font = '36px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('← المتجر', navPad + 44, navY + navH * 0.64);
+
+    // ── 3. PRODUCT IMAGE (portrait, fills top half) ───────────────────────
+    const imgPad = 60;
+    const imgX = imgPad, imgY = navY + navH + 60;
+    const imgW = W - imgPad * 2;
+    const imgH = Math.round(imgW * 1.18); // slightly portrait
+
+    ctx.save();
+    roundRect(imgX, imgY, imgW, imgH, 48);
     ctx.fillStyle = '#1a1a1a';
     ctx.fill();
     ctx.clip();
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
 
-    // Load product image
     if (product.imageUrl) {
       await new Promise<void>((resolve) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
-          // Object-fit: cover
           const scale = Math.max(imgW / img.width, imgH / img.height);
           const sw = img.width * scale, sh = img.height * scale;
           const sx = imgX + (imgW - sw) / 2, sy = imgY + (imgH - sh) / 2;
           ctx.drawImage(img, sx, sy, sw, sh);
           resolve();
         };
-        img.onerror = () => {
-          // Fallback emoji
-          ctx.font = '200px serif';
-          ctx.textAlign = 'center';
-          ctx.fillStyle = '#333';
-          ctx.fillText('📦', W / 2, imgY + imgH / 2 + 60);
-          resolve();
-        };
+        img.onerror = () => { resolve(); };
         img.src = product.imageUrl!;
       });
-    } else {
-      ctx.font = '200px serif';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#222';
-      ctx.fillText('📦', W / 2, imgY + imgH / 2 + 60);
     }
+
+    // gradient overlay at bottom of image (fade to black)
+    const fadeGrad = ctx.createLinearGradient(0, imgY + imgH * 0.55, 0, imgY + imgH);
+    fadeGrad.addColorStop(0, 'transparent');
+    fadeGrad.addColorStop(1, 'rgba(12,12,12,0.85)');
+    ctx.fillStyle = fadeGrad;
+    ctx.fillRect(imgX, imgY, imgW, imgH);
     ctx.restore();
 
-    // Product name
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 80px Arial';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = 'rgba(0,0,0,0.8)';
-    ctx.shadowBlur = 20;
-    // Wrap long names
-    const maxWidth = W - 120;
-    const words = productName.split(' ');
-    let line = '', lines: string[] = [];
-    for (const word of words) {
-      const test = line + (line ? ' ' : '') + word;
-      if (ctx.measureText(test).width > maxWidth && line) {
-        lines.push(line);
-        line = word;
-      } else {
-        line = test;
-      }
+    // badge (if any)
+    if (product.badge) {
+      ctx.save();
+      const badgeText = product.badge;
+      ctx.font = 'bold 34px sans-serif';
+      const bw = ctx.measureText(badgeText).width + 48;
+      roundRect(W - imgPad - bw - 24, imgY + 28, bw, 58, 29);
+      ctx.fillStyle = primaryColor;
+      ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.textAlign = 'center';
+      ctx.fillText(badgeText, W - imgPad - bw / 2 - 24, imgY + 28 + 38);
+      ctx.restore();
     }
-    lines.push(line);
-    const nameY = imgY + imgH + 90;
-    lines.forEach((l, i) => ctx.fillText(l, W / 2, nameY + i * 95));
 
-    ctx.shadowBlur = 0;
+    // ── 4. INFO SECTION ───────────────────────────────────────────────────
+    const infoY = imgY + imgH + 64;
+    const infoPad = 70;
 
-    // Price badge
-    const priceY = nameY + lines.length * 95 + 40;
+    // Store tag (small caps)
+    ctx.fillStyle = 'rgba(240,237,232,0.45)';
+    ctx.font = '500 34px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(storeName.toUpperCase(), W - infoPad, infoY);
+
+    // Product name (Bodoni-like serif, large)
+    const nameLines = wrapText(productName, W - infoPad * 2, 'bold 88px serif');
+    ctx.fillStyle = '#f0ede8';
+    ctx.textAlign = 'right';
+    let nameYCur = infoY + 96;
+    for (const l of nameLines) {
+      ctx.font = 'bold 88px serif';
+      ctx.fillText(l, W - infoPad, nameYCur);
+      nameYCur += 104;
+    }
+
+    // Description (short, faded)
+    const descText = product.descAr || product.descEn || '';
+    if (descText) {
+      const descLines = wrapText(descText, W - infoPad * 2, '300 38px sans-serif').slice(0, 2);
+      ctx.fillStyle = 'rgba(240,237,232,0.45)';
+      ctx.font = '300 38px sans-serif';
+      let descY = nameYCur + 12;
+      for (const l of descLines) { ctx.fillText(l, W - infoPad, descY); descY += 52; }
+      nameYCur = descY + 20;
+    }
+
+    // Price row
     const priceText = price;
-    ctx.font = 'bold 100px Arial';
-    const priceW = ctx.measureText(priceText).width;
-    const padX = 70, padY = 35;
-    const bx = W / 2 - priceW / 2 - padX, by = priceY - 75;
-    const bw = priceW + padX * 2, bh = 80 + padY * 2;
+    ctx.font = 'bold 110px serif';
+    ctx.fillStyle = '#f0ede8';
+    ctx.textAlign = 'right';
+    ctx.fillText(priceText, W - infoPad, nameYCur + 100);
 
-    // Badge background
+    // ── 5. BUTTONS ────────────────────────────────────────────────────────
+    const btnY = nameYCur + 180;
+    const btnH = 118, btnR = btnH / 2;
+    const btnW = W - infoPad * 2;
+
+    // Primary: WhatsApp / Order now (accent color)
+    ctx.save();
+    roundRect(infoPad, btnY, btnW, btnH, btnR);
     ctx.fillStyle = primaryColor;
-    ctx.beginPath();
-    ctx.roundRect(bx, by, bw, bh, 24);
     ctx.fill();
+    ctx.restore();
 
-    // Price text
     ctx.fillStyle = '#000';
-    ctx.fillText(priceText, W / 2, priceY + 10);
-
-    // CTA button
-    const ctaY = priceY + 150;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.roundRect(W / 2 - 300, ctaY - 55, 600, 110, 55);
-    ctx.fill();
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 56px Arial';
+    ctx.font = 'bold 52px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(isAr ? '🛒 اطلب الآن' : '🛒 Order Now', W / 2, ctaY + 18);
+    ctx.fillText(isAr ? 'اطلب الآن عبر واتساب' : 'Order via WhatsApp', W / 2, btnY + btnH * 0.62);
 
-    // Bottom: store URL hint
-    ctx.fillStyle = primaryColor + 'aa';
-    ctx.font = '38px Arial';
-    ctx.fillText(`${store.slug}.mawq3i.co`, W / 2, H - 80);
+    // Secondary: browse store
+    const btn2Y = btnY + btnH + 28;
+    ctx.save();
+    roundRect(infoPad, btn2Y, btnW, btnH, btnR);
+    ctx.strokeStyle = 'rgba(240,237,232,0.22)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
 
-    // Bottom bar
+    ctx.fillStyle = 'rgba(240,237,232,0.75)';
+    ctx.font = '400 46px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(isAr ? 'تصفح المتجر كاملاً' : 'Browse Store', W / 2, btn2Y + btnH * 0.62);
+
+    // ── 6. BOTTOM DOMAIN ─────────────────────────────────────────────────
+    const storeUrl = store.domain ? store.domain : `${store.slug}.mawq3i.co`;
+    ctx.fillStyle = primaryColor + 'bb';
+    ctx.font = '400 36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(storeUrl, W / 2, H - 72);
+
+    // thin accent line at very bottom
     ctx.fillStyle = primaryColor;
     ctx.fillRect(0, H - 8, W, 8);
 
-    // Convert to blob
+    // Convert
     canvas.toBlob((blob) => {
-      if (blob) {
-        storyBlobRef.current = blob;
-        setStoryReady(true);
-      }
+      if (blob) { storyBlobRef.current = blob; setStoryReady(true); }
       setStoryGenerating(false);
     }, 'image/png', 0.95);
   }, [product, store, productName, price, primaryColor, storeName, isAr]);
