@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Loader2, Bell, X, Phone, MapPin, CreditCard, Package, MessageSquare, Calendar } from 'lucide-react';
+import { ChevronDown, Loader2, Bell, X, Phone, MapPin, CreditCard, Package, MessageSquare, Calendar, Tag } from 'lucide-react';
 
 const statusConfig: Record<OrderStatus, { ar: string; en: string; className: string }> = {
   new:        { ar: 'جديد',         en: 'New',        className: 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30' },
@@ -279,8 +279,27 @@ export default function Orders() {
                     }
                     return <p className="text-sm">{selectedOrder.productName || '—'}</p>;
                   })()}
+                  {/* Discount breakdown */}
+                  {(selectedOrder as any).discount_code && (selectedOrder as any).discount_amount > 0 && (() => {
+                    const sub = (selectedOrder as any).items?.reduce((s: number, i: any) => s + (i.price * (i.qty || i.quantity || 1)), 0) || (selectedOrder.amount + (selectedOrder as any).discount_amount);
+                    return (
+                      <>
+                        <div className="flex justify-between items-center pt-2 border-t border-border/30">
+                          <span className="text-sm text-muted-foreground">{isAr ? 'المجموع الفرعي' : 'Subtotal'}</span>
+                          <span className="text-sm font-mono text-muted-foreground">{cur(selectedOrder)}{sub.toFixed(0)}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-green-400 flex items-center gap-1.5">
+                            <Tag className="w-3.5 h-3.5" />
+                            {isAr ? 'كود الخصم' : 'Discount'} · <span className="font-mono tracking-wider">{(selectedOrder as any).discount_code}</span>
+                          </span>
+                          <span className="text-sm font-mono text-green-400">- {cur(selectedOrder)}{Number((selectedOrder as any).discount_amount).toFixed(0)}</span>
+                        </div>
+                      </>
+                    );
+                  })()}
                   <div className="flex justify-between items-center pt-2 border-t border-border/30">
-                    <span className="text-sm font-semibold">{isAr ? 'المجموع' : 'Total'}</span>
+                    <span className="text-sm font-semibold">{isAr ? 'الإجمالي' : 'Total'}</span>
                     <span className="text-lg font-bold font-mono text-primary">{cur(selectedOrder)}{selectedOrder.amount}</span>
                   </div>
                 </div>
