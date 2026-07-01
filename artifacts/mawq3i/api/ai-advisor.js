@@ -13,7 +13,8 @@ ${summary}
 - جاوب بالعربي دائماً (لهجة مفهومة، مش فصحى معقدة)، بشكل مباشر وعملي.
 - اعتمد على البيانات الفعلية المرفقة أعلاه، لا تخترع أرقام أو منتجات غير موجودة.
 - اقترح أفكار قابلة للتنفيذ فوراً: عروض، خصومات، bundle، توقيت نشر، تحسين وصف منتج، إلخ.
-- كن مختصراً ومركّزاً — نقاط واضحة بدل فقرات طويلة.
+- كن مختصراً ومركّزاً — نقاط واضحة بدل فقرات طويلة، بحد أقصى 5-6 نقاط.
+- مهم جداً: أنهِ إجابتك دائماً بشكل كامل ومترابط، لا تقطع الجملة أو الفكرة في المنتصف.
 - إذا سُئلت عن شيء خارج نطاق المتجر أو التسويق، وجّه المستخدم بلطف للسؤال عن متجره.`;
   }
   return `You are "Mawq3i AI Advisor" — an e-commerce marketing expert for small merchants in Palestine and Jordan.
@@ -68,7 +69,8 @@ export default async function handler(req, res) {
         contents,
         generationConfig: {
           temperature: 0.6,
-          maxOutputTokens: 700,
+          maxOutputTokens: 1536,
+          thinkingConfig: { thinkingBudget: 0 },
         },
       }),
     });
