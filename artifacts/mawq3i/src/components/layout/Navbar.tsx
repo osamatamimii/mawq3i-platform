@@ -32,25 +32,16 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const title = getTitle();
 
   return (
-    <header className="h-16 bg-primary text-primary-foreground flex items-center justify-between px-4 md:px-6 sticky top-0 z-20">
+    <header className="h-16 border-b border-border bg-background/50 backdrop-blur-sm flex items-center justify-between px-4 md:px-6 sticky top-0 z-20">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
-          className="lg:hidden p-2 rounded-md text-primary-foreground/80 hover:text-primary-foreground hover:bg-black/10 transition-colors"
+          className="lg:hidden p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
           aria-label="Open menu"
         >
           <Menu className="w-5 h-5" />
         </button>
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-lg bg-background flex items-center justify-center flex-shrink-0">
-            <img src="/logo.png" alt="Mawq3i Logo" className="w-6 h-6 object-contain" />
-          </div>
-          <h1 className="hidden sm:block text-base md:text-lg font-bold tracking-tight">
-            Mawq3i <span className="font-normal opacity-70">| موقعي</span>
-          </h1>
-        </div>
-        <span className="hidden md:inline-block w-px h-6 bg-primary-foreground/20 mx-1" />
-        <h2 className="text-sm md:text-base font-medium opacity-90">{title ? (isAr ? title.ar : title.en) : ''}</h2>
+        <h2 className="text-lg md:text-xl font-semibold">{title ? (isAr ? title.ar : title.en) : ''}</h2>
       </div>
 
       <div className="flex items-center gap-2 md:gap-3">
@@ -95,19 +86,19 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           variant="outline"
           size="sm"
           onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
-          className="font-mono text-primary-foreground [--button-outline:theme(colors.primary-foreground/0.3)] hover:bg-black/10"
+          className="font-mono"
           data-testid="button-language-toggle"
         >
           {language === 'ar' ? 'EN' : 'AR'}
         </Button>
 
-        <div className="flex items-center gap-3 ps-3 md:ps-4 border-s border-primary-foreground/20">
+        <div className="flex items-center gap-3 ps-3 md:ps-4 border-s border-border/50">
           <div className="text-sm hidden sm:block">
             <p className="font-medium">{currentStore?.name || (isAr ? 'صاحب المتجر' : 'Store Owner')}</p>
-            <p className="text-xs text-primary-foreground/70">{supabaseUser?.email || currentStore?.ownerEmail || ''}</p>
+            <p className="text-xs text-muted-foreground">{supabaseUser?.email || currentStore?.ownerEmail || ''}</p>
           </div>
-          <Avatar className="border border-background/40">
-            <AvatarFallback className="bg-background text-primary text-xs">
+          <Avatar className="border border-primary/20">
+            <AvatarFallback className="bg-primary/10 text-primary text-xs">
               {(currentStore?.name || supabaseUser?.email || 'م').charAt(0)}
             </AvatarFallback>
           </Avatar>
