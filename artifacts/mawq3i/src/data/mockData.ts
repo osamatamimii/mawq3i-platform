@@ -40,6 +40,19 @@ export type Order = {
   date: string;
 };
 
+export type ReviewStatus = 'pending' | 'approved' | 'rejected';
+
+export type Review = {
+  id: string;
+  storeId: string;
+  productId: string;
+  customerName: string;
+  rating: number;
+  comment?: string;
+  status: ReviewStatus;
+  createdAt: string;
+};
+
 export type StoreRecord = {
   id: string;
   name: string;

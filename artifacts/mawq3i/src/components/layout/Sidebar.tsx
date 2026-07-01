@@ -16,6 +16,7 @@ import {
   X,
   Shield,
   Sparkles,
+  MessageSquareText,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -63,6 +64,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: '/dashboard', icon: LayoutDashboard, labelAr: 'لوحة التحكم', labelEn: 'Dashboard', exact: true },
     { href: '/dashboard/ai-advisor', icon: Sparkles, labelAr: 'المستشار الذكي', labelEn: 'AI Advisor', exact: false },
     { href: '/dashboard/products', icon: Package, labelAr: 'المنتجات', labelEn: 'Products', exact: false },
+    { href: '/dashboard/reviews', icon: MessageSquareText, labelAr: 'التقييمات', labelEn: 'Reviews', exact: false },
     { href: '/dashboard/orders', icon: ShoppingCart, labelAr: 'الطلبات', labelEn: 'Orders', exact: false, badge: newOrdersCount },
     { href: '/dashboard/abandoned-carts', icon: ShoppingBag, labelAr: 'سلات متروكة', labelEn: 'Abandoned Carts', exact: false },
     { href: '/dashboard/analytics', icon: BarChart3, labelAr: 'الإحصائيات', labelEn: 'Analytics', exact: false },

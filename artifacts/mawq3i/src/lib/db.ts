@@ -1,5 +1,5 @@
 import { supabase, adminRest } from './supabase';
-import { Product, Order, StoreRecord } from '@/data/mockData';
+import { Product, Order, StoreRecord, Review } from '@/data/mockData';
 
 // When useAdmin=true, use adminRest (REST API with service key, no extra GoTrueClient)
 // When useAdmin=false, use standard supabase client (respects RLS)
@@ -41,6 +41,19 @@ function productToRow(p: Partial<Product> & { storeId?: string }) {
     ...(p.imageUrl !== undefined && { image_url: p.imageUrl }),
     ...(p.badge !== undefined && { badge: p.badge }),
     ...(p.variants !== undefined && { variants: JSON.stringify(p.variants) }),
+  };
+}
+
+function rowToReview(row: any): Review {
+  return {
+    id: String(row.id),
+    storeId: row.store_id ?? '',
+    productId: String(row.product_id ?? ''),
+    customerName: row.customer_name ?? '',
+    rating: Number(row.rating) || 0,
+    comment: row.comment ?? '',
+    status: row.status ?? 'pending',
+    createdAt: row.created_at ?? '',
   };
 }
 
@@ -217,6 +230,50 @@ export async function updateOrderStatus(id: string, status: Order['status'], use
       return await adminRest.update('orders', `id=eq.${id}`, { status });
     }
     const { error } = await supabase.from('orders').update({ status }).eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// ─── Reviews ─────────────────────────────────────────────────────────
+
+export async function getReviews(storeId?: string, useAdmin = false): Promise<Review[]> {
+  try {
+    if (useAdmin && storeId) {
+      const rows = await adminRest.select('reviews',
+        `store_id=eq.${storeId}&order=created_at.desc`
+      );
+      return rows.map(rowToReview);
+    }
+    let query = supabase.from('reviews').select('*').order('created_at', { ascending: false });
+    if (storeId) query = query.eq('store_id', storeId);
+    const { data, error } = await query;
+    if (error || !data) return [];
+    return data.map(rowToReview);
+  } catch {
+    return [];
+  }
+}
+
+export async function updateReviewStatus(id: string, status: Review['status'], useAdmin = false): Promise<boolean> {
+  try {
+    if (useAdmin) {
+      return await adminRest.update('reviews', `id=eq.${id}`, { status });
+    }
+    const { error } = await supabase.from('reviews').update({ status }).eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteReview(id: string, useAdmin = false): Promise<boolean> {
+  try {
+    if (useAdmin) {
+      return await adminRest.delete('reviews', `id=eq.${id}`);
+    }
+    const { error } = await supabase.from('reviews').delete().eq('id', id);
     return !error;
   } catch {
     return false;
