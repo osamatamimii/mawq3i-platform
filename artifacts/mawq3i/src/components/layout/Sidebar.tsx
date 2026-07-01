@@ -151,7 +151,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </h1>
         </div>
 
-        <div className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+        <div className="flex-1 px-4 py-4 space-y-1 overflow-y-auto sidebar-scroll">
           {menuItems.map((item) => (
             <Item key={item.href} item={item} />
           ))}
