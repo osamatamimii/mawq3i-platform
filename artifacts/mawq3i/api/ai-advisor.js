@@ -1,12 +1,7 @@
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-interface ChatMessage {
-  role: 'user' | 'model';
-  content: string;
-}
-
-function buildSystemPrompt(storeName: string, summary: string, isAr: boolean): string {
+function buildSystemPrompt(storeName, summary, isAr) {
   if (isAr) {
     return `أنت "مستشار موقعي الذكي" — خبير تسويق ومبيعات متخصص بالمتاجر الإلكترونية الصغيرة والمتوسطة في فلسطين والأردن.
 تتحدث مع صاحب متجر اسمه "${storeName}" على منصة موقعي (Mawq3i).
@@ -34,7 +29,7 @@ Instructions:
 - If asked something unrelated to the store or marketing, gently redirect.`;
 }
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
@@ -47,13 +42,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { storeId, storeName, summary, messages, language } = req.body as {
-      storeId?: string;
-      storeName?: string;
-      summary?: string;
-      messages?: ChatMessage[];
-      language?: 'ar' | 'en';
-    };
+    const { storeId, storeName, summary, messages, language } = req.body || {};
 
     if (!storeId || !storeName || !Array.isArray(messages) || messages.length === 0) {
       res.status(400).json({ error: 'Missing storeId, storeName, or messages' });
@@ -92,12 +81,12 @@ export default async function handler(req: any, res: any) {
     }
 
     const data = await geminiRes.json();
-    const reply: string =
-      data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join('') ||
+    const reply =
+      data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ||
       (isAr ? 'ما قدرت أطلع رد، جرب تاني.' : 'Could not generate a reply, please try again.');
 
     res.status(200).json({ reply });
-  } catch (err: any) {
+  } catch (err) {
     console.error('ai-advisor handler error:', err);
     res.status(500).json({ error: err?.message || 'Internal server error' });
   }
