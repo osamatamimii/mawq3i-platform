@@ -182,13 +182,13 @@ export default function Login() {
         {/* Mobile-only logo */}
         <div className="lg:hidden flex items-center gap-2 mb-10">
           <img src="/logo.png" alt="Mawq3i" className="w-9 h-9 object-contain" />
-          <span className="text-white text-xl font-bold">Mawq3i | موقعي</span>
+          <span className="text-foreground text-xl font-bold">Mawq3i | موقعي</span>
         </div>
 
         <div className="w-full max-w-sm">
           {/* Heading */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-1">
+            <h2 className="text-2xl font-bold text-foreground mb-1">
               {isAr ? 'أهلاً بعودتك' : 'Welcome back'}
             </h2>
             <p className="text-sm text-muted-foreground">
@@ -199,7 +199,7 @@ export default function Login() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm text-white/70 font-medium">
+              <Label htmlFor="email" className="text-sm text-foreground/70 font-medium">
                 {isAr ? 'البريد الإلكتروني' : 'Email Address'}
               </Label>
               <Input
@@ -215,7 +215,7 @@ export default function Login() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm text-white/70 font-medium">
+              <Label htmlFor="password" className="text-sm text-foreground/70 font-medium">
                 {isAr ? 'كلمة المرور' : 'Password'}
               </Label>
               <Input
