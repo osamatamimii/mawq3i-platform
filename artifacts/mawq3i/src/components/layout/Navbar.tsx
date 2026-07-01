@@ -21,6 +21,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     '/dashboard/analytics': { ar: 'الإحصائيات', en: 'Analytics' },
     '/dashboard/settings': { ar: 'إعدادات المتجر', en: 'Store Settings' },
     '/dashboard/promotions': { ar: 'العروض', en: 'Promotions' },
+    '/dashboard/ai-advisor': { ar: 'المستشار الذكي', en: 'AI Advisor' },
   };
 
   const getTitle = () => {
