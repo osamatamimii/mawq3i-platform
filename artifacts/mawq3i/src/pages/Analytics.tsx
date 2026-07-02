@@ -89,10 +89,10 @@ export default function Analytics() {
   const animAvg = useCountUp(avgOrder);
 
   const statCards = [
-    { titleAr: 'إجمالي المبيعات', titleEn: 'Total Sales', value: `${currency}${animTotal.toLocaleString()}`, icon: TrendingUp, color: 'text-primary', bg: 'bg-primary/10' },
-    { titleAr: 'إجمالي الطلبات', titleEn: 'Total Orders', value: animOrders, icon: ShoppingBag, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-    { titleAr: 'تم التسليم', titleEn: 'Delivered', value: animDelivered, icon: Package, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-    { titleAr: 'متوسط قيمة الطلب', titleEn: 'Avg Order', value: `${currency}${animAvg}`, icon: Star, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+    { titleAr: 'إجمالي المبيعات', titleEn: 'Total Sales', value: `${currency}${animTotal.toLocaleString()}`, icon: TrendingUp, color: 'text-primary', bg: 'bg-primary/10', ring: 'ring-primary/20', glow: true },
+    { titleAr: 'إجمالي الطلبات', titleEn: 'Total Orders', value: animOrders, icon: ShoppingBag, color: 'text-blue-400', bg: 'bg-blue-400/10', ring: 'ring-blue-400/20' },
+    { titleAr: 'تم التسليم', titleEn: 'Delivered', value: animDelivered, icon: Package, color: 'text-emerald-400', bg: 'bg-emerald-400/10', ring: 'ring-emerald-400/20' },
+    { titleAr: 'متوسط قيمة الطلب', titleEn: 'Avg Order', value: `${currency}${animAvg}`, icon: Star, color: 'text-amber-400', bg: 'bg-amber-400/10', ring: 'ring-amber-400/20' },
   ];
 
 
@@ -226,15 +226,19 @@ ${topProducts.length > 0 ? `
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card, i) => (
-          <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}>
-            <Card className="bg-card border-border/50 shadow-lg">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1 font-medium tracking-wide uppercase">{isAr ? card.titleAr : card.titleEn}</p>
-                    <p className="text-2xl font-bold font-mono">{card.value}</p>
+          <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07, duration: 0.45, ease: [0.22, 1, 0.36, 1] }} whileHover={{ y: -3, transition: { duration: 0.2 } }}>
+            <Card className={card.glow
+              ? 'relative overflow-hidden border-primary/25 bg-gradient-to-br from-primary/10 via-card to-card shadow-lg shadow-primary/5 h-full'
+              : 'bg-card/80 border-border/50 hover:border-border transition-colors shadow-lg h-full'
+            }>
+              {card.glow && <div className="pointer-events-none absolute -top-8 -end-8 w-32 h-32 rounded-full bg-primary/20 blur-3xl" />}
+              <CardContent className="p-5 sm:p-6 relative">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground mb-1.5 font-medium tracking-wide">{isAr ? card.titleAr : card.titleEn}</p>
+                    <p className="text-xl sm:text-2xl font-bold font-mono tabular-nums">{card.value}</p>
                   </div>
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${card.bg}`}>
+                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center ${card.bg} ring-4 ${card.ring} flex-shrink-0`}>
                     <card.icon className={`w-5 h-5 ${card.color}`} />
                   </div>
                 </div>
@@ -245,7 +249,7 @@ ${topProducts.length > 0 ? `
       </div>
 
       {/* Weekly Sales Chart */}
-      <Card className="bg-card border-border/50 shadow-lg">
+      <Card className="bg-card/80 border-border/50 shadow-lg">
         <CardHeader className="border-b border-border/50 pb-4">
           <CardTitle className="text-base font-semibold">{isAr ? 'المبيعات — آخر 7 أيام' : 'Sales — Last 7 Days'}</CardTitle>
         </CardHeader>
@@ -271,7 +275,7 @@ ${topProducts.length > 0 ? `
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Order Status */}
-        <Card className="bg-card border-border/50 shadow-lg">
+        <Card className="bg-card/80 border-border/50 shadow-lg">
           <CardHeader className="border-b border-border/50 pb-4">
             <CardTitle className="text-base font-semibold">{isAr ? 'حالة الطلبات' : 'Orders by Status'}</CardTitle>
           </CardHeader>
@@ -302,7 +306,7 @@ ${topProducts.length > 0 ? `
         </Card>
 
         {/* Top Products */}
-        <Card className="bg-card border-border/50 shadow-lg">
+        <Card className="bg-card/80 border-border/50 shadow-lg">
           <CardHeader className="border-b border-border/50 pb-4">
             <CardTitle className="text-base font-semibold">{isAr ? 'أكثر المنتجات طلباً' : 'Top Ordered Products'}</CardTitle>
           </CardHeader>

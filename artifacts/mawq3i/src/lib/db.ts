@@ -20,6 +20,7 @@ function rowToProduct(row: any): Product {
     category: row.category ?? '',
     status: row.status ?? 'visible',
     imageUrl: row.image_url ?? '',
+    videoUrl: row.video_url ?? '',
     badge: row.badge ?? '',
     variants: row.variants ? (typeof row.variants === 'string' ? JSON.parse(row.variants) : row.variants) : [],
     storeId: row.store_id ?? '',
@@ -39,6 +40,7 @@ function productToRow(p: Partial<Product> & { storeId?: string }) {
     ...(p.status !== undefined && { status: p.status }),
     ...(p.storeId !== undefined && { store_id: p.storeId }),
     ...(p.imageUrl !== undefined && { image_url: p.imageUrl }),
+    ...(p.videoUrl !== undefined && { video_url: p.videoUrl }),
     ...(p.badge !== undefined && { badge: p.badge }),
     ...(p.variants !== undefined && { variants: JSON.stringify(p.variants) }),
   };

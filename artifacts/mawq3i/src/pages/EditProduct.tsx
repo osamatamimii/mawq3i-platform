@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLocation, useParams } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
 import { getProducts, updateProduct, deleteProduct } from '@/lib/db';
-import { uploadProductImage } from '@/lib/storage';
+import { uploadProductImage, uploadProductVideo } from '@/lib/storage';
 import { Product, ProductVariant } from '@/data/mockData';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Video } from 'lucide-react';
 
 export default function EditProduct() {
   const { language, currentStore, isAdminMode } = useAppContext();
@@ -31,6 +31,11 @@ export default function EditProduct() {
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Optional product video
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string>('');
+  const videoFileRef = useRef<HTMLInputElement>(null);
+
   // Variant image uploads
   const [variantFiles, setVariantFiles] = useState<Record<string, File>>({});
 
@@ -41,6 +46,7 @@ export default function EditProduct() {
       if (found) {
         setProduct(found);
         setImagePreview(found.imageUrl ?? '');
+        setVideoPreview(found.videoUrl ?? '');
       }
       setLoading(false);
     });
@@ -56,6 +62,18 @@ export default function EditProduct() {
     reader.onload = e => setImagePreview(e.target?.result as string);
     reader.readAsDataURL(file);
   }, []);
+
+  const handleVideoFile = useCallback((file: File) => {
+    if (!file.type.startsWith('video/')) return;
+    if (file.size > 50 * 1024 * 1024) return;
+    setVideoFile(file);
+    setVideoPreview(URL.createObjectURL(file));
+  }, []);
+
+  const removeVideo = () => {
+    setVideoFile(null);
+    setVideoPreview('');
+  };
 
   // Variants
   const addVariant = () => {
@@ -89,6 +107,15 @@ export default function EditProduct() {
       if (uploaded) imageUrl = uploaded;
     }
 
+    // Upload video if changed; removeVideo() clears videoPreview to signal deletion
+    let videoUrl = product.videoUrl ?? '';
+    if (videoFile) {
+      const uploaded = await uploadProductVideo(videoFile, currentStore.id);
+      if (uploaded) videoUrl = uploaded;
+    } else if (!videoPreview) {
+      videoUrl = '';
+    }
+
     // Upload variant images
     const updatedVariants = await Promise.all(
       (product.variants ?? []).map(async v => {
@@ -100,7 +127,7 @@ export default function EditProduct() {
       })
     );
 
-    await updateProduct(product.id, { ...product, imageUrl, variants: updatedVariants }, isAdminMode);
+    await updateProduct(product.id, { ...product, imageUrl, videoUrl, variants: updatedVariants }, isAdminMode);
     setSaving(false);
     toast({ title: isAr ? 'تم الحفظ' : 'Saved', description: isAr ? 'تم تحديث المنتج بنجاح' : 'Product updated successfully' });
     setLocation('/dashboard/products');
@@ -213,7 +240,36 @@ export default function EditProduct() {
           </CardContent>
         </Card>
 
-        {/* Variants */}
+        {/* Optional Video (in addition to the image, never instead of it) */}
+        <Card className="bg-card border-border/50 shadow-lg">
+          <CardHeader className="border-b border-border/50 pb-4">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{isAr ? 'فيديو المنتج (اختياري)' : 'Product Video (optional)'}</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'يظهر مع الصورة الرئيسية، لا يلغيها' : 'Shown alongside the main image, not instead of it'}</p>
+          </CardHeader>
+          <CardContent className="pt-5">
+            <input ref={videoFileRef} type="file" accept="video/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleVideoFile(f); }} />
+            {videoPreview ? (
+              <div className="relative w-full max-w-xs">
+                <video src={videoPreview} controls className="w-full rounded-lg border border-border/30" />
+                <button type="button" onClick={removeVideo} className="absolute top-2 end-2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+                <button type="button" onClick={() => videoFileRef.current?.click()} className="mt-2 text-xs text-primary hover:text-primary/80 transition-colors">
+                  {isAr ? 'استبدال الفيديو' : 'Replace video'}
+                </button>
+              </div>
+            ) : (
+              <div
+                onClick={() => videoFileRef.current?.click()}
+                className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all border-border/60 hover:border-primary/40"
+              >
+                <Video className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm">{isAr ? 'اسحب فيديو أو انقر للرفع' : 'Drag or click to upload'}</p>
+                <p className="text-xs text-muted-foreground mt-1">MP4, WebM — {isAr ? 'حتى 50 ميغابايت' : 'up to 50MB'}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         <Card className="bg-card border-border/50 shadow-lg">
           <CardHeader className="border-b border-border/50 pb-4 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{isAr ? 'المتغيرات (ألوان، أحجام...)' : 'Variants (Colors, Sizes...)'}</CardTitle>

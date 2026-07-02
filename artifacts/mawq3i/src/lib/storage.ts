@@ -18,6 +18,24 @@ export async function uploadProductImage(file: File, storeId: string): Promise<s
   }
 }
 
+export async function uploadProductVideo(file: File, storeId: string): Promise<string | null> {
+  try {
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'mp4';
+    const path = `${storeId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from('product-videos')
+      .upload(path, file, { cacheControl: '3600', upsert: false });
+
+    if (error) return null;
+
+    const { data } = supabase.storage.from('product-videos').getPublicUrl(path);
+    return data.publicUrl;
+  } catch {
+    return null;
+  }
+}
+
 export async function uploadStoreLogo(file: File, storeId: string): Promise<string | null> {
   try {
     const ext = file.name.split('.').pop()?.toLowerCase() ?? 'png';

@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
 import { addProduct } from '@/lib/db';
-import { uploadProductImage } from '@/lib/storage';
+import { uploadProductImage, uploadProductVideo } from '@/lib/storage';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Palette, Ruler, Package } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Palette, Ruler, Package, Video } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type VariantMode = 'none' | 'colors' | 'sizes';
@@ -48,6 +48,10 @@ export default function AddProduct() {
   const [mainImages, setMainImages] = useState<{ preview: string; file: File }[]>([]);
   const mainFileRef = useRef<HTMLInputElement>(null);
 
+  // Optional product video (in addition to images, never instead of)
+  const [video, setVideo] = useState<{ preview: string; file: File } | null>(null);
+  const videoFileRef = useRef<HTMLInputElement>(null);
+
   // Variant mode
   const [variantMode, setVariantMode] = useState<VariantMode>('none');
 
@@ -76,6 +80,24 @@ export default function AddProduct() {
 
   const removeMainImage = (idx: number) =>
     setMainImages(prev => prev.filter((_, i) => i !== idx));
+
+  // ── Optional Video ───────────────────────────────────────────────────────────
+  const addVideo = (files: FileList | null) => {
+    if (!files || !files[0]) return;
+    const file = files[0];
+    if (!file.type.startsWith('video/')) return;
+    if (file.size > 50 * 1024 * 1024) {
+      // Keep it simple: cap at 50MB so uploads stay reliable on mobile connections
+      return;
+    }
+    const preview = URL.createObjectURL(file);
+    setVideo({ preview, file });
+  };
+
+  const removeVideo = () => {
+    if (video) URL.revokeObjectURL(video.preview);
+    setVideo(null);
+  };
 
   // ── Color Variants ───────────────────────────────────────────────────────────
   const addColor = () => setColors(prev => [...prev, {
@@ -140,6 +162,13 @@ export default function AddProduct() {
       if (url) uploadedMainUrls.push(url);
     }
 
+    // Upload optional video (in addition to images)
+    let uploadedVideoUrl = '';
+    if (video) {
+      setUploadProgress(isAr ? 'جاري رفع الفيديو...' : 'Uploading video...');
+      uploadedVideoUrl = (await uploadProductVideo(video.file, currentStore.id)) || '';
+    }
+
     // Build variants array for DB
     let variantsForDb: any[] = [];
     let totalStock = 0;
@@ -181,6 +210,7 @@ export default function AddProduct() {
       stock: totalStock, category: form.category,
       status: 'visible',
       imageUrl: uploadedMainUrls[0] || '',
+      videoUrl: uploadedVideoUrl,
       badge: form.badge || '',
       storeId: currentStore.id,
       variants: variantsForDb,
@@ -316,7 +346,35 @@ export default function AddProduct() {
           </CardContent>
         </Card>
 
-        {/* ── Variant Mode Selector ── */}
+        {/* ── Optional Product Video (in addition to images) ── */}
+        <Card className="bg-card border-border/50 shadow-lg">
+          <CardHeader className="border-b border-border/50 pb-4">
+            <div>
+              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{isAr ? 'فيديو المنتج (اختياري)' : 'Product Video (optional)'}</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'إضافة فيديو لا تلغي الصور — يظهر الاثنان معاً بالمتجر' : "Adding a video doesn't replace images — both show together on your store"}</p>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <input ref={videoFileRef} type="file" accept="video/*" className="hidden" onChange={e => addVideo(e.target.files)} />
+            {!video ? (
+              <div
+                onClick={() => videoFileRef.current?.click()}
+                className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:border-primary/40 border-border/60 transition-all"
+              >
+                <Video className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm font-medium">{isAr ? 'اسحب فيديو هنا أو انقر للرفع' : 'Drag a video here or click to upload'}</p>
+                <p className="text-xs text-muted-foreground mt-1">MP4, WebM — {isAr ? 'حتى 50 ميغابايت' : 'up to 50MB'}</p>
+              </div>
+            ) : (
+              <div className="relative w-full max-w-xs">
+                <video src={video.preview} controls className="w-full rounded-lg border border-border/30" />
+                <button type="button" onClick={removeVideo} className="absolute top-2 end-2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         <Card className="bg-card border-border/50 shadow-lg">
           <CardHeader className="border-b border-border/50 pb-4">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{isAr ? 'الكمية والمتغيرات' : 'Stock & Variants'}</CardTitle>

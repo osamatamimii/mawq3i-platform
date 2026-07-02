@@ -17,6 +17,7 @@ export type Product = {
   category: string;
   status: 'visible' | 'hidden';
   imageUrl?: string;
+  videoUrl?: string;
   badge?: string;
   variants?: ProductVariant[];
   storeId?: string;
