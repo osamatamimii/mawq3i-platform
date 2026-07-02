@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
 import { addProduct } from '@/lib/db';
 import { uploadProductImage, uploadProductVideo } from '@/lib/storage';
+import { enhanceProductImage } from '@/lib/aiImage';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Palette, Ruler, Package, Video } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Palette, Ruler, Package, Video, Sparkles } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type VariantMode = 'none' | 'colors' | 'sizes';
@@ -81,6 +82,22 @@ export default function AddProduct() {
 
   const removeMainImage = (idx: number) =>
     setMainImages(prev => prev.filter((_, i) => i !== idx));
+
+  const [enhancingIdx, setEnhancingIdx] = useState<number | null>(null);
+  const handleEnhance = async (idx: number) => {
+    if (enhancingIdx !== null) return;
+    setEnhancingIdx(idx);
+    const current = mainImages[idx];
+    const enhanced = await enhanceProductImage(current.file, currentStore?.brandIdentity || '', isAr ? 'ar' : 'en');
+    if (enhanced) {
+      const preview = URL.createObjectURL(enhanced);
+      setMainImages(prev => prev.map((img, i) => (i === idx ? { preview, file: enhanced } : img)));
+      toast({ title: isAr ? '✨ تم تحسين الصورة' : '✨ Image enhanced' });
+    } else {
+      toast({ title: isAr ? 'ما قدرنا نحسّن الصورة' : "Couldn't enhance the image", variant: 'destructive' });
+    }
+    setEnhancingIdx(null);
+  };
 
   // ── Optional Video ───────────────────────────────────────────────────────────
   const MAX_VIDEO_SECONDS = 30;
@@ -350,6 +367,15 @@ export default function AddProduct() {
                   <div key={idx} className="relative group w-24 h-24">
                     <img src={img.preview} alt="" className="w-full h-full object-cover rounded-lg border border-border/30" />
                     {idx === 0 && <span className="absolute bottom-1 left-1 text-[9px] bg-primary text-primary-foreground px-1 rounded">{isAr ? 'رئيسية' : 'Main'}</span>}
+                    <button
+                      type="button"
+                      onClick={() => handleEnhance(idx)}
+                      disabled={enhancingIdx !== null}
+                      title={isAr ? 'تحسين بالذكاء الاصطناعي' : 'Enhance with AI'}
+                      className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-60"
+                    >
+                      {enhancingIdx === idx ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                    </button>
                     <button type="button" onClick={() => removeMainImage(idx)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <X className="w-3 h-3" />
                     </button>

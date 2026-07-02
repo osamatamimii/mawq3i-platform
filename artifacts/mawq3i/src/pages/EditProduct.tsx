@@ -3,6 +3,7 @@ import { useLocation, useParams } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
 import { getProducts, updateProduct, deleteProduct } from '@/lib/db';
 import { uploadProductImage, uploadProductVideo } from '@/lib/storage';
+import { enhanceProductImage } from '@/lib/aiImage';
 import { Product, ProductVariant } from '@/data/mockData';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Video } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Video, Sparkles } from 'lucide-react';
 
 export default function EditProduct() {
   const { language, currentStore, isAdminMode } = useAppContext();
@@ -66,6 +67,29 @@ export default function EditProduct() {
 
   const MAX_VIDEO_SECONDS = 30;
   const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // hard platform ceiling (Supabase project upload limit)
+
+  const [enhancing, setEnhancing] = useState(false);
+  const handleEnhanceMainImage = async () => {
+    if (enhancing || !imagePreview) return;
+    setEnhancing(true);
+    try {
+      let sourceFile = imageFile;
+      if (!sourceFile) {
+        const blob = await fetch(imagePreview).then((r) => r.blob());
+        sourceFile = new File([blob], 'current-image.jpg', { type: blob.type || 'image/jpeg' });
+      }
+      const enhanced = await enhanceProductImage(sourceFile, currentStore?.brandIdentity || '', isAr ? 'ar' : 'en');
+      if (enhanced) {
+        setImageFile(enhanced);
+        setImagePreview(URL.createObjectURL(enhanced));
+        toast({ title: isAr ? '✨ تم تحسين الصورة' : '✨ Image enhanced' });
+      } else {
+        toast({ title: isAr ? 'ما قدرنا نحسّن الصورة' : "Couldn't enhance the image", variant: 'destructive' });
+      }
+    } finally {
+      setEnhancing(false);
+    }
+  };
 
   const handleVideoFile = useCallback((file: File) => {
     setVideoError('');
@@ -245,10 +269,19 @@ export default function EditProduct() {
               {imagePreview ? (
                 <div className="flex items-center gap-4">
                   <img src={imagePreview} alt="preview" className="w-20 h-20 object-cover rounded-lg" />
-                  <div className="text-start">
+                  <div className="text-start flex-1">
                     <p className="text-sm font-medium text-primary">{isAr ? 'انقر لتغيير الصورة' : 'Click to change image'}</p>
                     <p className="text-xs text-muted-foreground">{imageFile ? imageFile.name : isAr ? 'الصورة الحالية' : 'Current image'}</p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleEnhanceMainImage(); }}
+                    disabled={enhancing}
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-60 flex-shrink-0"
+                  >
+                    {enhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    {isAr ? 'تحسين بالAI' : 'Enhance with AI'}
+                  </button>
                 </div>
               ) : (
                 <div>

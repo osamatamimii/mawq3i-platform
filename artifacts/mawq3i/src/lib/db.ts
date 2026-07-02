@@ -98,6 +98,7 @@ function rowToStore(row: any): StoreRecord {
     primaryColor: row.primary_color ?? '#52FF3F',
     logoUrl: row.logo_url ?? '',
     description: row.description ?? '',
+    brandIdentity: row.brand_identity ?? '',
   };
 }
 
@@ -419,6 +420,7 @@ export async function updateStoreSettings(id: string, settings: {
   currency?: string;
   domain?: string;
   description?: string;
+  brandIdentity?: string;
 }, useAdmin = false): Promise<boolean> {
   try {
     const row: Record<string, unknown> = {};
@@ -429,6 +431,7 @@ export async function updateStoreSettings(id: string, settings: {
     if (settings.currency !== undefined) row.currency = settings.currency;
     if (settings.domain !== undefined) row.domain = settings.domain;
     if (settings.description !== undefined) row.description = settings.description;
+    if (settings.brandIdentity !== undefined) row.brand_identity = settings.brandIdentity;
 
     if (useAdmin) {
       return await adminRest.update('stores', `id=eq.${id}`, row);

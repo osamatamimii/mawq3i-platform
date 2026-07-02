@@ -25,6 +25,7 @@ export default function Settings() {
     defaultCurrency: 'ILS' as 'ILS' | 'SAR',
     whatsapp: '',
     domain: '',
+    brandIdentity: '',
   });
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -40,6 +41,7 @@ export default function Settings() {
         defaultCurrency: currentStore.currency,
         whatsapp: currentStore.ownerPhone,
         domain: currentStore.domain,
+        brandIdentity: currentStore.brandIdentity ?? '',
       });
       setLogoPreview(currentStore.logoUrl ?? '');
     }
@@ -87,6 +89,7 @@ export default function Settings() {
       logoUrl,
       currency: settings.defaultCurrency,
       domain: settings.domain,
+      brandIdentity: settings.brandIdentity,
     }, isAdminMode);
 
     await refreshStore();
@@ -241,6 +244,39 @@ export default function Settings() {
             </SelectContent>
           </Select>
         </Field>
+      </SectionCard>
+
+      <SectionCard titleAr="الهوية البصرية (لتحسين الصور بالذكاء الاصطناعي)" titleEn="Brand Identity (for AI image enhancement)">
+        <p className="text-xs text-muted-foreground -mt-2">
+          {isAr
+            ? 'اوصف الستايل اللي بتحبه لصور منتجاتك — هذا الوصف بيُستخدم تلقائياً كل مرة تحسّن فيها صورة منتج بالذكاء الاصطناعي، عشان كل صورك تطلع بنفس الهوية البصرية.'
+            : "Describe the style you want for your product photos — this is automatically used every time you enhance a photo with AI, so all your images share one consistent brand look."}
+        </p>
+        <Field labelAr="وصف الستايل" labelEn="Style Description">
+          <Textarea
+            value={settings.brandIdentity}
+            onChange={e => set('brandIdentity', e.target.value)}
+            className="bg-background/50 border-border/50 resize-none h-24"
+            placeholder={isAr
+              ? 'مثال: خلفية بيضاء نظيفة بستايل ستوديو، إضاءة ناعمة، ظل خفيف تحت المنتج، ألوان دافئة تناسب هوية متجري'
+              : 'e.g. clean white studio background, soft lighting, subtle shadow under the product, warm tones matching my brand'}
+          />
+        </Field>
+        <div className="flex flex-wrap gap-2">
+          {(isAr
+            ? ['خلفية بيضاء ستوديو', 'خلفية طبيعية خارجية', 'ستايل مینیمال فاخر', 'ألوان دافئة', 'إضاءة ناعمة احترافية']
+            : ['White studio background', 'Natural outdoor background', 'Minimal luxury style', 'Warm tones', 'Soft professional lighting']
+          ).map((chip) => (
+            <button
+              key={chip}
+              type="button"
+              onClick={() => set('brandIdentity', settings.brandIdentity ? `${settings.brandIdentity}، ${chip}` : chip)}
+              className="text-xs px-3 py-1.5 rounded-full border border-border/60 bg-card/60 hover:border-primary/40 hover:bg-primary/5 transition-colors text-muted-foreground hover:text-foreground"
+            >
+              + {chip}
+            </button>
+          ))}
+        </div>
       </SectionCard>
 
       <div className="p-4 rounded-xl bg-muted/30 border border-border/40 text-xs text-muted-foreground space-y-1">

@@ -74,6 +74,7 @@ export type StoreRecord = {
   primaryColor?: string;
   logoUrl?: string;
   description?: string;
+  brandIdentity?: string;
 };
 
 export type Client = {
