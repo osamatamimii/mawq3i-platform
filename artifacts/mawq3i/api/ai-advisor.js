@@ -1,5 +1,5 @@
-const GEMINI_MODEL = 'gemini-2.5-flash';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const OPENAI_MODEL = 'gpt-4.1-nano';
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 
 function buildSystemPrompt(storeName, summary, isAr) {
   if (isAr) {
@@ -44,9 +44,9 @@ export default async function handler(req, res) {
     return;
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    res.status(500).json({ error: 'AI advisor is not configured (missing GEMINI_API_KEY)' });
+    res.status(500).json({ error: 'AI advisor is not configured (missing OPENAI_API_KEY)' });
     return;
   }
 
@@ -64,44 +64,38 @@ export default async function handler(req, res) {
     // Keep only the last 12 turns to control token usage
     const recentMessages = messages.slice(-12);
 
-    const contents = recentMessages.map((m) => ({
-      role: m.role === 'model' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }));
+    const chatMessages = [
+      { role: 'system', content: systemPrompt },
+      ...recentMessages.map((m) => ({
+        role: m.role === 'model' ? 'assistant' : 'user',
+        content: m.content,
+      })),
+    ];
 
-    const geminiRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+    const openaiRes = await fetch(OPENAI_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents,
-        generationConfig: {
-          temperature: 0.6,
-          maxOutputTokens: 1536,
-          thinkingConfig: { thinkingBudget: 0 },
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'OBJECT',
-            properties: {
-              reply: { type: 'STRING' },
-              suggestions: { type: 'ARRAY', items: { type: 'STRING' } },
-            },
-            required: ['reply', 'suggestions'],
-          },
-        },
+        model: OPENAI_MODEL,
+        messages: chatMessages,
+        temperature: 0.6,
+        max_tokens: 1536,
+        response_format: { type: 'json_object' },
       }),
     });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      console.error('Gemini API error:', geminiRes.status, errText);
+    if (!openaiRes.ok) {
+      const errText = await openaiRes.text();
+      console.error('OpenAI API error:', openaiRes.status, errText);
       res.status(502).json({ error: 'AI provider error', detail: errText.slice(0, 500) });
       return;
     }
 
-    const data = await geminiRes.json();
-    const rawText =
-      data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '';
+    const data = await openaiRes.json();
+    const rawText = data?.choices?.[0]?.message?.content || '';
 
     let reply = '';
     let suggestions = [];

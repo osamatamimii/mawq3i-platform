@@ -1,5 +1,5 @@
-const GEMINI_MODEL = 'gemini-3.1-flash-lite-image';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const OPENAI_IMAGES_URL = 'https://api.openai.com/v1/images/edits';
+const OPENAI_IMAGE_MODEL = 'gpt-image-1-mini';
 
 function buildPrompt(brandIdentity, isAr) {
   const base = isAr
@@ -20,9 +20,9 @@ export default async function handler(req, res) {
     return;
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    res.status(500).json({ error: 'Image enhancement is not configured (missing GEMINI_API_KEY)' });
+    res.status(500).json({ error: 'Image enhancement is not configured (missing OPENAI_API_KEY)' });
     return;
   }
 
@@ -36,45 +36,42 @@ export default async function handler(req, res) {
     const isAr = language !== 'en';
     const prompt = buildPrompt(brandIdentity, isAr);
 
-    const geminiRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+    // Build a multipart/form-data request for the OpenAI image edit endpoint
+    const buffer = Buffer.from(imageBase64, 'base64');
+    const blob = new Blob([buffer], { type: mimeType || 'image/jpeg' });
+
+    const form = new FormData();
+    form.append('image', blob, 'product.jpg');
+    form.append('prompt', prompt);
+    form.append('model', OPENAI_IMAGE_MODEL);
+    form.append('quality', 'medium');
+    form.append('size', '1024x1024');
+    form.append('n', '1');
+
+    const openaiRes = await fetch(OPENAI_IMAGES_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: prompt },
-              { inline_data: { mime_type: mimeType || 'image/jpeg', data: imageBase64 } },
-            ],
-          },
-        ],
-        generationConfig: {
-          responseModalities: ['Image'],
-        },
-      }),
+      headers: { Authorization: `Bearer ${apiKey}` },
+      body: form,
     });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      console.error('Gemini image API error:', geminiRes.status, errText);
+    if (!openaiRes.ok) {
+      const errText = await openaiRes.text();
+      console.error('OpenAI image API error:', openaiRes.status, errText);
       res.status(502).json({ error: 'AI provider error', detail: errText.slice(0, 500) });
       return;
     }
 
-    const data = await geminiRes.json();
-    const parts = data?.candidates?.[0]?.content?.parts || [];
-    const imagePart = parts.find((p) => p.inlineData || p.inline_data);
-    const inline = imagePart?.inlineData || imagePart?.inline_data;
+    const data = await openaiRes.json();
+    const b64 = data?.data?.[0]?.b64_json;
 
-    if (!inline?.data) {
+    if (!b64) {
       res.status(502).json({ error: isAr ? 'ما قدر الذكاء الاصطناعي يحسّن الصورة، جرب صورة ثانية' : 'AI could not enhance this image, try another one' });
       return;
     }
 
     res.status(200).json({
-      imageBase64: inline.data,
-      mimeType: inline.mimeType || inline.mime_type || 'image/png',
+      imageBase64: b64,
+      mimeType: 'image/png',
     });
   } catch (err) {
     console.error('enhance-image handler error:', err);
