@@ -69,6 +69,7 @@ export default function EditProduct() {
   const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // hard platform ceiling (Supabase project upload limit)
 
   const [enhancing, setEnhancing] = useState(false);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const handleEnhanceMainImage = async () => {
     if (enhancing || !imagePreview) return;
     setEnhancing(true);
@@ -268,7 +269,12 @@ export default function EditProduct() {
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
               {imagePreview ? (
                 <div className="flex items-center gap-4">
-                  <img src={imagePreview} alt="preview" className="w-20 h-20 object-cover rounded-lg" />
+                  <img
+                    src={imagePreview}
+                    alt="preview"
+                    onClick={(e) => { e.stopPropagation(); setZoomedImage(imagePreview); }}
+                    className="w-20 h-20 object-cover rounded-lg cursor-zoom-in hover:opacity-80 transition-opacity"
+                  />
                   <div className="text-start flex-1">
                     <p className="text-sm font-medium text-primary">{isAr ? 'انقر لتغيير الصورة' : 'Click to change image'}</p>
                     <p className="text-xs text-muted-foreground">{imageFile ? imageFile.name : isAr ? 'الصورة الحالية' : 'Current image'}</p>
@@ -277,7 +283,7 @@ export default function EditProduct() {
                     type="button"
                     onClick={(e) => { e.stopPropagation(); handleEnhanceMainImage(); }}
                     disabled={enhancing}
-                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-60 flex-shrink-0"
+                    className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-full bg-primary text-primary-foreground shadow-md shadow-primary/30 hover:scale-105 transition-transform disabled:opacity-60 flex-shrink-0"
                   >
                     {enhancing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
                     {isAr ? 'تحسين بالAI' : 'Enhance with AI'}
@@ -372,6 +378,22 @@ export default function EditProduct() {
           {saving ? <><Loader2 className="w-4 h-4 animate-spin me-2" />{isAr ? 'جاري الحفظ...' : 'Saving...'}</> : (isAr ? 'حفظ التغييرات' : 'Save Changes')}
         </Button>
       </form>
+
+      {zoomedImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6 cursor-zoom-out"
+          onClick={() => setZoomedImage(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setZoomedImage(null)}
+            className="absolute top-4 end-4 w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <img src={zoomedImage} alt="" className="max-w-full max-h-full rounded-xl object-contain" />
+        </div>
+      )}
     </motion.div>
   );
 }

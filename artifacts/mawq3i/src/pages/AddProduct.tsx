@@ -84,6 +84,7 @@ export default function AddProduct() {
     setMainImages(prev => prev.filter((_, i) => i !== idx));
 
   const [enhancingIdx, setEnhancingIdx] = useState<number | null>(null);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const handleEnhance = async (idx: number) => {
     if (enhancingIdx !== null) return;
     setEnhancingIdx(idx);
@@ -365,16 +366,22 @@ export default function AddProduct() {
               <div className="flex flex-wrap gap-3">
                 {mainImages.map((img, idx) => (
                   <div key={idx} className="relative group w-24 h-24">
-                    <img src={img.preview} alt="" className="w-full h-full object-cover rounded-lg border border-border/30" />
+                    <img
+                      src={img.preview}
+                      alt=""
+                      onClick={() => setZoomedImage(img.preview)}
+                      className="w-full h-full object-cover rounded-lg border border-border/30 cursor-zoom-in"
+                    />
                     {idx === 0 && <span className="absolute bottom-1 left-1 text-[9px] bg-primary text-primary-foreground px-1 rounded">{isAr ? 'رئيسية' : 'Main'}</span>}
                     <button
                       type="button"
                       onClick={() => handleEnhance(idx)}
                       disabled={enhancingIdx !== null}
                       title={isAr ? 'تحسين بالذكاء الاصطناعي' : 'Enhance with AI'}
-                      className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-primary/90 text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-60"
+                      className="absolute -bottom-2 -right-2 h-6 px-2 rounded-full bg-primary text-primary-foreground flex items-center gap-1 shadow-md shadow-primary/30 disabled:opacity-60 transition-transform hover:scale-105"
                     >
                       {enhancingIdx === idx ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                      <span className="text-[9px] font-bold">AI</span>
                     </button>
                     <button type="button" onClick={() => removeMainImage(idx)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <X className="w-3 h-3" />
@@ -556,6 +563,22 @@ export default function AddProduct() {
             : (isAr ? 'إضافة المنتج' : 'Add Product')}
         </Button>
       </form>
+
+      {zoomedImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-6 cursor-zoom-out"
+          onClick={() => setZoomedImage(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setZoomedImage(null)}
+            className="absolute top-4 end-4 w-9 h-9 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <img src={zoomedImage} alt="" className="max-w-full max-h-full rounded-xl object-contain" />
+        </div>
+      )}
     </motion.div>
   );
 }
