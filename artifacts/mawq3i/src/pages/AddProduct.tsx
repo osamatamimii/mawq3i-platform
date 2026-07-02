@@ -50,6 +50,7 @@ export default function AddProduct() {
 
   // Optional product video (in addition to images, never instead of)
   const [video, setVideo] = useState<{ preview: string; file: File } | null>(null);
+  const [videoError, setVideoError] = useState('');
   const videoFileRef = useRef<HTMLInputElement>(null);
 
   // Variant mode
@@ -82,21 +83,37 @@ export default function AddProduct() {
     setMainImages(prev => prev.filter((_, i) => i !== idx));
 
   // ── Optional Video ───────────────────────────────────────────────────────────
+  const MAX_VIDEO_SECONDS = 30;
+  const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // hard platform ceiling (Supabase project upload limit)
+
   const addVideo = (files: FileList | null) => {
     if (!files || !files[0]) return;
     const file = files[0];
+    setVideoError('');
     if (!file.type.startsWith('video/')) return;
-    if (file.size > 50 * 1024 * 1024) {
-      // Keep it simple: cap at 50MB so uploads stay reliable on mobile connections
+    if (file.size > MAX_VIDEO_BYTES) {
+      setVideoError(isAr ? 'حجم الفيديو كبير جداً (الحد الأقصى 50 ميغابايت) — قصّر الفيديو أو قلل جودته' : 'Video is too large (max 50MB) — trim it or lower its quality');
       return;
     }
     const preview = URL.createObjectURL(file);
-    setVideo({ preview, file });
+    // Check real duration before accepting — this is the limit that actually matters
+    const probe = document.createElement('video');
+    probe.preload = 'metadata';
+    probe.onloadedmetadata = () => {
+      if (probe.duration > MAX_VIDEO_SECONDS + 0.5) {
+        setVideoError(isAr ? `الفيديو أطول من ${MAX_VIDEO_SECONDS} ثانية — قصّره وحاول تاني` : `Video is longer than ${MAX_VIDEO_SECONDS}s — trim it and try again`);
+        URL.revokeObjectURL(preview);
+        return;
+      }
+      setVideo({ preview, file });
+    };
+    probe.src = preview;
   };
 
   const removeVideo = () => {
     if (video) URL.revokeObjectURL(video.preview);
     setVideo(null);
+    setVideoError('');
   };
 
   // ── Color Variants ───────────────────────────────────────────────────────────
@@ -363,7 +380,7 @@ export default function AddProduct() {
               >
                 <Video className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm font-medium">{isAr ? 'اسحب فيديو هنا أو انقر للرفع' : 'Drag a video here or click to upload'}</p>
-                <p className="text-xs text-muted-foreground mt-1">MP4, WebM — {isAr ? 'حتى 50 ميغابايت' : 'up to 50MB'}</p>
+                <p className="text-xs text-muted-foreground mt-1">MP4, WebM — {isAr ? 'حتى 30 ثانية' : 'up to 30 seconds'}</p>
               </div>
             ) : (
               <div className="relative w-full max-w-xs">
@@ -373,6 +390,7 @@ export default function AddProduct() {
                 </button>
               </div>
             )}
+            {videoError && <p className="text-xs text-red-400 mt-2">{videoError}</p>}
           </CardContent>
         </Card>
         <Card className="bg-card border-border/50 shadow-lg">

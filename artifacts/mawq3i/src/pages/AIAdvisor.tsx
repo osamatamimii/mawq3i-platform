@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 interface ChatMessage {
   role: 'user' | 'model';
   content: string;
+  suggestions?: string[];
 }
 
 const SUGGESTED_PROMPTS_AR = [
@@ -129,7 +130,7 @@ export default function AIAdvisor() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Request failed');
-      setMessages((prev) => [...prev, { role: 'model', content: data.reply }]);
+      setMessages((prev) => [...prev, { role: 'model', content: data.reply, suggestions: data.suggestions || [] }]);
     } catch (err: any) {
       setError(isAr ? 'حدث خطأ، حاول مرة ثانية.' : 'Something went wrong, please try again.');
     } finally {
@@ -159,7 +160,7 @@ export default function AIAdvisor() {
 
       <Card className="flex-1 flex flex-col overflow-hidden">
         <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 themed-scroll">
             {messages.length === 0 && !dataLoading && (
               <div className="h-full flex flex-col items-center justify-center text-center gap-4 py-8">
                 <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
@@ -196,26 +197,42 @@ export default function AIAdvisor() {
                   key={i}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={cn('flex gap-3', m.role === 'user' ? 'justify-end' : 'justify-start')}
+                  className={cn('flex flex-col gap-2', m.role === 'user' ? 'items-end' : 'items-start')}
                 >
-                  {m.role === 'model' && (
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-                      <Bot className="w-4 h-4 text-primary" />
-                    </div>
-                  )}
-                  <div
-                    className={cn(
-                      'max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap',
-                      m.role === 'user'
-                        ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                        : 'bg-card/80 border border-border/60 text-foreground rounded-tl-sm'
+                  <div className={cn('flex gap-3 w-full', m.role === 'user' ? 'justify-end' : 'justify-start')}>
+                    {m.role === 'model' && (
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                        <Bot className="w-4 h-4 text-primary" />
+                      </div>
                     )}
-                  >
-                    {m.content}
+                    <div
+                      className={cn(
+                        'max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap',
+                        m.role === 'user'
+                          ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                          : 'bg-card/80 border border-border/60 text-foreground rounded-tl-sm'
+                      )}
+                    >
+                      {m.content}
+                    </div>
+                    {m.role === 'user' && (
+                      <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        <User className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    )}
                   </div>
-                  {m.role === 'user' && (
-                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                      <User className="w-4 h-4 text-muted-foreground" />
+
+                  {m.role === 'model' && i === messages.length - 1 && !sending && m.suggestions && m.suggestions.length > 0 && (
+                    <div className="flex flex-wrap gap-2 ps-11 pe-2">
+                      {m.suggestions.map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => sendMessage(s)}
+                          className="text-xs px-3 py-1.5 rounded-full border border-primary/25 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/40 transition-colors"
+                        >
+                          {s}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </motion.div>

@@ -15,7 +15,11 @@ ${summary}
 - اقترح أفكار قابلة للتنفيذ فوراً: عروض، خصومات، bundle، توقيت نشر، تحسين وصف منتج، إلخ.
 - كن مختصراً ومركّزاً — نقاط واضحة بدل فقرات طويلة، بحد أقصى 5-6 نقاط.
 - مهم جداً: أنهِ إجابتك دائماً بشكل كامل ومترابط، لا تقطع الجملة أو الفكرة في المنتصف.
-- إذا سُئلت عن شيء خارج نطاق المتجر أو التسويق، وجّه المستخدم بلطف للسؤال عن متجره.`;
+- إذا سُئلت عن شيء خارج نطاق المتجر أو التسويق، وجّه المستخدم بلطف للسؤال عن متجره.
+- بعد كل رد، اقترح 3 أسئلة أو طلبات متابعة قصيرة (3-6 كلمات) منطقية بناءً على سياق المحادثة والرد اللي عطيته — تساعد التاجر يكمل يستفيد من المحادثة.
+
+أعد ردك بصيغة JSON فقط بهذا الشكل بالضبط:
+{"reply": "نص الرد الكامل هنا", "suggestions": ["اقتراح متابعة 1", "اقتراح متابعة 2", "اقتراح متابعة 3"]}`;
   }
   return `You are "Mawq3i AI Advisor" — an e-commerce marketing expert for small merchants in Palestine and Jordan.
 You're speaking with the owner of store "${storeName}" on the Mawq3i platform.
@@ -27,7 +31,11 @@ Instructions:
 - Always answer concisely and practically, in short actionable points.
 - Base your answer only on the real data provided above — never invent numbers or products.
 - Suggest concrete actions: discounts, bundles, timing, product description tweaks, etc.
-- If asked something unrelated to the store or marketing, gently redirect.`;
+- If asked something unrelated to the store or marketing, gently redirect.
+- After each reply, suggest 3 short (3-6 word) natural follow-up questions or requests based on the conversation so far.
+
+Respond in JSON only, in exactly this shape:
+{"reply": "full reply text here", "suggestions": ["follow-up 1", "follow-up 2", "follow-up 3"]}`;
 }
 
 export default async function handler(req, res) {
@@ -71,6 +79,15 @@ export default async function handler(req, res) {
           temperature: 0.6,
           maxOutputTokens: 1536,
           thinkingConfig: { thinkingBudget: 0 },
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              reply: { type: 'STRING' },
+              suggestions: { type: 'ARRAY', items: { type: 'STRING' } },
+            },
+            required: ['reply', 'suggestions'],
+          },
         },
       }),
     });
@@ -83,11 +100,25 @@ export default async function handler(req, res) {
     }
 
     const data = await geminiRes.json();
-    const reply =
-      data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ||
-      (isAr ? 'ما قدرت أطلع رد، جرب تاني.' : 'Could not generate a reply, please try again.');
+    const rawText =
+      data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') || '';
 
-    res.status(200).json({ reply });
+    let reply = '';
+    let suggestions = [];
+    try {
+      const parsed = JSON.parse(rawText);
+      reply = typeof parsed.reply === 'string' ? parsed.reply : '';
+      suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions.filter((s) => typeof s === 'string').slice(0, 3) : [];
+    } catch {
+      // Model didn't return valid JSON (rare) — fall back to raw text, no suggestions
+      reply = rawText;
+    }
+
+    if (!reply) {
+      reply = isAr ? 'ما قدرت أطلع رد، جرب تاني.' : 'Could not generate a reply, please try again.';
+    }
+
+    res.status(200).json({ reply, suggestions });
   } catch (err) {
     console.error('ai-advisor handler error:', err);
     res.status(500).json({ error: err?.message || 'Internal server error' });

@@ -34,6 +34,7 @@ export default function EditProduct() {
   // Optional product video
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string>('');
+  const [videoError, setVideoError] = useState('');
   const videoFileRef = useRef<HTMLInputElement>(null);
 
   // Variant image uploads
@@ -63,16 +64,35 @@ export default function EditProduct() {
     reader.readAsDataURL(file);
   }, []);
 
+  const MAX_VIDEO_SECONDS = 30;
+  const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // hard platform ceiling (Supabase project upload limit)
+
   const handleVideoFile = useCallback((file: File) => {
+    setVideoError('');
     if (!file.type.startsWith('video/')) return;
-    if (file.size > 50 * 1024 * 1024) return;
-    setVideoFile(file);
-    setVideoPreview(URL.createObjectURL(file));
-  }, []);
+    if (file.size > MAX_VIDEO_BYTES) {
+      setVideoError(isAr ? 'حجم الفيديو كبير جداً (الحد الأقصى 50 ميغابايت) — قصّر الفيديو أو قلل جودته' : 'Video is too large (max 50MB) — trim it or lower its quality');
+      return;
+    }
+    const preview = URL.createObjectURL(file);
+    const probe = document.createElement('video');
+    probe.preload = 'metadata';
+    probe.onloadedmetadata = () => {
+      if (probe.duration > MAX_VIDEO_SECONDS + 0.5) {
+        setVideoError(isAr ? `الفيديو أطول من ${MAX_VIDEO_SECONDS} ثانية — قصّره وحاول تاني` : `Video is longer than ${MAX_VIDEO_SECONDS}s — trim it and try again`);
+        URL.revokeObjectURL(preview);
+        return;
+      }
+      setVideoFile(file);
+      setVideoPreview(preview);
+    };
+    probe.src = preview;
+  }, [isAr]);
 
   const removeVideo = () => {
     setVideoFile(null);
     setVideoPreview('');
+    setVideoError('');
   };
 
   // Variants
@@ -265,7 +285,7 @@ export default function EditProduct() {
               >
                 <Video className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm">{isAr ? 'اسحب فيديو أو انقر للرفع' : 'Drag or click to upload'}</p>
-                <p className="text-xs text-muted-foreground mt-1">MP4, WebM — {isAr ? 'حتى 50 ميغابايت' : 'up to 50MB'}</p>
+                <p className="text-xs text-muted-foreground mt-1">MP4, WebM — {isAr ? 'حتى 30 ثانية' : 'up to 30 seconds'}</p>
               </div>
             )}
           </CardContent>
