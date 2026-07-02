@@ -78,7 +78,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     return (
       <Link href={item.href} className="block w-full" onClick={onClose}>
         <div className={cn(
-          'relative flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+          'relative flex items-center gap-3 px-4 py-3 rounded-full text-sm font-medium transition-colors cursor-pointer',
           isActive
             ? 'text-primary-foreground'
             : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
@@ -86,7 +86,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           {isActive && (
             <motion.div
               layoutId="sidebar-active"
-              className="absolute inset-0 bg-primary rounded-lg z-0"
+              className="absolute inset-0 bg-primary rounded-full z-0 shadow-lg shadow-primary/20"
               initial={false}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             />
@@ -165,7 +165,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={onClose}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
           >
             <ExternalLink className="w-5 h-5 flex-shrink-0" />
             <span>{isAr ? 'معاينة المتجر' : 'Preview Store'}</span>
@@ -173,7 +173,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-red-400 hover:bg-red-500/5 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-full text-sm font-medium text-muted-foreground hover:text-red-400 hover:bg-red-500/5 transition-colors cursor-pointer"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span>{isAr ? 'تسجيل الخروج' : 'Logout'}</span>
@@ -187,7 +187,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 setLocation('/admin');
                 onClose();
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border border-red-500/20"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-full text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer border border-red-500/20"
             >
               <Shield className="w-5 h-5 flex-shrink-0" />
               <span>{isAr ? 'العودة للوحة الأدمن' : 'Back to Admin Panel'}</span>

@@ -100,7 +100,7 @@
   --input: 210 20% 80%;
   --ring: 114 100% 62%;
 
-  --radius: .5rem;
+  --radius: 1rem;
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-accent-border: hsl(var(--sidebar-accent));
   --primary-border: hsl(var(--primary));
@@ -152,9 +152,17 @@
   * {
     @apply border-border;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     font-family: 'Thmanyah', 'Inter', sans-serif;
     @apply antialiased bg-background text-foreground;
+  }
+  button, a {
+    transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+    transition-duration: 180ms;
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
 
