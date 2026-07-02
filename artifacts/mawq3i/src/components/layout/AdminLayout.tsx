@@ -94,7 +94,9 @@ function AdminSidebar({ open, onClose }: AdminSidebarProps) {
         {/* Brand */}
         <div className="p-5 border-b border-sidebar-border">
           <div className="flex items-center gap-3 mb-1">
-            <img src="/logo.png" alt="Mawq3i" className="w-8 h-8 object-contain flex-shrink-0" />
+            <div className="w-11 h-11 flex-shrink-0 rounded-xl flex items-center justify-center shadow-[0_2px_10px_rgba(0,0,0,0.12)] dark:shadow-none">
+              <img src="/logo.png" alt="Mawq3i" className="w-full h-full object-contain" />
+            </div>
             <span className="text-lg font-bold text-sidebar-foreground">Mawq3i</span>
           </div>
           <div className="flex items-center gap-2 mt-2">
