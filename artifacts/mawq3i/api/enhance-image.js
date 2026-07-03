@@ -2,16 +2,33 @@ const OPENAI_IMAGES_URL = 'https://api.openai.com/v1/images/edits';
 const OPENAI_IMAGE_MODEL = 'gpt-image-1-mini';
 
 function buildPrompt(brandIdentity, isAr) {
-  const base = isAr
-    ? 'أنت خبير تصوير منتجات تجارية احترافي. حسّن صورة المنتج المرفقة لتبدو بجودة استوديو احترافية: إضاءة نظيفة ومتوازنة، خلفية مرتبة وغير مشتتة، ألوان طبيعية وحادة. لا تغيّر شكل المنتج نفسه أو تفاصيله أو نسبه — فقط حسّن العرض والخلفية والإضاءة. حافظ على أن يكون المنتج هو نفسه تماماً.'
-    : 'You are a professional product photography expert. Enhance the attached product photo to studio-quality: clean balanced lighting, tidy uncluttered background, natural sharp colors. Do not change the product itself, its shape, details, or proportions — only improve presentation, background, and lighting. The product must remain exactly the same.';
+  const hasIdentity = brandIdentity && brandIdentity.trim();
 
-  if (brandIdentity && brandIdentity.trim()) {
-    return base + (isAr
-      ? `\n\nالهوية البصرية الخاصة بهذا المتجر (طبّقها بثبات): ${brandIdentity.trim()}`
-      : `\n\nThis store's brand identity (apply it consistently): ${brandIdentity.trim()}`);
+  if (isAr) {
+    let p = 'أنت خبير تصوير منتجات تجارية احترافي. مهمتك تحرير صورة المنتج المرفقة لتبدو بجودة استوديو احترافية.\n\n';
+    p += 'التزم بهذا بدقة:\n';
+    p += '- المنتج نفسه (وأي يد أو شخص يحمله إن وجد) يجب أن يبقى كما هو تماماً بلا أي تغيير في الشكل أو التفاصيل أو الألوان أو الوضعية.\n';
+    if (hasIdentity) {
+      p += `- استبدل الخلفية بالكامل (إزالة الخلفية الأصلية نهائياً) واستبدلها بالوصف التالي بدقة، حتى لو كانت الخلفية الأصلية بسيطة أو محايدة: "${brandIdentity.trim()}". هذا التغيير إلزامي وليس اقتراحاً — لا تكتفِ بتحسين الخلفية الأصلية، غيّرها فعلياً بالكامل.\n`;
+    } else {
+      p += '- اجعل الخلفية نظيفة ومرتبة وغير مشتتة (خلفية استوديو بسيطة).\n';
+    }
+    p += '- حسّن الإضاءة لتكون ناعمة ومتوازنة، وأضف ظلاً خفيفاً واقعياً تحت المنتج يتناسب مع الخلفية الجديدة.\n';
+    p += '- حافظ على نسب ووضوح المنتج كما هي، فقط بجودة أعلى ووضوح أفضل.';
+    return p;
   }
-  return base;
+
+  let p = 'You are a professional product photography expert. Edit the attached product photo to studio-quality.\n\n';
+  p += 'Follow these rules precisely:\n';
+  p += '- The product itself (and any hand/person holding it, if present) must remain exactly as-is — no change to shape, details, colors, or pose.\n';
+  if (hasIdentity) {
+    p += `- Fully replace the background (completely remove the original background) with the following, even if the original background is already simple or neutral: "${brandIdentity.trim()}". This is a mandatory change, not a suggestion — do not merely enhance the existing background, actually replace it.\n`;
+  } else {
+    p += '- Make the background clean, tidy, and uncluttered (simple studio backdrop).\n';
+  }
+  p += '- Improve lighting to be soft and balanced, and add a subtle realistic shadow under the product matching the new background.\n';
+  p += "- Keep the product's proportions and clarity intact, just at higher quality and sharpness.";
+  return p;
 }
 
 export default async function handler(req, res) {
