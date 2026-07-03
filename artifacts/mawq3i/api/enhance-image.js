@@ -1,5 +1,5 @@
 const OPENAI_IMAGES_URL = 'https://api.openai.com/v1/images/edits';
-const OPENAI_IMAGE_MODEL = 'gpt-image-1-mini';
+const OPENAI_IMAGE_MODEL = 'gpt-image-2';
 
 function buildPrompt(brandIdentity, isAr) {
   const hasIdentity = brandIdentity && brandIdentity.trim();
@@ -8,6 +8,7 @@ function buildPrompt(brandIdentity, isAr) {
     let p = 'أنت خبير تصوير منتجات تجارية احترافي. مهمتك تحرير صورة المنتج المرفقة لتبدو بجودة استوديو احترافية.\n\n';
     p += 'التزم بهذا بدقة:\n';
     p += '- المنتج نفسه (وأي يد أو شخص يحمله إن وجد) يجب أن يبقى كما هو تماماً بلا أي تغيير في الشكل أو التفاصيل أو الألوان أو الوضعية.\n';
+    p += '- أي نص أو شعار أو كتابة مطبوعة على المنتج يجب أن تبقى واضحة ومطابقة تماماً للأصل — لا تحذفها ولا تشوّهها ولا تغيّرها بأي شكل.\n';
     if (hasIdentity) {
       p += `- استبدل الخلفية بالكامل (إزالة الخلفية الأصلية نهائياً) واستبدلها بالوصف التالي بدقة، حتى لو كانت الخلفية الأصلية بسيطة أو محايدة: "${brandIdentity.trim()}". هذا التغيير إلزامي وليس اقتراحاً — لا تكتفِ بتحسين الخلفية الأصلية، غيّرها فعلياً بالكامل.\n`;
     } else {
@@ -21,6 +22,7 @@ function buildPrompt(brandIdentity, isAr) {
   let p = 'You are a professional product photography expert. Edit the attached product photo to studio-quality.\n\n';
   p += 'Follow these rules precisely:\n';
   p += '- The product itself (and any hand/person holding it, if present) must remain exactly as-is — no change to shape, details, colors, or pose.\n';
+  p += '- Any printed text, logo, or branding on the product must remain sharp and identical to the original — do not remove, distort, or alter it in any way.\n';
   if (hasIdentity) {
     p += `- Fully replace the background (completely remove the original background) with the following, even if the original background is already simple or neutral: "${brandIdentity.trim()}". This is a mandatory change, not a suggestion — do not merely enhance the existing background, actually replace it.\n`;
   } else {
