@@ -101,7 +101,7 @@ export default function Settings() {
       }
     }
 
-    await updateStoreSettings(currentStore.id, {
+    const ok = await updateStoreSettings(currentStore.id, {
       name: settings.storeName,
       description: settings.description,
       ownerPhone: settings.whatsapp,
@@ -111,6 +111,18 @@ export default function Settings() {
       domain: settings.domain,
       brandIdentity: settings.brandIdentity,
     }, isAdminMode);
+
+    if (!ok) {
+      setSaving(false);
+      toast({
+        title: isAr ? 'تعذّر حفظ الإعدادات' : 'Could not save settings',
+        description: isAr
+          ? 'حدث خطأ أثناء الحفظ (قد يكون بسبب صلاحيات الوصول) — حاول تاني أو أعد تحميل الصفحة'
+          : 'An error occurred while saving (possibly a permissions issue) — try again or reload the page',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     await refreshStore();
     setSaving(false);
