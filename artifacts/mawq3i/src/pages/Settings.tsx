@@ -12,6 +12,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Upload, Check, Loader2, ImageIcon } from 'lucide-react';
 
+function SectionCard({ titleAr, titleEn, isAr, children }: { titleAr: string; titleEn: string; isAr: boolean; children: React.ReactNode }) {
+  return (
+    <Card className="bg-card border-border/50 shadow-lg">
+      <CardHeader className="border-b border-border/50 pb-4">
+        <CardTitle className="text-base font-semibold">{isAr ? titleAr : titleEn}</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-6 space-y-5">{children}</CardContent>
+    </Card>
+  );
+}
+
+function Field({ labelAr, labelEn, isAr, children }: { labelAr: string; labelEn: string; isAr: boolean; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
+      <Label className="text-sm text-muted-foreground sm:pt-2">{isAr ? labelAr : labelEn}</Label>
+      <div className="sm:col-span-2">{children}</div>
+    </div>
+  );
+}
+
 export default function Settings() {
   const { language, currentStore, storeLoading, refreshStore, isAdminMode } = useAppContext();
   const isAr = language === 'ar';
@@ -102,22 +122,6 @@ export default function Settings() {
     });
   };
 
-  const SectionCard = ({ titleAr, titleEn, children }: { titleAr: string; titleEn: string; children: React.ReactNode }) => (
-    <Card className="bg-card border-border/50 shadow-lg">
-      <CardHeader className="border-b border-border/50 pb-4">
-        <CardTitle className="text-base font-semibold">{isAr ? titleAr : titleEn}</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-6 space-y-5">{children}</CardContent>
-    </Card>
-  );
-
-  const Field = ({ labelAr, labelEn, children }: { labelAr: string; labelEn: string; children: React.ReactNode }) => (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
-      <Label className="text-sm text-muted-foreground sm:pt-2">{isAr ? labelAr : labelEn}</Label>
-      <div className="sm:col-span-2">{children}</div>
-    </div>
-  );
-
   if (storeLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -143,8 +147,8 @@ export default function Settings() {
       transition={{ duration: 0.4 }}
       className="space-y-6 max-w-2xl"
     >
-      <SectionCard titleAr="معلومات المتجر" titleEn="Store Information">
-        <Field labelAr="اسم المتجر" labelEn="Store Name">
+      <SectionCard titleAr="معلومات المتجر" titleEn="Store Information" isAr={isAr}>
+        <Field labelAr="اسم المتجر" labelEn="Store Name" isAr={isAr}>
           <Input
             value={settings.storeName}
             onChange={e => set('storeName', e.target.value)}
@@ -152,7 +156,7 @@ export default function Settings() {
           />
         </Field>
 
-        <Field labelAr="وصف المتجر" labelEn="Store Description">
+        <Field labelAr="وصف المتجر" labelEn="Store Description" isAr={isAr}>
           <Textarea
             value={settings.description}
             onChange={e => set('description', e.target.value)}
@@ -161,7 +165,7 @@ export default function Settings() {
           />
         </Field>
 
-        <Field labelAr="الشعار" labelEn="Logo">
+        <Field labelAr="الشعار" labelEn="Logo" isAr={isAr}>
           <div
             className="flex items-center gap-4 px-4 py-3 border border-dashed border-border/60 rounded-lg cursor-pointer hover:border-primary/40 transition-colors bg-background/30"
             onClick={() => fileRef.current?.click()}
@@ -190,7 +194,7 @@ export default function Settings() {
           </div>
         </Field>
 
-        <Field labelAr="اللون الرئيسي" labelEn="Primary Color">
+        <Field labelAr="اللون الرئيسي" labelEn="Primary Color" isAr={isAr}>
           <div className="flex items-center gap-3">
             <input
               type="color"
@@ -211,7 +215,7 @@ export default function Settings() {
           </div>
         </Field>
 
-        <Field labelAr="رقم واتساب" labelEn="WhatsApp Number">
+        <Field labelAr="رقم واتساب" labelEn="WhatsApp Number" isAr={isAr}>
           <Input
             value={settings.whatsapp}
             onChange={e => set('whatsapp', e.target.value)}
@@ -221,7 +225,7 @@ export default function Settings() {
           />
         </Field>
 
-        <Field labelAr="الدومين" labelEn="Domain">
+        <Field labelAr="الدومين" labelEn="Domain" isAr={isAr}>
           <Input
             value={settings.domain}
             onChange={e => set('domain', e.target.value)}
@@ -232,8 +236,8 @@ export default function Settings() {
         </Field>
       </SectionCard>
 
-      <SectionCard titleAr="التفضيلات" titleEn="Preferences">
-        <Field labelAr="العملة الافتراضية" labelEn="Default Currency">
+      <SectionCard titleAr="التفضيلات" titleEn="Preferences" isAr={isAr}>
+        <Field labelAr="العملة الافتراضية" labelEn="Default Currency" isAr={isAr}>
           <Select value={settings.defaultCurrency} onValueChange={v => set('defaultCurrency', v)}>
             <SelectTrigger className="bg-background/50 border-border/50">
               <SelectValue />
@@ -246,13 +250,13 @@ export default function Settings() {
         </Field>
       </SectionCard>
 
-      <SectionCard titleAr="الهوية البصرية (لتحسين الصور بالذكاء الاصطناعي)" titleEn="Brand Identity (for AI image enhancement)">
+      <SectionCard titleAr="الهوية البصرية (لتحسين الصور بالذكاء الاصطناعي)" titleEn="Brand Identity (for AI image enhancement)" isAr={isAr}>
         <p className="text-xs text-muted-foreground -mt-2">
           {isAr
             ? 'اوصف الستايل اللي بتحبه لصور منتجاتك — هذا الوصف بيُستخدم تلقائياً كل مرة تحسّن فيها صورة منتج بالذكاء الاصطناعي، عشان كل صورك تطلع بنفس الهوية البصرية.'
             : "Describe the style you want for your product photos — this is automatically used every time you enhance a photo with AI, so all your images share one consistent brand look."}
         </p>
-        <Field labelAr="وصف الستايل" labelEn="Style Description">
+        <Field labelAr="وصف الستايل" labelEn="Style Description" isAr={isAr}>
           <Textarea
             value={settings.brandIdentity}
             onChange={e => set('brandIdentity', e.target.value)}
