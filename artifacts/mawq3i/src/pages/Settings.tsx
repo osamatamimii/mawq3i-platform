@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { updateStoreSettings } from '@/lib/db';
-import { uploadStoreLogo } from '@/lib/storage';
+import { uploadStoreLogo, uploadStoreHeroImage } from '@/lib/storage';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, Check, Loader2, ImageIcon } from 'lucide-react';
@@ -46,11 +47,21 @@ export default function Settings() {
     whatsapp: '',
     domain: '',
     brandIdentity: '',
+    secondaryColor: '#1A1A1A',
+    accentColor: '#52FF3F',
+    heroTitle: '',
+    heroSubtitle: '',
+    footerText: '',
+    showLogo: true,
   });
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [heroPreview, setHeroPreview] = useState<string>('');
+  const [heroFile, setHeroFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingHero, setUploadingHero] = useState(false);
+  const heroFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (currentStore) {
@@ -62,12 +73,19 @@ export default function Settings() {
         whatsapp: currentStore.ownerPhone,
         domain: currentStore.domain,
         brandIdentity: currentStore.brandIdentity ?? '',
+        secondaryColor: currentStore.secondaryColor ?? '#1A1A1A',
+        accentColor: currentStore.accentColor ?? currentStore.primaryColor ?? '#52FF3F',
+        heroTitle: currentStore.heroTitle ?? '',
+        heroSubtitle: currentStore.heroSubtitle ?? '',
+        footerText: currentStore.footerText ?? '',
+        showLogo: currentStore.showLogo !== false,
       });
       setLogoPreview(currentStore.logoUrl ?? '');
+      setHeroPreview(currentStore.heroImageUrl ?? '');
     }
   }, [currentStore]);
 
-  const set = (key: string, value: string) => setSettings(s => ({ ...s, [key]: value }));
+  const set = (key: string, value: string | boolean) => setSettings(s => ({ ...s, [key]: value }));
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,11 +96,21 @@ export default function Settings() {
     reader.readAsDataURL(file);
   };
 
+  const handleHeroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setHeroFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setHeroPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleSave = async () => {
     if (!currentStore) return;
     setSaving(true);
 
     let logoUrl = currentStore.logoUrl ?? '';
+    let heroImageUrl = currentStore.heroImageUrl ?? '';
 
     if (logoFile) {
       setUploadingLogo(true);
@@ -101,6 +129,23 @@ export default function Settings() {
       }
     }
 
+    if (heroFile) {
+      setUploadingHero(true);
+      const uploaded = await uploadStoreHeroImage(heroFile, currentStore.id);
+      setUploadingHero(false);
+      if (uploaded) {
+        heroImageUrl = uploaded;
+      } else {
+        toast({
+          title: isAr ? 'تعذّر رفع صورة البانر' : 'Hero image upload failed',
+          description: isAr
+            ? 'تأكد من وجود bucket باسم store-assets في Supabase Storage'
+            : 'Make sure a bucket named "store-assets" exists in Supabase Storage',
+          variant: 'destructive',
+        });
+      }
+    }
+
     const ok = await updateStoreSettings(currentStore.id, {
       name: settings.storeName,
       description: settings.description,
@@ -110,6 +155,13 @@ export default function Settings() {
       currency: settings.defaultCurrency,
       domain: settings.domain,
       brandIdentity: settings.brandIdentity,
+      secondaryColor: settings.secondaryColor,
+      accentColor: settings.accentColor,
+      heroImageUrl,
+      heroTitle: settings.heroTitle,
+      heroSubtitle: settings.heroSubtitle,
+      footerText: settings.footerText,
+      showLogo: settings.showLogo,
     }, isAdminMode);
 
     if (!ok) {
@@ -127,6 +179,7 @@ export default function Settings() {
     await refreshStore();
     setSaving(false);
     setLogoFile(null);
+    setHeroFile(null);
 
     toast({
       title: isAr ? 'تم الحفظ بنجاح' : 'Settings saved',
@@ -245,6 +298,114 @@ export default function Settings() {
             dir="ltr"
             placeholder="my-store.mawq3i.com"
           />
+        </Field>
+      </SectionCard>
+
+      <SectionCard titleAr="تخصيص واجهة المتجر" titleEn="Storefront Customization" isAr={isAr}>
+        <p className="text-xs text-muted-foreground -mt-2">
+          {isAr
+            ? 'هذه التعديلات تنعكس مباشرة على متجرك الإلكتروني (البانر الرئيسي، الألوان، والتذييل).'
+            : 'These changes apply directly to your live storefront (hero banner, colors, and footer).'}
+        </p>
+
+        <Field labelAr="صورة البانر الرئيسي" labelEn="Hero Banner Image" isAr={isAr}>
+          <div
+            className="flex items-center gap-4 px-4 py-3 border border-dashed border-border/60 rounded-lg cursor-pointer hover:border-primary/40 transition-colors bg-background/30"
+            onClick={() => heroFileRef.current?.click()}
+          >
+            {heroPreview ? (
+              <img src={heroPreview} alt="hero" className="w-16 h-10 object-cover rounded-md" />
+            ) : (
+              <ImageIcon className="w-5 h-5 text-muted-foreground" />
+            )}
+            <div>
+              <span className="text-sm text-muted-foreground block">
+                {heroFile
+                  ? heroFile.name
+                  : heroPreview
+                  ? (isAr ? 'انقر لتغيير صورة البانر' : 'Click to change hero image')
+                  : (isAr ? 'رفع صورة بانر مخصصة' : 'Upload custom hero image')}
+              </span>
+              {heroFile && (
+                <span className="text-xs text-primary">
+                  {isAr ? 'سيُرفع عند الحفظ' : 'Will upload on save'}
+                </span>
+              )}
+            </div>
+            <Upload className="w-4 h-4 text-muted-foreground ms-auto" />
+            <input ref={heroFileRef} type="file" className="hidden" accept="image/*" onChange={handleHeroChange} />
+          </div>
+        </Field>
+
+        <Field labelAr="عنوان البانر الرئيسي" labelEn="Hero Title" isAr={isAr}>
+          <Input
+            value={settings.heroTitle}
+            onChange={e => set('heroTitle', e.target.value)}
+            className="bg-background/50 border-border/50"
+            placeholder={isAr ? 'مثال: الأناقة التي تميّزك' : 'e.g. Elegance that defines you'}
+          />
+        </Field>
+
+        <Field labelAr="النص الفرعي للبانر" labelEn="Hero Subtitle" isAr={isAr}>
+          <Textarea
+            value={settings.heroSubtitle}
+            onChange={e => set('heroSubtitle', e.target.value)}
+            className="bg-background/50 border-border/50 resize-none h-16"
+          />
+        </Field>
+
+        <Field labelAr="اللون الثانوي" labelEn="Secondary Color" isAr={isAr}>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={settings.secondaryColor}
+              onChange={e => set('secondaryColor', e.target.value)}
+              className="w-10 h-10 rounded-lg border border-border/50 bg-transparent cursor-pointer"
+            />
+            <Input
+              value={settings.secondaryColor}
+              onChange={e => set('secondaryColor', e.target.value)}
+              className="bg-background/50 border-border/50 font-mono"
+              dir="ltr"
+            />
+          </div>
+        </Field>
+
+        <Field labelAr="لون التمييز" labelEn="Accent Color" isAr={isAr}>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={settings.accentColor}
+              onChange={e => set('accentColor', e.target.value)}
+              className="w-10 h-10 rounded-lg border border-border/50 bg-transparent cursor-pointer"
+            />
+            <Input
+              value={settings.accentColor}
+              onChange={e => set('accentColor', e.target.value)}
+              className="bg-background/50 border-border/50 font-mono"
+              dir="ltr"
+            />
+          </div>
+        </Field>
+
+        <Field labelAr="نص التذييل (Footer)" labelEn="Footer Text" isAr={isAr}>
+          <Input
+            value={settings.footerText}
+            onChange={e => set('footerText', e.target.value)}
+            className="bg-background/50 border-border/50"
+            placeholder={isAr ? 'مثال: جميع الحقوق محفوظة © 2026' : 'e.g. All rights reserved © 2026'}
+          />
+        </Field>
+
+        <Field labelAr="إظهار الشعار" labelEn="Show Logo" isAr={isAr}>
+          <div className="flex items-center gap-3">
+            <Switch checked={settings.showLogo} onCheckedChange={(v) => set('showLogo', v)} />
+            <span className="text-sm text-muted-foreground">
+              {settings.showLogo
+                ? (isAr ? 'الشعار ظاهر بالمتجر' : 'Logo is visible on storefront')
+                : (isAr ? 'الشعار مخفي بالمتجر' : 'Logo is hidden on storefront')}
+            </span>
+          </div>
         </Field>
       </SectionCard>
 

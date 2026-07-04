@@ -53,3 +53,21 @@ export async function uploadStoreLogo(file: File, storeId: string): Promise<stri
     return null;
   }
 }
+
+export async function uploadStoreHeroImage(file: File, storeId: string): Promise<string | null> {
+  try {
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const path = `hero/${storeId}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from('store-assets')
+      .upload(path, file, { cacheControl: '3600', upsert: true });
+
+    if (error) return null;
+
+    const { data } = supabase.storage.from('store-assets').getPublicUrl(path);
+    return `${data.publicUrl}?t=${Date.now()}`;
+  } catch {
+    return null;
+  }
+}

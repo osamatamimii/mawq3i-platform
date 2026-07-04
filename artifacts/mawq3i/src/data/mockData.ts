@@ -75,6 +75,13 @@ export type StoreRecord = {
   logoUrl?: string;
   description?: string;
   brandIdentity?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  heroImageUrl?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  footerText?: string;
+  showLogo?: boolean;
 };
 
 export type Client = {

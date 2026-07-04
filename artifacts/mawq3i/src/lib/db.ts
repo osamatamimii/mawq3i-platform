@@ -99,6 +99,13 @@ function rowToStore(row: any): StoreRecord {
     logoUrl: row.logo_url ?? '',
     description: row.description ?? '',
     brandIdentity: row.brand_identity ?? '',
+    secondaryColor: row.secondary_color ?? '#1A1A1A',
+    accentColor: row.accent_color ?? row.primary_color ?? '#52FF3F',
+    heroImageUrl: row.hero_image_url ?? '',
+    heroTitle: row.hero_title ?? '',
+    heroSubtitle: row.hero_subtitle ?? '',
+    footerText: row.footer_text ?? '',
+    showLogo: row.show_logo !== false,
   };
 }
 
@@ -421,6 +428,13 @@ export async function updateStoreSettings(id: string, settings: {
   domain?: string;
   description?: string;
   brandIdentity?: string;
+  secondaryColor?: string;
+  accentColor?: string;
+  heroImageUrl?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  footerText?: string;
+  showLogo?: boolean;
 }, useAdmin = false): Promise<boolean> {
   try {
     const row: Record<string, unknown> = {};
@@ -432,6 +446,13 @@ export async function updateStoreSettings(id: string, settings: {
     if (settings.domain !== undefined) row.domain = settings.domain;
     if (settings.description !== undefined) row.description = settings.description;
     if (settings.brandIdentity !== undefined) row.brand_identity = settings.brandIdentity;
+    if (settings.secondaryColor !== undefined) row.secondary_color = settings.secondaryColor;
+    if (settings.accentColor !== undefined) row.accent_color = settings.accentColor;
+    if (settings.heroImageUrl !== undefined) row.hero_image_url = settings.heroImageUrl;
+    if (settings.heroTitle !== undefined) row.hero_title = settings.heroTitle;
+    if (settings.heroSubtitle !== undefined) row.hero_subtitle = settings.heroSubtitle;
+    if (settings.footerText !== undefined) row.footer_text = settings.footerText;
+    if (settings.showLogo !== undefined) row.show_logo = settings.showLogo;
 
     if (useAdmin) {
       return await adminRest.update('stores', `id=eq.${id}`, row);
