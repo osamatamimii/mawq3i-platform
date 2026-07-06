@@ -110,7 +110,7 @@ function AdminSidebar({ open, onClose }: AdminSidebarProps) {
         </div>
 
         {/* Nav */}
-        <div className="flex-1 px-4 py-4 space-y-0.5 overflow-y-auto">
+        <div className="flex-1 px-4 py-4 space-y-0.5 overflow-y-auto themed-scroll">
           {adminNavItems.map((item) => {
             const isActive = item.exact ? location === item.href : location.startsWith(item.href);
             return (
@@ -246,7 +246,7 @@ export function AdminLayout({ children }: { children: ReactNode }) {
       <AdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
         <AdminNavbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 overflow-auto p-4 md:p-6 themed-scroll">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

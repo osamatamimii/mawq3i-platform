@@ -13,7 +13,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 overflow-auto p-4 md:p-6 themed-scroll">
           <div className="max-w-6xl mx-auto">
             <AnimatePresence mode="wait">
               <motion.div
