@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
   LayoutDashboard,
@@ -73,24 +73,40 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: '/dashboard/settings', icon: Settings, labelAr: 'إعدادات المتجر', labelEn: 'Store Settings', exact: false },
   ];
 
-  const Item = ({ item }: { item: typeof menuItems[0] }) => {
+  // ── Floating indicator that tracks the active item ──
+  const navRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [indicatorStyle, setIndicatorStyle] = useState<{ y: number; h: number } | null>(null);
+
+  const activeIndex = menuItems.findIndex(item =>
+    item.exact ? location === item.href : location.startsWith(item.href)
+  );
+
+  useEffect(() => {
+    const el = itemRefs.current[activeIndex];
+    const container = navRef.current;
+    if (!el || !container || activeIndex < 0) { setIndicatorStyle(null); return; }
+    const elRect = el.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    setIndicatorStyle({
+      y: elRect.top - containerRect.top + container.scrollTop,
+      h: elRect.height,
+    });
+  }, [location, activeIndex]);
+
+  const Item = ({ item, index }: { item: typeof menuItems[0]; index: number }) => {
     const isActive = item.exact ? location === item.href : location.startsWith(item.href);
     return (
       <Link href={item.href} className="block w-full" onClick={onClose}>
-        <div className={cn(
-          'relative flex items-center gap-3 px-4 py-3 rounded-full text-sm font-medium transition-colors cursor-pointer',
-          isActive
-            ? 'text-primary-foreground'
-            : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-        )}>
-          {isActive && (
-            <motion.div
-              layoutId="sidebar-active"
-              className="absolute inset-0 bg-primary rounded-full z-0 shadow-lg shadow-primary/20"
-              initial={false}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            />
+        <div
+          ref={el => { itemRefs.current[index] = el; }}
+          className={cn(
+            'relative flex items-center gap-3 px-4 py-3 rounded-full text-sm font-medium transition-colors cursor-pointer',
+            isActive
+              ? 'text-primary-foreground'
+              : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
           )}
+        >
           <item.icon className="w-5 h-5 relative z-10 flex-shrink-0" />
           <span className="relative z-10 flex-1">{isAr ? item.labelAr : item.labelEn}</span>
           {(item as any).badge > 0 && (
@@ -153,9 +169,19 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           </h1>
         </div>
 
-        <div className="flex-1 px-4 py-4 space-y-1 overflow-y-auto themed-scroll">
-          {menuItems.map((item) => (
-            <Item key={item.href} item={item} />
+        {/* Nav — position:relative so indicator can be absolute inside */}
+        <div ref={navRef} className="flex-1 px-4 py-4 space-y-1 overflow-y-auto themed-scroll relative">
+          {/* Single persistent indicator — animates between items directly */}
+          {indicatorStyle && (
+            <motion.div
+              className="absolute inset-x-4 bg-primary rounded-full z-0 shadow-lg shadow-primary/20 pointer-events-none"
+              animate={{ y: indicatorStyle.y, height: indicatorStyle.h }}
+              transition={{ type: 'spring', stiffness: 380, damping: 36, mass: 0.8 }}
+              style={{ top: 0 }}
+            />
+          )}
+          {menuItems.map((item, i) => (
+            <Item key={item.href} item={item} index={i} />
           ))}
         </div>
 
