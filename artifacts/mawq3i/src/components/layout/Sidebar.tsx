@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useLayoutEffect, useState, useRef, memo } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
   LayoutDashboard,
@@ -26,19 +26,62 @@ interface SidebarProps {
   onClose: () => void;
 }
 
+type MenuItem = {
+  href: string;
+  icon: React.ElementType;
+  labelAr: string;
+  labelEn: string;
+  exact: boolean;
+  badge?: number;
+};
+
+// ── Defined OUTSIDE Sidebar so component type is stable across renders ──
+const NavItem = memo(function NavItem({
+  item,
+  isActive,
+  isAr,
+  onClose,
+  setRef,
+}: {
+  item: MenuItem;
+  isActive: boolean;
+  isAr: boolean;
+  onClose: () => void;
+  setRef: (el: HTMLDivElement | null) => void;
+}) {
+  return (
+    <Link href={item.href} className="block w-full" onClick={onClose}>
+      <div
+        ref={setRef}
+        className={cn(
+          'relative flex items-center gap-3 px-4 py-3 rounded-full text-sm font-medium transition-colors cursor-pointer select-none',
+          isActive
+            ? 'text-primary-foreground'
+            : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
+        )}
+      >
+        <item.icon className="w-5 h-5 relative z-10 flex-shrink-0" />
+        <span className="relative z-10 flex-1">{isAr ? item.labelAr : item.labelEn}</span>
+        {item.badge != null && item.badge > 0 && (
+          <span className="relative z-10 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
+            {item.badge > 99 ? '99+' : item.badge}
+          </span>
+        )}
+      </div>
+    </Link>
+  );
+});
+
 export function Sidebar({ open, onClose }: SidebarProps) {
   const [location, setLocation] = useLocation();
   const { language, signOut, currentStore, supabaseUser, setCurrentUser, setCurrentStore } = useAppContext();
   const isAr = language === 'ar';
   const ADMIN_EMAIL = 'admin@mawq3i.com';
   const isAdminInOwnerMode = supabaseUser?.email?.toLowerCase() === ADMIN_EMAIL;
-
   const [newOrdersCount, setNewOrdersCount] = useState(0);
 
-  // Poll for new orders count every 30s
   useEffect(() => {
     if (!currentStore?.id) return;
-
     const fetchCount = async () => {
       const { count } = await supabase
         .from('orders')
@@ -47,20 +90,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         .eq('status', 'new');
       setNewOrdersCount(count ?? 0);
     };
-
     fetchCount();
     const interval = setInterval(fetchCount, 30000);
     return () => clearInterval(interval);
   }, [currentStore?.id]);
 
-  // Reset badge when user visits orders page
   useEffect(() => {
-    if (location.startsWith('/dashboard/orders')) {
-      setNewOrdersCount(0);
-    }
+    if (location.startsWith('/dashboard/orders')) setNewOrdersCount(0);
   }, [location]);
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     { href: '/dashboard', icon: LayoutDashboard, labelAr: 'لوحة التحكم', labelEn: 'Dashboard', exact: true },
     { href: '/dashboard/ai-advisor', icon: Sparkles, labelAr: 'المستشار الذكي', labelEn: 'AI Advisor', exact: false },
     { href: '/dashboard/products', icon: Package, labelAr: 'المنتجات', labelEn: 'Products', exact: false },
@@ -73,51 +112,31 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: '/dashboard/settings', icon: Settings, labelAr: 'إعدادات المتجر', labelEn: 'Store Settings', exact: false },
   ];
 
-  // ── Floating indicator that tracks the active item ──
+  // ── Sliding indicator ──
   const navRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [indicatorStyle, setIndicatorStyle] = useState<{ y: number; h: number } | null>(null);
+  // Start with {y:0, h:44} — will be corrected synchronously before first paint
+  const [indicator, setIndicator] = useState<{ y: number; h: number }>({ y: 0, h: 44 });
+  const [indicatorReady, setIndicatorReady] = useState(false);
 
   const activeIndex = menuItems.findIndex(item =>
     item.exact ? location === item.href : location.startsWith(item.href)
   );
 
-  useEffect(() => {
+  // useLayoutEffect fires synchronously after DOM update, before paint
+  // so the indicator never visually starts from the wrong position
+  useLayoutEffect(() => {
     const el = itemRefs.current[activeIndex];
     const container = navRef.current;
-    if (!el || !container || activeIndex < 0) { setIndicatorStyle(null); return; }
+    if (!el || !container || activeIndex < 0) return;
     const elRect = el.getBoundingClientRect();
     const containerRect = container.getBoundingClientRect();
-    setIndicatorStyle({
+    setIndicator({
       y: elRect.top - containerRect.top + container.scrollTop,
       h: elRect.height,
     });
+    setIndicatorReady(true);
   }, [location, activeIndex]);
-
-  const Item = ({ item, index }: { item: typeof menuItems[0]; index: number }) => {
-    const isActive = item.exact ? location === item.href : location.startsWith(item.href);
-    return (
-      <Link href={item.href} className="block w-full" onClick={onClose}>
-        <div
-          ref={el => { itemRefs.current[index] = el; }}
-          className={cn(
-            'relative flex items-center gap-3 px-4 py-3 rounded-full text-sm font-medium transition-colors cursor-pointer',
-            isActive
-              ? 'text-primary-foreground'
-              : 'text-muted-foreground hover:text-foreground hover:bg-white/5'
-          )}
-        >
-          <item.icon className="w-5 h-5 relative z-10 flex-shrink-0" />
-          <span className="relative z-10 flex-1">{isAr ? item.labelAr : item.labelEn}</span>
-          {(item as any).badge > 0 && (
-            <span className="relative z-10 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center">
-              {(item as any).badge > 99 ? '99+' : (item as any).badge}
-            </span>
-          )}
-        </div>
-      </Link>
-    );
-  };
 
   const handleLogout = async () => {
     await signOut();
@@ -126,7 +145,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile backdrop */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -141,19 +159,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
       <div
         className={cn(
           'fixed lg:static inset-y-0 start-0 z-50 w-64 h-full bg-card border-e border-border flex flex-col text-card-foreground flex-shrink-0',
           'transition-transform duration-300 ease-in-out',
-          open
-            ? 'translate-x-0'
-            : isAr
-            ? 'max-lg:translate-x-full'
-            : 'max-lg:-translate-x-full'
+          open ? 'translate-x-0' : isAr ? 'max-lg:translate-x-full' : 'max-lg:-translate-x-full'
         )}
       >
-        {/* Close button — mobile only */}
         <button
           onClick={onClose}
           className="lg:hidden absolute top-4 end-4 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors z-10"
@@ -164,30 +176,46 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <div className="p-5 flex items-center gap-3 border-b border-border/50">
           <img src="/logo.png" alt="Mawq3i Logo" className="w-9 h-9 object-contain flex-shrink-0" />
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Mawq3i | موقعي
-          </h1>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Mawq3i | موقعي</h1>
         </div>
 
-        {/* Nav — position:relative so indicator can be absolute inside */}
+        {/* Nav container — position:relative so indicator sits inside it */}
         <div ref={navRef} className="flex-1 px-4 py-4 space-y-1 overflow-y-auto themed-scroll relative">
-          {/* Single persistent indicator — animates between items directly */}
-          {indicatorStyle && (
+
+          {/* Single always-mounted indicator pill
+              initial={false} → on first mount snaps to position, no from-top animation
+              animate changes → smooth spring transition between positions              */}
+          {indicatorReady && (
             <motion.div
               className="absolute inset-x-4 bg-primary rounded-full z-0 shadow-lg shadow-primary/20 pointer-events-none"
-              animate={{ y: indicatorStyle.y, height: indicatorStyle.h }}
-              transition={{ type: 'spring', stiffness: 380, damping: 36, mass: 0.8 }}
+              initial={false}
+              animate={{ y: indicator.y, height: indicator.h }}
+              transition={{ type: 'spring', stiffness: 400, damping: 38, mass: 0.7 }}
               style={{ top: 0 }}
             />
           )}
+
           {menuItems.map((item, i) => (
-            <Item key={item.href} item={item} index={i} />
+            <NavItem
+              key={item.href}
+              item={item}
+              isActive={i === activeIndex}
+              isAr={isAr}
+              onClose={onClose}
+              setRef={(el) => { itemRefs.current[i] = el; }}
+            />
           ))}
         </div>
 
         <div className="p-4 space-y-2 border-t border-border">
           <a
-            href={currentStore?.domain ? `https://${currentStore.domain}` : currentStore?.slug ? `https://${currentStore.slug}.mawq3i.co` : '#'}
+            href={
+              currentStore?.domain
+                ? `https://${currentStore.domain}`
+                : currentStore?.slug
+                ? `https://${currentStore.slug}.mawq3i.co`
+                : '#'
+            }
             target="_blank"
             rel="noopener noreferrer"
             onClick={onClose}
@@ -204,6 +232,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span>{isAr ? 'تسجيل الخروج' : 'Logout'}</span>
           </button>
+
           {isAdminInOwnerMode && (
             <button
               onClick={() => {
