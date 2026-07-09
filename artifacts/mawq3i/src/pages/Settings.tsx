@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, Check, Loader2, ImageIcon } from 'lucide-react';
+import AiEnhanceButton from '@/components/AiEnhanceButton';
 
 function SectionCard({ titleAr, titleEn, isAr, children }: { titleAr: string; titleEn: string; isAr: boolean; children: React.ReactNode }) {
   return (
@@ -350,6 +351,15 @@ export default function Settings() {
         </Field>
 
         <Field labelAr="وصف المتجر" labelEn="Store Description" isAr={isAr}>
+          <div className="flex justify-end mb-1.5">
+            <AiEnhanceButton
+              fieldType="store_description"
+              currentText={settings.description}
+              context={[settings.storeName, currentStore?.brandIdentity].filter(Boolean).join(' — ')}
+              language={language}
+              onApply={(text) => set('description', text)}
+            />
+          </div>
           <Textarea
             value={settings.description}
             onChange={e => set('description', e.target.value)}
