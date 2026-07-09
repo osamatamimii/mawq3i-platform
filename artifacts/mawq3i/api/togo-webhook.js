@@ -65,7 +65,14 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, message: 'Togo webhook endpoint is alive. Use POST.' });
   }
 
-  const body = req.body || {};
+  let body = req.body || {};
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
+    } catch {
+      // leave as string; extraction below will just find nothing and we log the raw value
+    }
+  }
   const orderRef = extractOrderRef(body);
   const status = extractStatus(body);
   const payloadKey = extractKey(body);
