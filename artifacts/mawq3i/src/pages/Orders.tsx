@@ -5,9 +5,8 @@ import { getOrders, updateOrderStatus } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Loader2, Bell, X, Phone, MapPin, CreditCard, Package, MessageSquare, Calendar, Tag } from 'lucide-react';
+import { ChevronDown, Loader2, Bell, X, Phone, MapPin, CreditCard, Package, MessageSquare, Calendar, Tag, Truck, CheckCircle2 } from 'lucide-react';
 
 const statusConfig: Record<OrderStatus, { ar: string; en: string; className: string }> = {
   new:        { ar: 'جديد',         en: 'New',        className: 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30' },
@@ -101,27 +100,39 @@ function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; st
 
   if (provider === 'togo' && deliveryStatus === 'assigned') {
     return (
-      <div className="bg-white/[0.03] rounded-lg p-3 space-y-1">
-        <p className="text-xs text-muted-foreground">{isAr ? '🚚 التوصيل' : '🚚 Delivery'}</p>
-        <p className="text-sm font-medium text-emerald-400">
-          {isAr ? 'معيّنة لشركة: ' : 'Assigned to: '}{(order as any).togoCourierName || '—'}
-        </p>
-        {(order as any).togoDeliveryPrice != null && (
-          <p className="text-xs text-muted-foreground">{isAr ? 'أجرة التوصيل: ' : 'Delivery fee: '}{(order as any).togoDeliveryPrice}</p>
-        )}
+      <div className="bg-white/[0.03] rounded-lg p-4 space-y-3">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+          <Truck className="w-3.5 h-3.5" />{isAr ? 'التوصيل' : 'Delivery'}
+        </h3>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-emerald-400">
+              {isAr ? 'معيّنة لشركة ' : 'Assigned to '}{(order as any).togoCourierName || (isAr ? 'شركة توصيل' : 'a courier')}
+            </p>
+            {(order as any).togoDeliveryPrice != null && (
+              <p className="text-xs text-muted-foreground">{isAr ? 'أجرة التوصيل: ' : 'Delivery fee: '}₪{(order as any).togoDeliveryPrice}</p>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/[0.03] rounded-lg p-3 space-y-2">
-      <p className="text-xs text-muted-foreground">{isAr ? '🚚 التوصيل' : '🚚 Delivery'}</p>
+    <div className="bg-white/[0.03] rounded-lg p-4 space-y-3">
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+        <Truck className="w-3.5 h-3.5" />{isAr ? 'التوصيل' : 'Delivery'}
+      </h3>
 
       {provider === 'self' && (
-        <Button size="sm" variant="outline" onClick={requestDelivery} disabled={requesting} className="text-xs">
-          {requesting ? <Loader2 className="w-3.5 h-3.5 animate-spin me-1.5" /> : null}
-          {isAr ? 'اطلب توصيل عبر Togo' : 'Request Togo delivery'}
-        </Button>
+        <button onClick={requestDelivery} disabled={requesting}
+          className="w-full flex items-center justify-center gap-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-lg py-2.5 text-xs font-medium transition-colors disabled:opacity-50">
+          {requesting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Truck className="w-3.5 h-3.5" />}
+          {requesting ? (isAr ? 'جاري الطلب...' : 'Requesting...') : (isAr ? 'اطلب توصيل عبر Togo' : 'Request Togo delivery')}
+        </button>
       )}
 
       {loadingBids && (
@@ -129,14 +140,15 @@ function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; st
       )}
 
       {bids && bids.length > 0 && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <p className="text-xs text-muted-foreground">{isAr ? 'اختر شركة التوصيل:' : 'Choose a courier:'}</p>
           {bids.map((b: any, i: number) => (
-            <div key={b.id || b.bid_id || i} className="flex items-center justify-between bg-white/[0.03] rounded p-2">
-              <span className="text-xs">{b.company_name || b.courier_name || b.name || '—'} — {b.price || b.value} ₪</span>
-              <Button size="sm" variant="outline" className="text-xs h-7" disabled={assigningBidId !== null} onClick={() => assignBid(b)}>
+            <div key={b.id || b.bid_id || i} className="flex items-center justify-between bg-background/40 border border-border/50 rounded-lg px-3 py-2">
+              <span className="text-xs font-medium">{b.company_name || b.courier_name || b.name || '—'} <span className="text-muted-foreground font-normal">— ₪{b.price || b.value}</span></span>
+              <button disabled={assigningBidId !== null} onClick={() => assignBid(b)}
+                className="flex items-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50">
                 {assigningBidId === (b.id || b.bid_id) ? <Loader2 className="w-3 h-3 animate-spin" /> : (isAr ? 'اختيار' : 'Select')}
-              </Button>
+              </button>
             </div>
           ))}
         </div>
