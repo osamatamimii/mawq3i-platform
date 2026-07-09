@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import SupportContact from '@/components/SupportContact';
 
 interface SidebarProps {
   open: boolean;
@@ -232,6 +233,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span>{isAr ? 'تسجيل الخروج' : 'Logout'}</span>
           </button>
+
+          <div className="px-4 pt-3 pb-1">
+            <p className="text-[11px] text-muted-foreground/70 mb-2">{isAr ? 'تواصل مع الدعم' : 'Contact support'}</p>
+            <SupportContact isAr={isAr} variant="row" />
+          </div>
 
           {isAdminInOwnerMode && (
             <button

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Store, BarChart3, Sliders, ArrowLeft, ArrowRight } from 'lucide-react';
+import SupportContact from '@/components/SupportContact';
 
 function navigateByEmail(email: string, setLocation: (path: string) => void) {
   if (email.trim().toLowerCase() === 'admin@mawq3i.com') {
@@ -257,6 +258,12 @@ export default function Login() {
               </Button>
             </motion.div>
           </form>
+
+          {/* Support contact */}
+          <div className="mt-8 pt-6 border-t border-border/40 flex flex-col items-center gap-2.5">
+            <p className="text-xs text-muted-foreground">{isAr ? 'بحاجة مساعدة؟ تواصل معنا' : 'Need help? Get in touch'}</p>
+            <SupportContact isAr={isAr} variant="row" />
+          </div>
 
         </div>
       </motion.div>
