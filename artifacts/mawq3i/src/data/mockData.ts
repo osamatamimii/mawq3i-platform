@@ -34,6 +34,7 @@ export type Order = {
   amount: number;
   currency: 'ILS' | 'SAR';
   paymentMethod: string;
+  paymentStatus?: string;
   productName?: string;
   items?: { productId: string; productName: string; variantLabel?: string; quantity: number; price: number }[];
   notes?: string;
@@ -82,6 +83,9 @@ export type StoreRecord = {
   heroSubtitle?: string;
   footerText?: string;
   showLogo?: boolean;
+  togoApiKey?: string;
+  togoMerchantId?: string;
+  cardPaymentEnabled?: boolean;
 };
 
 export type Client = {

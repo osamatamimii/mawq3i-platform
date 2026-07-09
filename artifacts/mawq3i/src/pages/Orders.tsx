@@ -314,6 +314,26 @@ export default function Orders() {
                     <p className="text-sm font-medium">
                       {(selectedOrder as any).paymentMethod === 'card' ? (isAr ? 'بطاقة' : 'Card') : (isAr ? 'عند الاستلام' : 'Cash on Delivery')}
                     </p>
+                    {(selectedOrder as any).paymentMethod === 'card' && (selectedOrder as any).paymentStatus && (
+                      <span className={
+                        'inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded ' +
+                        ((selectedOrder as any).paymentStatus === 'awaiting_verification'
+                          ? 'bg-amber-500/15 text-amber-400'
+                          : (selectedOrder as any).paymentStatus === 'paid'
+                          ? 'bg-emerald-500/15 text-emerald-400'
+                          : (selectedOrder as any).paymentStatus === 'cancelled'
+                          ? 'bg-red-500/15 text-red-400'
+                          : 'bg-white/10 text-muted-foreground')
+                      }>
+                        {(selectedOrder as any).paymentStatus === 'awaiting_verification'
+                          ? (isAr ? '⏳ بانتظار تأكيد الدفع' : '⏳ Awaiting confirmation')
+                          : (selectedOrder as any).paymentStatus === 'paid'
+                          ? (isAr ? '✅ تم الدفع' : '✅ Paid')
+                          : (selectedOrder as any).paymentStatus === 'cancelled'
+                          ? (isAr ? '❌ ألغيت' : '❌ Cancelled')
+                          : (selectedOrder as any).paymentStatus}
+                      </span>
+                    )}
                   </div>
                   <div className="bg-white/[0.03] rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">

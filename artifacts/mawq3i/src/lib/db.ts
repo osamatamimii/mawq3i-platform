@@ -69,6 +69,7 @@ function rowToOrder(row: any): Order {
     amount: Number(row.amount),
     currency: row.currency ?? 'ILS',
     paymentMethod: row.payment_method ?? '',
+    paymentStatus: row.payment_status ?? '',
     productName: row.product_name ?? '',
     items: row.items ? (typeof row.items === 'string' ? JSON.parse(row.items) : row.items) : [],
     notes: row.notes ?? '',
@@ -106,6 +107,9 @@ function rowToStore(row: any): StoreRecord {
     heroSubtitle: row.hero_subtitle ?? '',
     footerText: row.footer_text ?? '',
     showLogo: row.show_logo !== false,
+    togoApiKey: row.togo_api_key ?? '',
+    togoMerchantId: row.togo_merchant_id ?? '',
+    cardPaymentEnabled: Boolean(row.card_payment_enabled),
   };
 }
 
@@ -412,6 +416,9 @@ export async function updateStore(id: string, updates: Partial<StoreRecord>): Pr
     if (updates.subscriptionPaid !== undefined) row.subscription_paid = updates.subscriptionPaid;
     if (updates.primaryColor !== undefined) row.primary_color = updates.primaryColor;
     if (updates.logoUrl !== undefined) row.logo_url = updates.logoUrl;
+    if (updates.togoApiKey !== undefined) row.togo_api_key = updates.togoApiKey;
+    if (updates.togoMerchantId !== undefined) row.togo_merchant_id = updates.togoMerchantId;
+    if (updates.cardPaymentEnabled !== undefined) row.card_payment_enabled = updates.cardPaymentEnabled;
     const { error } = await supabase.from('stores').update(row).eq('id', id);
     return !error;
   } catch {

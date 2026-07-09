@@ -408,6 +408,28 @@ export default function AdminStores() {
                     className="bg-card border-white/10 text-foreground" dir={f.ltr ? 'ltr' : undefined} />
                 </div>
               ))}
+
+              <div className="pt-3 mt-1 border-t border-white/10 space-y-3">
+                <p className="text-xs text-muted-foreground/80">
+                  {isAr ? '💳 بوابة الدفع (Togo) — لكل متجر حساب ومفتاح منفصل' : '💳 Payment Gateway (Togo) — separate account & key per store'}
+                </p>
+                {[
+                  { key: 'togoApiKey', labelAr: 'Togo API Key', labelEn: 'Togo API Key' },
+                  { key: 'togoMerchantId', labelAr: 'Togo Merchant ID', labelEn: 'Togo Merchant ID' },
+                ].map(f => (
+                  <div key={f.key} className="space-y-1.5">
+                    <Label className="text-muted-foreground text-xs">{isAr ? f.labelAr : f.labelEn}</Label>
+                    <Input value={(editStore as any)[f.key] || ''} onChange={e => setEditStore(s => s ? { ...s, [f.key]: e.target.value } : s)}
+                      className="bg-card border-white/10 text-foreground" dir="ltr" placeholder={f.key === 'togoApiKey' ? 'TOGO-...' : ''} />
+                  </div>
+                ))}
+                <div className="flex items-center justify-between">
+                  <Label className="text-muted-foreground text-xs">{isAr ? 'تفعيل الدفع بالبطاقة لهذا المتجر' : 'Enable card payment for this store'}</Label>
+                  <input type="checkbox" checked={!!(editStore as any).cardPaymentEnabled}
+                    onChange={e => setEditStore(s => s ? { ...s, cardPaymentEnabled: e.target.checked } as any : s)}
+                    className="w-4 h-4" />
+                </div>
+              </div>
             </div>
           )}
           <DialogFooter>
