@@ -5,6 +5,7 @@ import { getOrders, updateOrderStatus } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ChevronDown, Loader2, Bell, X, Phone, MapPin, CreditCard, Package, MessageSquare, Calendar, Tag } from 'lucide-react';
 
@@ -14,6 +15,141 @@ const statusConfig: Record<OrderStatus, { ar: string; en: string; className: str
   delivered:  { ar: 'تم التسليم',   en: 'Delivered',   className: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30' },
   cancelled:  { ar: 'ملغي',         en: 'Cancelled',   className: 'bg-red-500/20 text-red-400 border-red-500/30 hover:bg-red-500/30' },
 };
+
+function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; storeId: string; isAr: boolean; onUpdated: () => void }) {
+  const [requesting, setRequesting] = useState(false);
+  const [bids, setBids] = useState<any[] | null>(null);
+  const [loadingBids, setLoadingBids] = useState(false);
+  const [assigningBidId, setAssigningBidId] = useState<string | null>(null);
+  const [error, setError] = useState('');
+
+  const provider = (order as any).deliveryProvider || 'self';
+  const deliveryStatus = (order as any).togoDeliveryStatus;
+  const togoDeliveryOrderId = (order as any).togoDeliveryOrderId;
+
+  const fetchBids = async (togoOrderId: string) => {
+    setLoadingBids(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/togo-delivery-bids?storeId=${storeId}&togoDeliveryOrderId=${togoOrderId}`);
+      const data = await res.json();
+      if (data.success) setBids(data.data?.items || data.data || []);
+      else setError(data.message || (isAr ? 'تعذّر جلب العروض' : 'Could not load bids'));
+    } catch {
+      setError(isAr ? 'خطأ بالاتصال' : 'Connection error');
+    } finally {
+      setLoadingBids(false);
+    }
+  };
+
+  useEffect(() => {
+    if (provider === 'togo' && deliveryStatus === 'awaiting_bids' && togoDeliveryOrderId && bids === null) {
+      fetchBids(togoDeliveryOrderId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider, deliveryStatus, togoDeliveryOrderId]);
+
+  const requestDelivery = async () => {
+    setRequesting(true);
+    setError('');
+    try {
+      const res = await fetch('/api/togo-create-delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId, orderId: order.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        onUpdated();
+        await fetchBids(data.togoDeliveryOrderId);
+      } else {
+        setError(data.message || (isAr ? 'تعذّر طلب التوصيل' : 'Could not request delivery'));
+      }
+    } catch {
+      setError(isAr ? 'خطأ بالاتصال' : 'Connection error');
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  const assignBid = async (bid: any) => {
+    setAssigningBidId(bid.id || bid.bid_id);
+    setError('');
+    try {
+      const res = await fetch('/api/togo-delivery-bids', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeId, orderId: order.id, togoDeliveryOrderId,
+          bidId: bid.id || bid.bid_id,
+          courierName: bid.company_name || bid.courier_name || bid.name,
+          price: bid.price || bid.value,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        onUpdated();
+      } else {
+        setError(data.message || (isAr ? 'تعذّر تعيين الشركة' : 'Could not assign courier'));
+      }
+    } catch {
+      setError(isAr ? 'خطأ بالاتصال' : 'Connection error');
+    } finally {
+      setAssigningBidId(null);
+    }
+  };
+
+  if (provider === 'togo' && deliveryStatus === 'assigned') {
+    return (
+      <div className="bg-white/[0.03] rounded-lg p-3 space-y-1">
+        <p className="text-xs text-muted-foreground">{isAr ? '🚚 التوصيل' : '🚚 Delivery'}</p>
+        <p className="text-sm font-medium text-emerald-400">
+          {isAr ? 'معيّنة لشركة: ' : 'Assigned to: '}{(order as any).togoCourierName || '—'}
+        </p>
+        {(order as any).togoDeliveryPrice != null && (
+          <p className="text-xs text-muted-foreground">{isAr ? 'أجرة التوصيل: ' : 'Delivery fee: '}{(order as any).togoDeliveryPrice}</p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white/[0.03] rounded-lg p-3 space-y-2">
+      <p className="text-xs text-muted-foreground">{isAr ? '🚚 التوصيل' : '🚚 Delivery'}</p>
+
+      {provider === 'self' && (
+        <Button size="sm" variant="outline" onClick={requestDelivery} disabled={requesting} className="text-xs">
+          {requesting ? <Loader2 className="w-3.5 h-3.5 animate-spin me-1.5" /> : null}
+          {isAr ? 'اطلب توصيل عبر Togo' : 'Request Togo delivery'}
+        </Button>
+      )}
+
+      {loadingBids && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" />{isAr ? 'جاري جلب عروض الشركات...' : 'Fetching courier offers...'}</p>
+      )}
+
+      {bids && bids.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground">{isAr ? 'اختر شركة التوصيل:' : 'Choose a courier:'}</p>
+          {bids.map((b: any, i: number) => (
+            <div key={b.id || b.bid_id || i} className="flex items-center justify-between bg-white/[0.03] rounded p-2">
+              <span className="text-xs">{b.company_name || b.courier_name || b.name || '—'} — {b.price || b.value} ₪</span>
+              <Button size="sm" variant="outline" className="text-xs h-7" disabled={assigningBidId !== null} onClick={() => assignBid(b)}>
+                {assigningBidId === (b.id || b.bid_id) ? <Loader2 className="w-3 h-3 animate-spin" /> : (isAr ? 'اختيار' : 'Select')}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {bids && bids.length === 0 && !loadingBids && (
+        <p className="text-xs text-muted-foreground">{isAr ? 'لا يوجد عروض حالياً، حاول لاحقاً' : 'No offers yet, try again shortly'}</p>
+      )}
+
+      {error && <p className="text-xs text-red-400">{error}</p>}
+    </div>
+  );
+}
 
 export default function Orders() {
   const { language, currentStore, isAdminMode } = useAppContext();
@@ -110,6 +246,14 @@ export default function Orders() {
         window.open(`https://wa.me/${order.phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
       }
     }
+  };
+
+  const refreshOrder = async (id: string) => {
+    if (!currentStore?.id) return;
+    const data = await getOrders(currentStore.id, isAdminMode);
+    setOrders(data);
+    const fresh = data.find((o: Order) => o.id === id);
+    if (fresh) setSelectedOrder(fresh);
   };
 
   const cur = (o: Order) => o.currency === 'ILS' ? '₪' : '﷼';
@@ -343,6 +487,13 @@ export default function Orders() {
                     <p className="text-sm font-mono">{selectedOrder.date}</p>
                   </div>
                 </div>
+
+                <DeliverySection
+                  order={selectedOrder}
+                  storeId={currentStore?.id || ''}
+                  isAr={isAr}
+                  onUpdated={() => refreshOrder(selectedOrder.id)}
+                />
 
                 {(selectedOrder as any).notes && (
                   <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3">

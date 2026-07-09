@@ -35,6 +35,11 @@ export type Order = {
   currency: 'ILS' | 'SAR';
   paymentMethod: string;
   paymentStatus?: string;
+  deliveryProvider?: string;
+  togoDeliveryOrderId?: string;
+  togoDeliveryStatus?: string;
+  togoCourierName?: string;
+  togoDeliveryPrice?: number;
   productName?: string;
   items?: { productId: string; productName: string; variantLabel?: string; quantity: number; price: number }[];
   notes?: string;
@@ -86,6 +91,10 @@ export type StoreRecord = {
   togoApiKey?: string;
   togoMerchantId?: string;
   cardPaymentEnabled?: boolean;
+  togoMerchantAddressId?: string;
+  togoPickupAreaId?: string;
+  togoPickupDetails?: string;
+  togoDeliveryEnabled?: boolean;
 };
 
 export type Client = {

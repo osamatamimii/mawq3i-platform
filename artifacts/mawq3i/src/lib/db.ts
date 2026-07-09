@@ -70,6 +70,11 @@ function rowToOrder(row: any): Order {
     currency: row.currency ?? 'ILS',
     paymentMethod: row.payment_method ?? '',
     paymentStatus: row.payment_status ?? '',
+    deliveryProvider: row.delivery_provider ?? 'self',
+    togoDeliveryOrderId: row.togo_delivery_order_id ?? '',
+    togoDeliveryStatus: row.togo_delivery_status ?? '',
+    togoCourierName: row.togo_courier_name ?? '',
+    togoDeliveryPrice: row.togo_delivery_price != null ? Number(row.togo_delivery_price) : undefined,
     productName: row.product_name ?? '',
     items: row.items ? (typeof row.items === 'string' ? JSON.parse(row.items) : row.items) : [],
     notes: row.notes ?? '',
@@ -110,6 +115,10 @@ function rowToStore(row: any): StoreRecord {
     togoApiKey: row.togo_api_key ?? '',
     togoMerchantId: row.togo_merchant_id ?? '',
     cardPaymentEnabled: Boolean(row.card_payment_enabled),
+    togoMerchantAddressId: row.togo_merchant_address_id ?? '',
+    togoPickupAreaId: row.togo_pickup_area_id ?? '',
+    togoPickupDetails: row.togo_pickup_details ?? '',
+    togoDeliveryEnabled: Boolean(row.togo_delivery_enabled),
   };
 }
 

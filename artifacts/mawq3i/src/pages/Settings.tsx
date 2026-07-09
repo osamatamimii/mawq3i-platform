@@ -33,6 +33,121 @@ function Field({ labelAr, labelEn, isAr, children }: { labelAr: string; labelEn:
   );
 }
 
+function DeliveryAddressSection({ isAr, currentStore }: { isAr: boolean; currentStore: any }) {
+  const { toast } = useToast();
+  const [title, setTitle] = useState('Main Branch');
+  const [senderName, setSenderName] = useState(currentStore?.ownerName || '');
+  const [senderPhone, setSenderPhone] = useState(currentStore?.ownerPhone || '');
+  const [details, setDetails] = useState(currentStore?.togoPickupDetails || '');
+  const [citySearch, setCitySearch] = useState('');
+  const [areaResults, setAreaResults] = useState<any[]>([]);
+  const [selectedArea, setSelectedArea] = useState<any>(null);
+  const [searching, setSearching] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const isConfigured = !!currentStore?.togoMerchantAddressId;
+
+  const searchAreas = async () => {
+    if (!citySearch.trim() || !currentStore?.id) return;
+    setSearching(true);
+    setAreaResults([]);
+    try {
+      const res = await fetch(`/api/togo-merchant-address?action=areas&storeId=${currentStore.id}&search=${encodeURIComponent(citySearch.trim())}`);
+      const data = await res.json();
+      setAreaResults(data?.data || []);
+      if (!data?.data?.length) {
+        toast({ title: isAr ? 'ما في نتائج' : 'No results', description: isAr ? 'جرب اسم مدينة مختلف' : 'Try a different city name', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: isAr ? 'خطأ بالبحث' : 'Search error', variant: 'destructive' });
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const save = async () => {
+    if (!currentStore?.id || !selectedArea || !senderName || !senderPhone) {
+      toast({ title: isAr ? 'أكمل الحقول المطلوبة واختر المنطقة' : 'Fill required fields and pick an area', variant: 'destructive' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/togo-merchant-address', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeId: currentStore.id, title, senderName, senderPhone,
+          areaId: selectedArea.id, details,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: isAr ? '✅ تم تسجيل عنوان الاستلام' : '✅ Pickup address saved' });
+      } else {
+        toast({ title: isAr ? 'فشل الحفظ' : 'Save failed', description: data.message, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: isAr ? 'خطأ بالاتصال' : 'Connection error', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <SectionCard
+      titleAr="🚚 عنوان الاستلام (للتوصيل عبر Togo)"
+      titleEn="🚚 Pickup Address (for Togo delivery)"
+      isAr={isAr}
+    >
+      <p className="text-xs text-muted-foreground -mt-2">
+        {isAr
+          ? 'سجّل عنوان استلام الطرود مرة واحدة عشان تقدر تطلب توصيل عبر Togo من صفحة الطلبات. يحتاج مفتاح Togo مفعّل على متجرك أولاً.'
+          : 'Register your pickup address once so you can request Togo delivery from the Orders page. Requires a Togo API key configured on your store first.'}
+      </p>
+      {isConfigured && (
+        <p className="text-xs text-emerald-400">{isAr ? '✅ مسجّل حالياً' : '✅ Currently configured'}</p>
+      )}
+      <Field labelAr="اسم الفرع" labelEn="Branch title" isAr={isAr}>
+        <Input value={title} onChange={e => setTitle(e.target.value)} className="bg-card border-border/50" />
+      </Field>
+      <Field labelAr="اسم المرسل" labelEn="Sender name" isAr={isAr}>
+        <Input value={senderName} onChange={e => setSenderName(e.target.value)} className="bg-card border-border/50" />
+      </Field>
+      <Field labelAr="هاتف المرسل" labelEn="Sender phone" isAr={isAr}>
+        <Input value={senderPhone} onChange={e => setSenderPhone(e.target.value)} dir="ltr" className="bg-card border-border/50" />
+      </Field>
+      <Field labelAr="المدينة / المنطقة" labelEn="City / Area" isAr={isAr}>
+        <div className="flex gap-2">
+          <Input value={citySearch} onChange={e => setCitySearch(e.target.value)} placeholder={isAr ? 'مثال: نابلس' : 'e.g. Nablus'} className="bg-card border-border/50" />
+          <Button type="button" variant="outline" onClick={searchAreas} disabled={searching}>
+            {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : (isAr ? 'بحث' : 'Search')}
+          </Button>
+        </div>
+        {areaResults.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {areaResults.map((a: any) => (
+              <button key={a.id} type="button" onClick={() => setSelectedArea(a)}
+                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${selectedArea?.id === a.id ? 'border-primary bg-primary/10 text-primary' : 'border-border/60 text-muted-foreground hover:border-primary/40'}`}>
+                {a.area_name_ar || a.area_name_en || a.id}
+              </button>
+            ))}
+          </div>
+        )}
+        {selectedArea && (
+          <p className="text-xs text-emerald-400 mt-1">{isAr ? 'المنطقة المختارة: ' : 'Selected area: '}{selectedArea.area_name_ar || selectedArea.area_name_en}</p>
+        )}
+      </Field>
+      <Field labelAr="تفاصيل إضافية" labelEn="Extra details" isAr={isAr}>
+        <Textarea value={details} onChange={e => setDetails(e.target.value)} className="bg-card border-border/50" rows={2} />
+      </Field>
+      <Button type="button" onClick={save} disabled={saving} className="w-full sm:w-auto">
+        {saving ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : <Check className="w-4 h-4 me-2" />}
+        {isAr ? 'حفظ عنوان الاستلام' : 'Save pickup address'}
+      </Button>
+    </SectionCard>
+  );
+}
+
 export default function Settings() {
   const { language, currentStore, storeLoading, refreshStore, isAdminMode } = useAppContext();
   const isAr = language === 'ar';
@@ -455,6 +570,8 @@ export default function Settings() {
           ))}
         </div>
       </SectionCard>
+
+      <DeliveryAddressSection isAr={isAr} currentStore={currentStore} />
 
       <div className="p-4 rounded-xl bg-muted/30 border border-border/40 text-xs text-muted-foreground space-y-1">
         <p className="font-medium text-foreground/70">{isAr ? 'معلومات المتجر' : 'Store Info'}</p>
