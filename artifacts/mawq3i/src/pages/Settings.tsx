@@ -54,8 +54,8 @@ function DeliveryAddressSection({ isAr, currentStore }: { isAr: boolean; current
     try {
       const res = await fetch(`/api/togo-merchant-address?action=areas&storeId=${currentStore.id}&search=${encodeURIComponent(citySearch.trim())}`);
       const data = await res.json();
-      setAreaResults(data?.data || []);
-      if (!data?.data?.length) {
+      setAreaResults(data?.data?.items || []);
+      if (!data?.data?.items?.length) {
         toast({ title: isAr ? 'ما في نتائج' : 'No results', description: isAr ? 'جرب اسم مدينة مختلف' : 'Try a different city name', variant: 'destructive' });
       }
     } catch {

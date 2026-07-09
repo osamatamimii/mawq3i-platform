@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     const areaSearch = new URLSearchParams({ city_name_ar: order.city || '' });
     const areaRes = await fetch(`${TOGO_BASE_URL}/api/v1/addresses?${areaSearch.toString()}`, { headers: togoHeaders });
     const areaData = await areaRes.json();
-    const area = areaData && areaData.data && areaData.data[0];
+    const area = areaData && areaData.data && areaData.data.items && areaData.data.items[0];
     if (!area) {
       return res.status(400).json({ success: false, message: `Could not match city "${order.city}" to a Togo delivery area. Please pick the area manually.` });
     }
