@@ -205,14 +205,8 @@ export default function Orders() {
     if (!currentStore?.id) return;
 
     const poll = async () => {
-      const { data } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('store_id', currentStore.id)
-        .order('date', { ascending: false });
-
-      if (!data) return;
-      const fresh = data as Order[];
+      const fresh = await getOrders(currentStore.id, isAdminMode);
+      if (!fresh || fresh.length === 0) return;
 
       // Detect new orders
       if (knownOrderIdsRef.current !== null) {
