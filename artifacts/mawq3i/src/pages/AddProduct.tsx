@@ -4,6 +4,7 @@ import { useAppContext } from '@/context/AppContext';
 import { addProduct } from '@/lib/db';
 import { uploadProductImage, uploadProductVideo } from '@/lib/storage';
 import { enhanceProductImage } from '@/lib/aiImage';
+import AiEnhanceButton from '@/components/AiEnhanceButton';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -286,7 +287,16 @@ export default function AddProduct() {
           <CardContent className="pt-5 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>{isAr ? 'اسم المنتج (عربي)' : 'Name (Arabic)'} <span className="text-red-400">*</span></Label>
+                <div className="flex items-center justify-between">
+                  <Label>{isAr ? 'اسم المنتج (عربي)' : 'Name (Arabic)'} <span className="text-red-400">*</span></Label>
+                  <AiEnhanceButton
+                    fieldType="product_name"
+                    currentText={form.nameAr}
+                    context={form.category ? `${currentStore?.name || ''} — ${form.category}` : currentStore?.name}
+                    language={language}
+                    onApply={(text) => set('nameAr', text)}
+                  />
+                </div>
                 <Input value={form.nameAr} onChange={e => set('nameAr', e.target.value)} placeholder="مثال: هودي أوفر سايز" className="bg-background/50 border-border/50" required />
               </div>
               <div className="space-y-1.5">
@@ -296,7 +306,16 @@ export default function AddProduct() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>{isAr ? 'الوصف (عربي)' : 'Description (Arabic)'}</Label>
+                <div className="flex items-center justify-between">
+                  <Label>{isAr ? 'الوصف (عربي)' : 'Description (Arabic)'}</Label>
+                  <AiEnhanceButton
+                    fieldType="product_description"
+                    currentText={form.descAr}
+                    context={[currentStore?.name, form.category, form.nameAr].filter(Boolean).join(' — ')}
+                    language={language}
+                    onApply={(text) => set('descAr', text)}
+                  />
+                </div>
                 <Textarea value={form.descAr} onChange={e => set('descAr', e.target.value)} placeholder="وصف المنتج..." className="bg-background/50 border-border/50 resize-none h-20" />
               </div>
               <div className="space-y-1.5">

@@ -4,6 +4,7 @@ import { useAppContext } from '@/context/AppContext';
 import { getProducts, updateProduct, deleteProduct } from '@/lib/db';
 import { uploadProductImage, uploadProductVideo } from '@/lib/storage';
 import { enhanceProductImage } from '@/lib/aiImage';
+import AiEnhanceButton from '@/components/AiEnhanceButton';
 import { Product, ProductVariant } from '@/data/mockData';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -204,7 +205,16 @@ export default function EditProduct() {
           <CardContent className="pt-5 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>{isAr ? 'الاسم (عربي)' : 'Name (Arabic)'} <span className="text-red-400">*</span></Label>
+                <div className="flex items-center justify-between">
+                  <Label>{isAr ? 'الاسم (عربي)' : 'Name (Arabic)'} <span className="text-red-400">*</span></Label>
+                  <AiEnhanceButton
+                    fieldType="product_name"
+                    currentText={product.nameAr}
+                    context={product.category ? `${currentStore?.name || ''} — ${product.category}` : currentStore?.name}
+                    language={language}
+                    onApply={(text) => set('nameAr', text)}
+                  />
+                </div>
                 <Input value={product.nameAr} onChange={e => set('nameAr', e.target.value)} className="bg-background/50 border-border/50" required />
               </div>
               <div className="space-y-1.5">
@@ -214,7 +224,16 @@ export default function EditProduct() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>{isAr ? 'الوصف (عربي)' : 'Description (Arabic)'}</Label>
+                <div className="flex items-center justify-between">
+                  <Label>{isAr ? 'الوصف (عربي)' : 'Description (Arabic)'}</Label>
+                  <AiEnhanceButton
+                    fieldType="product_description"
+                    currentText={product.descAr}
+                    context={[currentStore?.name, product.category, product.nameAr].filter(Boolean).join(' — ')}
+                    language={language}
+                    onApply={(text) => set('descAr', text)}
+                  />
+                </div>
                 <Textarea value={product.descAr} onChange={e => set('descAr', e.target.value)} className="bg-background/50 border-border/50 resize-none h-20" />
               </div>
               <div className="space-y-1.5">

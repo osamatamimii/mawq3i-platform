@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2, Loader2, Tag, Calendar, ToggleLeft, ToggleRight, X, Pencil, ShieldCheck } from 'lucide-react';
+import AiEnhanceButton from '@/components/AiEnhanceButton';
 
 interface Promotion {
   id: string;
@@ -170,7 +171,16 @@ export default function Promotions() {
               <CardContent className="pt-5 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label>{isAr ? 'عنوان العرض (عربي)' : 'Title (Arabic)'} *</Label>
+                    <div className="flex items-center justify-between">
+                      <Label>{isAr ? 'عنوان العرض (عربي)' : 'Title (Arabic)'} *</Label>
+                      <AiEnhanceButton
+                        fieldType="promo_title"
+                        currentText={form.title_ar}
+                        context={[currentStore?.name, form.discount_text].filter(Boolean).join(' — ')}
+                        language={language}
+                        onApply={(text) => set('title_ar', text)}
+                      />
+                    </div>
                     <Input value={form.title_ar} onChange={e => set('title_ar', e.target.value)}
                       placeholder={isAr ? 'مثال: تخفيضات نهاية الموسم' : 'e.g. End of Season Sale'}
                       className="bg-background/50 border-border/50" />
@@ -184,7 +194,16 @@ export default function Promotions() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>{isAr ? 'وصف إضافي' : 'Subtitle'}</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>{isAr ? 'وصف إضافي' : 'Subtitle'}</Label>
+                    <AiEnhanceButton
+                      fieldType="promo_subtitle"
+                      currentText={form.subtitle_ar}
+                      context={[currentStore?.name, form.title_ar, form.discount_text].filter(Boolean).join(' — ')}
+                      language={language}
+                      onApply={(text) => set('subtitle_ar', text)}
+                    />
+                  </div>
                   <Input value={form.subtitle_ar} onChange={e => set('subtitle_ar', e.target.value)}
                     placeholder={isAr ? 'مثال: على جميع المنتجات حتى نهاية الشهر' : 'e.g. On all products until end of month'}
                     className="bg-background/50 border-border/50" />
