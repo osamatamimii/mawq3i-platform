@@ -239,6 +239,7 @@ export default function AdminStores() {
                 <thead>
                   <tr className="border-b border-border text-muted-foreground/60">
                     <th className="text-start px-5 py-3.5 font-medium">{isAr ? 'المتجر' : 'Store'}</th>
+                    <th className="text-start px-5 py-3.5 font-medium">{isAr ? 'Togo' : 'Togo'}</th>
                     <th className="text-start px-5 py-3.5 font-medium">{isAr ? 'المالك' : 'Owner'}</th>
                     <th className="text-start px-5 py-3.5 font-medium">{isAr ? 'الدومين' : 'Domain'}</th>
                     <th className="text-start px-5 py-3.5 font-medium">{isAr ? 'الطلبات' : 'Orders'}</th>
@@ -256,6 +257,16 @@ export default function AdminStores() {
                       <td className="px-5 py-4">
                         <p className="font-semibold text-foreground">{store.name}</p>
                         <p className="text-xs text-muted-foreground/60 font-mono">{store.currency}</p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col gap-1 text-[11px]">
+                          <span className={(store as any).cardPaymentEnabled ? 'text-emerald-400' : 'text-muted-foreground/40'}>
+                            💳 {(store as any).cardPaymentEnabled ? (isAr ? 'دفع جاهز' : 'Payment ready') : (isAr ? 'دفع غير مفعّل' : 'No payment')}
+                          </span>
+                          <span className={(store as any).togoMerchantAddressId ? 'text-emerald-400' : 'text-muted-foreground/40'}>
+                            🚚 {(store as any).togoMerchantAddressId ? (isAr ? 'توصيل جاهز' : 'Delivery ready') : (isAr ? 'بدون عنوان استلام' : 'No pickup address')}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-5 py-4">
                         <p className="text-foreground/80">{store.ownerName || '—'}</p>

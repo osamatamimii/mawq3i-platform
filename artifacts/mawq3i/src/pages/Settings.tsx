@@ -47,12 +47,17 @@ function DeliveryAddressSection({ isAr, currentStore }: { isAr: boolean; current
 
   const isConfigured = !!currentStore?.togoMerchantAddressId;
 
-  const searchAreas = async () => {
-    if (!citySearch.trim() || !currentStore?.id) return;
+  const COMMON_CITIES = ['نابلس', 'رام الله', 'الخليل', 'القدس', 'بيت لحم', 'جنين', 'طولكرم', 'قلقيلية', 'أريحا', 'سلفيت', 'طوباس'];
+
+  const searchAreas = async (queryOverride?: string) => {
+    const q = (queryOverride ?? citySearch).trim();
+    if (!q || !currentStore?.id) return;
+    if (queryOverride) setCitySearch(queryOverride);
     setSearching(true);
     setAreaResults([]);
+    setSelectedArea(null);
     try {
-      const res = await fetch(`/api/togo-merchant-address?action=areas&storeId=${currentStore.id}&search=${encodeURIComponent(citySearch.trim())}`);
+      const res = await fetch(`/api/togo-merchant-address?action=areas&storeId=${currentStore.id}&search=${encodeURIComponent(q)}`);
       const data = await res.json();
       setAreaResults(data?.data?.items || []);
       if (!data?.data?.items?.length) {
@@ -117,9 +122,17 @@ function DeliveryAddressSection({ isAr, currentStore }: { isAr: boolean; current
         <Input value={senderPhone} onChange={e => setSenderPhone(e.target.value)} dir="ltr" className="bg-card border-border/50" />
       </Field>
       <Field labelAr="المدينة / المنطقة" labelEn="City / Area" isAr={isAr}>
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {COMMON_CITIES.map(city => (
+            <button key={city} type="button" onClick={() => searchAreas(city)}
+              className="text-xs px-2.5 py-1 rounded-full border border-border/50 text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors">
+              {city}
+            </button>
+          ))}
+        </div>
         <div className="flex gap-2">
-          <Input value={citySearch} onChange={e => setCitySearch(e.target.value)} placeholder={isAr ? 'مثال: نابلس' : 'e.g. Nablus'} className="bg-card border-border/50" />
-          <Button type="button" variant="outline" onClick={searchAreas} disabled={searching}>
+          <Input value={citySearch} onChange={e => setCitySearch(e.target.value)} placeholder={isAr ? 'أو اكتب اسم مدينة/بلدة أخرى' : 'or type another city/town'} className="bg-card border-border/50" />
+          <Button type="button" variant="outline" onClick={() => searchAreas()} disabled={searching}>
             {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : (isAr ? 'بحث' : 'Search')}
           </Button>
         </div>
