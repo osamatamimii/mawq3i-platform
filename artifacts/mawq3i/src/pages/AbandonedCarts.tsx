@@ -45,6 +45,8 @@ export default function AbandonedCarts() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'abandoned' | 'recovered' | 'ignored'>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [sendPanelOpen, setSendPanelOpen] = useState(false)
 
   async function fetchCarts() {
     if (!currentStore?.id) return
@@ -95,6 +97,20 @@ export default function AbandonedCarts() {
       body: JSON.stringify({ reminder_sent_at: new Date().toISOString() }),
     })
     setCarts(prev => prev.map(c => c.id === id ? { ...c, reminder_sent_at: new Date().toISOString() } : c))
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAllAbandoned() {
+    const abandonedIds = filtered.filter(c => c.status === 'abandoned').map(c => c.id)
+    const allSelected = abandonedIds.length > 0 && abandonedIds.every(id => selectedIds.has(id))
+    setSelectedIds(allSelected ? new Set() : new Set(abandonedIds))
   }
 
   const storeUrl = (currentStore as any)?.domain
@@ -159,19 +175,88 @@ export default function AbandonedCarts() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-5 flex-wrap">
-        {(['all', 'abandoned', 'recovered', 'ignored'] as const).map(f => (
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div className="flex gap-2 flex-wrap">
+          {(['all', 'abandoned', 'recovered', 'ignored'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium border transition ${
+                filter === f ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+              }`}
+            >
+              {f === 'all' ? `الكل (${counts.all})` : `${STATUS_LABELS[f].label} (${counts[f]})`}
+            </button>
+          ))}
+        </div>
+        {counts.abandoned > 0 && (
           <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium border transition ${
-              filter === f ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-            }`}
+            onClick={toggleSelectAllAbandoned}
+            className="text-sm text-gray-500 hover:text-gray-800 font-medium flex items-center gap-1.5"
           >
-            {f === 'all' ? `الكل (${counts.all})` : `${STATUS_LABELS[f].label} (${counts[f]})`}
+            <input
+              type="checkbox"
+              readOnly
+              checked={filtered.filter(c => c.status === 'abandoned').length > 0 && filtered.filter(c => c.status === 'abandoned').every(c => selectedIds.has(c.id))}
+              className="w-4 h-4 rounded border-gray-300"
+            />
+            تحديد كل السلات المتروكة
           </button>
-        ))}
+        )}
       </div>
+
+      {/* شريط الإرسال الجماعي */}
+      {selectedIds.size > 0 && (
+        <div className="sticky top-2 z-10 mb-5 flex items-center justify-between bg-gray-900 text-white rounded-xl px-4 py-3 shadow-lg">
+          <span className="text-sm font-medium">{selectedIds.size} سلة محددة</span>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setSelectedIds(new Set())} className="text-xs text-gray-300 hover:text-white px-2">إلغاء التحديد</button>
+            <button
+              onClick={() => setSendPanelOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-green-500 hover:bg-green-600 rounded-lg text-xs font-bold transition"
+            >
+              📨 إرسال رسائل واتساب
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* لوحة الإرسال الجماعي — قائمة روابط واتساب جاهزة، وحدة وحدة */}
+      {sendPanelOpen && (
+        <div className="mb-5 rounded-xl border border-gray-200 bg-white overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
+            <p className="text-sm font-bold text-gray-900">إرسال رسائل واتساب ({selectedIds.size})</p>
+            <button onClick={() => setSendPanelOpen(false)} className="text-gray-400 hover:text-gray-700 text-sm">✕ إغلاق</button>
+          </div>
+          <p className="text-xs text-gray-500 px-4 pt-3">
+            كبس "فتح واتساب" لكل سلة بيفتحلك محادثة جاهزة بنافذة جديدة — راجع الرسالة واضغط إرسال من واتساب نفسه.
+          </p>
+          <div className="p-4 space-y-2">
+            {carts.filter(c => selectedIds.has(c.id)).map(cart => (
+              <div key={cart.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                <div className="text-sm">
+                  <span className="font-semibold text-gray-900">{cart.customer_name || 'زبون مجهول'}</span>
+                  <span className="text-gray-400 mx-1.5">·</span>
+                  <span className="text-gray-500">{cart.total} ₪</span>
+                </div>
+                {cart.reminder_sent_at ? (
+                  <span className="text-xs text-blue-600 font-medium">✅ أُرسل</span>
+                ) : (
+                  <a
+                    href={whatsappLink(cart.phone, cart.customer_name, cart.items, cart.total)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => markReminderSent(cart.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 transition"
+                  >
+                    فتح واتساب
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-16 text-gray-400">جاري التحميل...</div>
@@ -190,6 +275,15 @@ export default function AbandonedCarts() {
                 onClick={() => setExpandedId(expandedId === cart.id ? null : cart.id)}
               >
                 <div className="flex items-center gap-3">
+                  {cart.status === 'abandoned' && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(cart.id)}
+                      onClick={e => e.stopPropagation()}
+                      onChange={() => toggleSelect(cart.id)}
+                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                    />
+                  )}
                   <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg font-bold text-gray-600">
                     {cart.customer_name?.[0] || '؟'}
                   </div>
