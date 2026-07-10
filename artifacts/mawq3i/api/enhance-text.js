@@ -24,6 +24,10 @@ const FIELD_GUIDANCE = {
     ar: 'وصف/بايو متجر إلكتروني (2-3 جمل)، يعطي انطباع أول احترافي وموثوق، بلا مبالغة أو كلام عام فارغ.',
     en: 'An e-commerce store bio (2-3 sentences) that gives a professional, trustworthy first impression, no generic filler.',
   },
+  social_post: {
+    ar: 'منشور إنستغرام/فيسبوك ترويجي لمنتج، بلهجة عربية دارجة حماسية (مو فصحى رسمية)، يشمل: جملة افتتاحية تلفت الانتباه، ذكر السعر والميزة الأساسية، دعوة واضحة للطلب (مثل "اطلبه الحين 🛒" أو "الكمية محدودة")، وبنهايته 5-8 هاشتاقات مناسبة للسوق العربي المحلي (مزيج من هاشتاقات عامة للتسوق وهاشتاقات خاصة بنوع المنتج). لا تستخدم إيموجي أكتر من اللازم (3-5 بالمنشور كامل).',
+    en: 'A promotional Instagram/Facebook post for a product, casual and energetic tone, including: an attention-grabbing opener, the price and key benefit, a clear call to order, and 5-8 relevant hashtags at the end (mix of general shopping hashtags and product-specific ones). Use emoji sparingly (3-5 total).',
+  },
 };
 
 function buildSystemPrompt(fieldType, isAr) {
@@ -102,7 +106,7 @@ export default async function handler(req, res) {
           { role: 'user', content: userContent },
         ],
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 900,
         response_format: { type: 'json_object' },
       }),
     });

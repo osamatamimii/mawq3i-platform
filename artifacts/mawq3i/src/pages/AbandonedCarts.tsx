@@ -15,6 +15,14 @@ interface AbandonedCart {
   total: number
   status: 'abandoned' | 'recovered' | 'ignored'
   created_at: string
+  reminder_sent_at?: string | null
+}
+
+const REMINDER_DELAY_MS = 60 * 60 * 1000 // 1 hour
+
+function isReadyForReminder(cart: AbandonedCart) {
+  if (cart.status !== 'abandoned' || cart.reminder_sent_at) return false
+  return Date.now() - new Date(cart.created_at).getTime() >= REMINDER_DELAY_MS
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -73,11 +81,31 @@ export default function AbandonedCarts() {
     recovered: carts.filter(c => c.status === 'recovered').length,
     ignored:   carts.filter(c => c.status === 'ignored').length,
   }
+  const readyForReminder = carts.filter(isReadyForReminder)
+
+  async function markReminderSent(id: string) {
+    await fetch(`${SUPA_URL}/rest/v1/abandoned_carts?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ reminder_sent_at: new Date().toISOString() }),
+    })
+    setCarts(prev => prev.map(c => c.id === id ? { ...c, reminder_sent_at: new Date().toISOString() } : c))
+  }
+
+  const storeUrl = (currentStore as any)?.domain
+    ? `https://${(currentStore as any).domain}`
+    : (currentStore as any)?.slug ? `https://${(currentStore as any).slug}.mawq3i.co` : ''
 
   function whatsappLink(phone: string, name: string, items: AbandonedCart['items'], total: number) {
     const itemsList = items.map(i => `• ${i.name_ar} × ${i.qty}`).join('\n')
+    const linkLine = storeUrl ? `\n\n🛍️ أكمل طلبك من هون: ${storeUrl}` : ''
     const msg = encodeURIComponent(
-      `السلام عليكم ${name} 👋\nلاحظنا إنك تركت سلتك قبل ما تكمل الطلب 😊\n\nالمنتجات:\n${itemsList}\n\nالمجموع: ${total} ₪\n\nهل تريد إكمال طلبك؟ 🛒`
+      `السلام عليكم ${name} 👋\nلاحظنا إنك تركت سلتك قبل ما تكمل الطلب 😊\n\nالمنتجات:\n${itemsList}\n\nالمجموع: ${total} ₪${linkLine}\n\nهل تريد إكمال طلبك؟ 🛒`
     )
     const clean = phone.replace(/[^0-9]/g, '')
     return `https://wa.me/${clean}?text=${msg}`
@@ -98,7 +126,39 @@ export default function AbandonedCarts() {
         </button>
       </div>
 
-      {/* فلاتر */}
+      {/* بانر السلات الجاهزة للتذكير (مرّ عليها ساعة ولسا ما انبعث لها تذكير) */}
+      {readyForReminder.length > 0 && (
+        <div className="mb-5 rounded-xl border border-green-200 bg-green-50 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-bold text-green-800">
+              🔔 {readyForReminder.length} سلة جاهزة للتذكير الآن (مرّ عليها ساعة أو أكثر)
+            </p>
+          </div>
+          <div className="space-y-2">
+            {readyForReminder.map(cart => (
+              <div key={cart.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-100">
+                <div className="text-sm">
+                  <span className="font-semibold text-gray-900">{cart.customer_name || 'زبون مجهول'}</span>
+                  <span className="text-gray-400 mx-1.5">·</span>
+                  <span className="text-gray-500">{cart.total} ₪</span>
+                  <span className="text-gray-400 mx-1.5">·</span>
+                  <span className="text-gray-500">{timeAgo(cart.created_at)}</span>
+                </div>
+                <a
+                  href={whatsappLink(cart.phone, cart.customer_name, cart.items, cart.total)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => markReminderSent(cart.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 transition"
+                >
+                  إرسال تذكير واتساب
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2 mb-5 flex-wrap">
         {(['all', 'abandoned', 'recovered', 'ignored'] as const).map(f => (
           <button
@@ -143,6 +203,12 @@ export default function AbandonedCarts() {
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_LABELS[cart.status].color}`}>
                     {STATUS_LABELS[cart.status].label}
                   </span>
+                  {isReadyForReminder(cart) && (
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-amber-100 text-amber-700">🔔 جاهزة للتذكير</span>
+                  )}
+                  {cart.reminder_sent_at && (
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-blue-100 text-blue-700">✅ أُرسل تذكير</span>
+                  )}
                   <span className="text-gray-400">{expandedId === cart.id ? '▲' : '▼'}</span>
                 </div>
               </div>
@@ -179,6 +245,7 @@ export default function AbandonedCarts() {
                       href={whatsappLink(cart.phone, cart.customer_name, cart.items, cart.total)}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() => markReminderSent(cart.id)}
                       className="flex items-center gap-1.5 px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.549 4.107 1.51 5.843L.057 23.5l5.79-1.52A11.93 11.93 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.005-1.366l-.359-.213-3.438.901.921-3.352-.233-.373A9.818 9.818 0 1 1 12 21.818z"/></svg>

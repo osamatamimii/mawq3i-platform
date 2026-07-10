@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Copy, Check, ChevronRight, Download, Share2,
-  MessageCircle, Facebook, Send, Instagram, X, Sparkles
+  MessageCircle, Facebook, Send, Instagram, X, Sparkles, Loader2
 } from 'lucide-react';
 import type { Product } from '@/data/mockData';
 import type { StoreRecord } from '@/data/mockData';
@@ -43,6 +43,10 @@ export default function ShareProductModal({
   const [copied, setCopied] = useState(false);
   const [storyReady, setStoryReady] = useState(false);
   const [storyGenerating, setStoryGenerating] = useState(false);
+  const [captions, setCaptions] = useState<string[]>([]);
+  const [captionsLoading, setCaptionsLoading] = useState(false);
+  const [captionsError, setCaptionsError] = useState('');
+  const [copiedCaptionIdx, setCopiedCaptionIdx] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const storyBlobRef = useRef<Blob | null>(null);
 
@@ -59,8 +63,46 @@ export default function ShareProductModal({
       setCopied(false);
       setStoryReady(false);
       storyBlobRef.current = null;
+      setCaptions([]);
+      setCaptionsError('');
     }
   }, [open]);
+
+  // ── AI Caption Generator ───────────────────────────────────────────────
+  const generateCaptions = async () => {
+    setCaptionsLoading(true);
+    setCaptionsError('');
+    try {
+      const res = await fetch('/api/enhance-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fieldType: 'social_post',
+          currentText: `${productName} — ${price}${product.descAr ? ' — ' + product.descAr : ''}`,
+          context: `${storeName} — ${product.category || ''}`,
+          language,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.suggestions?.length) throw new Error(data.error || 'failed');
+      setCaptions(data.suggestions);
+    } catch {
+      setCaptionsError(isAr ? 'ما قدرنا نولّد منشور، جرب تاني.' : 'Could not generate a post, try again.');
+    } finally {
+      setCaptionsLoading(false);
+    }
+  };
+
+  const copyCaption = async (text: string, idx: number) => {
+    try {
+      await navigator.clipboard.writeText(`${text}\n\n${productUrl}`);
+      setCopiedCaptionIdx(idx);
+      setTimeout(() => setCopiedCaptionIdx(null), 2500);
+      toast({ title: isAr ? '✅ تم نسخ المنشور' : '✅ Post copied' });
+    } catch {
+      toast({ title: isAr ? 'فشل النسخ' : 'Copy failed', variant: 'destructive' });
+    }
+  };
 
   // ── Copy Link ───────────────────────────────────────────────────────────
   const copyLink = async () => {
@@ -434,6 +476,63 @@ export default function ShareProductModal({
                       )}
                     </motion.button>
                   ))}
+                </div>
+              </div>
+
+              {/* AI Caption Generator */}
+              <div className="px-6 pb-3">
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-primary flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      {isAr ? 'منشور سوشال ميديا بالذكاء الصناعي' : 'AI social media post'}
+                    </span>
+                    {captions.length > 0 && !captionsLoading && (
+                      <button onClick={generateCaptions} className="text-[11px] text-muted-foreground hover:text-foreground">
+                        {isAr ? '↻ أعد التوليد' : '↻ Regenerate'}
+                      </button>
+                    )}
+                  </div>
+
+                  {captions.length === 0 && !captionsLoading && !captionsError && (
+                    <Button size="sm" variant="outline" onClick={generateCaptions} className="w-full mt-1.5 h-8 text-xs gap-1.5 border-primary/30">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      {isAr ? 'أنشئ منشور جاهز' : 'Generate a post'}
+                    </Button>
+                  )}
+
+                  {captionsLoading && (
+                    <div className="flex items-center justify-center gap-2 py-4 text-xs text-muted-foreground">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      {isAr ? 'جاري التوليد...' : 'Generating...'}
+                    </div>
+                  )}
+
+                  {captionsError && (
+                    <div className="text-center py-2">
+                      <p className="text-xs text-red-400 mb-1.5">{captionsError}</p>
+                      <Button size="sm" variant="outline" onClick={generateCaptions} className="h-7 text-xs">{isAr ? 'حاول مرة ثانية' : 'Try again'}</Button>
+                    </div>
+                  )}
+
+                  {captions.length > 0 && (
+                    <div className="space-y-2 mt-2">
+                      {captions.map((c, i) => (
+                        <div key={i} className="rounded-lg border border-border/40 bg-background/50 p-2.5">
+                          <p className="text-[11px] leading-relaxed whitespace-pre-wrap text-foreground/90 mb-1.5">{c}</p>
+                          <button
+                            onClick={() => copyCaption(c, i)}
+                            className="text-[10px] font-bold text-primary flex items-center gap-1 hover:underline"
+                          >
+                            {copiedCaptionIdx === i
+                              ? <><Check className="w-3 h-3" /> {isAr ? 'تم النسخ' : 'Copied'}</>
+                              : <><Copy className="w-3 h-3" /> {isAr ? 'نسخ المنشور + الرابط' : 'Copy post + link'}</>
+                            }
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
