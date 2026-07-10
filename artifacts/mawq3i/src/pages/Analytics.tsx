@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Loader2, TrendingUp, ShoppingBag, Package, Star, FileDown } from 'lucide-react';
+import { Loader2, TrendingUp, ShoppingBag, Package, Star, FileDown, Globe } from 'lucide-react';
 
 function useCountUp(target: number, duration = 1200) {
   const [value, setValue] = useState(0);
@@ -30,6 +30,21 @@ export default function Analytics() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [siteTraffic, setSiteTraffic] = useState<any>(null);
+  const [trafficLoading, setTrafficLoading] = useState(true);
+
+  const storeDomain = (currentStore as any)?.domain
+    || ((currentStore as any)?.slug ? `${(currentStore as any).slug}.mawq3i.co` : '');
+
+  useEffect(() => {
+    if (!storeDomain) { setTrafficLoading(false); return; }
+    setTrafficLoading(true);
+    fetch(`/api/analytics-data?scope=storefront&hostname=${encodeURIComponent(storeDomain)}&days=30`)
+      .then(r => r.json())
+      .then(d => setSiteTraffic(d))
+      .catch(() => setSiteTraffic(null))
+      .finally(() => setTrafficLoading(false));
+  }, [storeDomain]);
 
   useEffect(() => {
     Promise.all([
@@ -223,6 +238,46 @@ ${topProducts.length > 0 ? `
           {isAr ? 'تصدير PDF' : 'Export PDF'}
         </Button>
       </div>
+
+      {/* زوار الموقع — Google Analytics */}
+      <Card className="bg-card/80 border-border/50 shadow-lg">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <CardTitle className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
+            <Globe className="w-4 h-4 text-primary" />
+            {isAr ? 'زوار الموقع — آخر 30 يوم' : 'Site visitors — last 30 days'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {trafficLoading ? (
+            <div className="flex justify-center py-4"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
+          ) : !siteTraffic?.configured ? (
+            <p className="text-xs text-muted-foreground">
+              {isAr
+                ? 'حساب Google Analytics غير مربوط بعد من طرف المنصة. تواصل مع الدعم لتفعيله.'
+                : "Google Analytics isn't connected by the platform yet. Contact support to enable it."}
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-4 text-center mb-3">
+                <div><p className="text-xl font-bold text-foreground font-mono">{siteTraffic.activeUsers}</p><p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'زائر' : 'visitors'}</p></div>
+                <div><p className="text-xl font-bold text-foreground font-mono">{siteTraffic.sessions}</p><p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'جلسة' : 'sessions'}</p></div>
+                <div><p className="text-xl font-bold text-foreground font-mono">{siteTraffic.pageViews}</p><p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'مشاهدة صفحة' : 'page views'}</p></div>
+              </div>
+              {siteTraffic.topPages?.length > 0 && (
+                <div className="pt-3 border-t border-border/40">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">{isAr ? 'أكثر الصفحات زيارة' : 'Top pages'}</p>
+                  {siteTraffic.topPages.slice(0, 5).map((p: any, i: number) => (
+                    <div key={i} className="flex justify-between text-xs text-muted-foreground py-1 border-b border-border/20 last:border-0">
+                      <span className="truncate font-mono">{p.pagePath}</span>
+                      <span className="flex-shrink-0 ms-2 text-foreground font-medium">{p.screenPageViews}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card, i) => (
