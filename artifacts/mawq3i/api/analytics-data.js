@@ -4,6 +4,22 @@ import crypto from 'crypto';
 const GA_PROPERTY_PLATFORM = '545007188';   // mawq3i.co — G-N41DTN4060
 const GA_PROPERTY_STOREFRONTS = '545020889'; // shared by all client stores — G-K8F17WB4Q0
 
+const SUPABASE_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
+
+async function fetchProductNames(ids) {
+  if (!ids.length) return {};
+  const filter = ids.map(id => `"${id}"`).join(',');
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/products?id=in.(${filter})&select=id,name_ar,name_en`, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+  });
+  if (!r.ok) return {};
+  const rows = await r.json();
+  const map = {};
+  rows.forEach(p => { map[p.id] = p.name_ar || p.name_en || p.id; });
+  return map;
+}
+
 let cachedToken = null; // { accessToken, expiresAt } — reused across warm invocations
 
 function base64url(input) {
@@ -130,23 +146,23 @@ export default async function handler(req, res) {
         metrics: ['screenPageViews'],
         dimensions: ['pagePath'],
       });
-      topPages = flattenReport(pagesReport)
-        .sort((a, b) => b.screenPageViews - a.screenPageViews)
-        .slice(0, 5);
+      const allPages = flattenReport(pagesReport);
+      topPages = [...allPages].sort((a, b) => b.screenPageViews - a.screenPageViews).slice(0, 5);
 
-      try {
-        const productsReport = await runReport(propertyId, {
-          days, hostname,
-          metrics: ['itemsViewed'],
-          dimensions: ['itemName'],
-        });
-        topProducts = flattenReport(productsReport)
-          .filter(r => r.itemName && r.itemName !== '(not set)')
+      // Derive per-product views directly from the URL (?id=<productId>) rather than
+      // GA4's item-scoped dimensions, which Google suppresses at low traffic volumes.
+      const idCounts = {};
+      allPages.forEach(r => {
+        const m = (r.pagePath || '').match(/[?&]id=([a-f0-9-]{8,})/i);
+        if (m) idCounts[m[1]] = (idCounts[m[1]] || 0) + (r.screenPageViews || 0);
+      });
+      const ids = Object.keys(idCounts);
+      if (ids.length) {
+        const names = await fetchProductNames(ids);
+        topProducts = ids
+          .map(id => ({ itemId: id, itemName: names[id] || id, itemsViewed: idCounts[id] }))
           .sort((a, b) => b.itemsViewed - a.itemsViewed)
           .slice(0, 10);
-      } catch (e) {
-        // Item-scoped dimensions require e-commerce events (view_item) to have fired at least once.
-        topProducts = [];
       }
     }
 

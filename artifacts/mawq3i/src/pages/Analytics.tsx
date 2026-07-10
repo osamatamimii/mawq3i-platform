@@ -276,28 +276,23 @@ ${topProducts.length > 0 ? `
                 </div>
               </div>
 
-              {siteTraffic.topProducts?.length > 0 && (
-                <div className="pt-3 border-t border-border/40">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">{isAr ? '👁️ الأكثر مشاهدة — كل منتج كم مرة اتفتح' : 'Most viewed — opens per product'}</p>
-                  {siteTraffic.topProducts.slice(0, 8).map((p: any, i: number) => (
+              <div className="pt-3 border-t border-border/40">
+                <p className="text-xs font-semibold text-muted-foreground mb-1.5">{isAr ? '👁️ عدد الزيارات لكل منتج' : 'Views per product'}</p>
+                {siteTraffic.topProducts?.length > 0 ? (
+                  siteTraffic.topProducts.slice(0, 10).map((p: any, i: number) => (
                     <div key={i} className="flex justify-between text-xs py-1.5 border-b border-border/20 last:border-0">
                       <span className="truncate text-foreground">{p.itemName}</span>
                       <span className="flex-shrink-0 ms-2 text-primary font-bold">{p.itemsViewed}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-              {siteTraffic.topPages?.length > 0 && (
-                <div className="pt-3 border-t border-border/40">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">{isAr ? 'أكثر الصفحات زيارة' : 'Top pages'}</p>
-                  {siteTraffic.topPages.slice(0, 5).map((p: any, i: number) => (
-                    <div key={i} className="flex justify-between text-xs text-muted-foreground py-1 border-b border-border/20 last:border-0">
-                      <span className="truncate font-mono">{p.pagePath}</span>
-                      <span className="flex-shrink-0 ms-2 text-foreground font-medium">{p.screenPageViews}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                ) : (
+                  <p className="text-[11px] text-muted-foreground/70 py-1">
+                    {isAr
+                      ? 'لسا ما في بيانات كافية — بتظهر بعد أول زيارات حقيقية لصفحات المنتجات (عادة خلال ساعات).'
+                      : 'Not enough data yet — this fills in after real product page visits (usually within a few hours).'}
+                  </p>
+                )}
+              </div>
             </>
           )}
         </CardContent>
