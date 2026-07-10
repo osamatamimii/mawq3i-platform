@@ -119,16 +119,16 @@ function DataCardView({ card, isAr }: { card: DataCard; isAr: boolean }) {
           <TrendingUp className="w-3.5 h-3.5" />{isAr ? `زوار الموقع — آخر ${s.days} يوم` : `Site traffic — last ${s.days} days`}
         </div>
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div><div className="text-base font-black text-primary">{s.activeUsers}</div><div className="text-[10px] text-muted-foreground">{isAr ? 'زائر' : 'users'}</div></div>
-          <div><div className="text-base font-black text-primary">{s.sessions}</div><div className="text-[10px] text-muted-foreground">{isAr ? 'جلسة' : 'sessions'}</div></div>
-          <div><div className="text-base font-black text-primary">{s.pageViews}</div><div className="text-[10px] text-muted-foreground">{isAr ? 'مشاهدة صفحة' : 'page views'}</div></div>
+          <div><div className="text-base font-black text-primary">{s.visitors ?? s.activeUsers}</div><div className="text-[10px] text-muted-foreground">{isAr ? 'زوار' : 'visitors'}</div></div>
+          <div><div className="text-base font-black text-primary">{s.visits ?? s.sessions}</div><div className="text-[10px] text-muted-foreground">{isAr ? 'زيارات' : 'visits'}</div></div>
+          <div><div className="text-base font-black text-primary">{s.pageViews}</div><div className="text-[10px] text-muted-foreground">{isAr ? 'صفحات مفتوحة' : 'pages opened'}</div></div>
         </div>
-        {s.topPages?.length > 0 && (
+        {s.topProducts?.length > 0 && (
           <div className="mt-2.5 pt-2 border-t border-border/40">
-            <p className="text-[10px] font-bold text-muted-foreground mb-1">{isAr ? 'أكثر الصفحات زيارة' : 'Top pages'}</p>
-            {s.topPages.slice(0, 3).map((p: any, i: number) => (
-              <div key={i} className="flex justify-between text-[10px] text-muted-foreground py-0.5">
-                <span className="truncate">{p.pagePath}</span><span className="flex-shrink-0 ms-2">{p.screenPageViews}</span>
+            <p className="text-[10px] font-bold text-muted-foreground mb-1">{isAr ? '👁️ الأكثر مشاهدة' : 'Most viewed'}</p>
+            {s.topProducts.slice(0, 5).map((p: any, i: number) => (
+              <div key={i} className="flex justify-between text-[10px] py-0.5">
+                <span className="truncate text-foreground">{p.itemName}</span><span className="flex-shrink-0 ms-2 text-primary font-bold">{p.itemsViewed}</span>
               </div>
             ))}
           </div>

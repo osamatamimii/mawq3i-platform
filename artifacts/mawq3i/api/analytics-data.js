@@ -121,8 +121,9 @@ export default async function handler(req, res) {
       activeUsers: 0, sessions: 0, screenPageViews: 0, averageSessionDuration: 0,
     };
 
-    // Top pages (storefront scope only — useful to know which products get visited)
+    // Top pages + top products (storefront scope only)
     let topPages = [];
+    let topProducts = [];
     if (scope === 'storefront') {
       const pagesReport = await runReport(propertyId, {
         days, hostname,
@@ -132,17 +133,39 @@ export default async function handler(req, res) {
       topPages = flattenReport(pagesReport)
         .sort((a, b) => b.screenPageViews - a.screenPageViews)
         .slice(0, 5);
+
+      try {
+        const productsReport = await runReport(propertyId, {
+          days, hostname,
+          metrics: ['itemsViewed'],
+          dimensions: ['itemName'],
+        });
+        topProducts = flattenReport(productsReport)
+          .filter(r => r.itemName && r.itemName !== '(not set)')
+          .sort((a, b) => b.itemsViewed - a.itemsViewed)
+          .slice(0, 10);
+      } catch (e) {
+        // Item-scoped dimensions require e-commerce events (view_item) to have fired at least once.
+        topProducts = [];
+      }
     }
 
     res.status(200).json({
       configured: true,
       scope,
       days,
-      activeUsers: Math.round(totals.activeUsers || 0),
-      sessions: Math.round(totals.sessions || 0),
+      // visitors: unique people who visited (a person visiting twice still counts once)
+      visitors: Math.round(totals.activeUsers || 0),
+      // visits: total number of separate visits/sessions (one person can visit multiple times)
+      visits: Math.round(totals.sessions || 0),
+      // pageViews: total pages opened across all visits (one visit can open several pages)
       pageViews: Math.round(totals.screenPageViews || 0),
       avgSessionSeconds: Math.round(totals.averageSessionDuration || 0),
       topPages,
+      topProducts,
+      // Back-compat aliases for existing frontend code
+      activeUsers: Math.round(totals.activeUsers || 0),
+      sessions: Math.round(totals.sessions || 0),
     });
   } catch (err) {
     console.error('analytics-data handler error:', err);

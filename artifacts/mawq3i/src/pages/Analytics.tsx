@@ -259,10 +259,34 @@ ${topProducts.length > 0 ? `
           ) : (
             <>
               <div className="grid grid-cols-3 gap-4 text-center mb-3">
-                <div><p className="text-xl font-bold text-foreground font-mono">{siteTraffic.activeUsers}</p><p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'زائر' : 'visitors'}</p></div>
-                <div><p className="text-xl font-bold text-foreground font-mono">{siteTraffic.sessions}</p><p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'جلسة' : 'sessions'}</p></div>
-                <div><p className="text-xl font-bold text-foreground font-mono">{siteTraffic.pageViews}</p><p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'مشاهدة صفحة' : 'page views'}</p></div>
+                <div>
+                  <p className="text-xl font-bold text-foreground font-mono">{siteTraffic.visitors ?? siteTraffic.activeUsers}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'زوار' : 'visitors'}</p>
+                  <p className="text-[10px] text-muted-foreground/70 mt-0.5">{isAr ? 'عدد الأشخاص اللي دخلوا موقعك' : 'people who visited'}</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground font-mono">{siteTraffic.visits ?? siteTraffic.sessions}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'زيارات' : 'visits'}</p>
+                  <p className="text-[10px] text-muted-foreground/70 mt-0.5">{isAr ? 'عدد مرات الدخول (نفس الشخص ممكن يدخل أكثر من مرة)' : 'total visit count'}</p>
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-foreground font-mono">{siteTraffic.pageViews}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'صفحات مفتوحة' : 'pages opened'}</p>
+                  <p className="text-[10px] text-muted-foreground/70 mt-0.5">{isAr ? 'إجمالي الصفحات اللي فُتحت بكل الزيارات' : 'total pages opened'}</p>
+                </div>
               </div>
+
+              {siteTraffic.topProducts?.length > 0 && (
+                <div className="pt-3 border-t border-border/40">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">{isAr ? '👁️ الأكثر مشاهدة — كل منتج كم مرة اتفتح' : 'Most viewed — opens per product'}</p>
+                  {siteTraffic.topProducts.slice(0, 8).map((p: any, i: number) => (
+                    <div key={i} className="flex justify-between text-xs py-1.5 border-b border-border/20 last:border-0">
+                      <span className="truncate text-foreground">{p.itemName}</span>
+                      <span className="flex-shrink-0 ms-2 text-primary font-bold">{p.itemsViewed}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {siteTraffic.topPages?.length > 0 && (
                 <div className="pt-3 border-t border-border/40">
                   <p className="text-xs font-semibold text-muted-foreground mb-1.5">{isAr ? 'أكثر الصفحات زيارة' : 'Top pages'}</p>
