@@ -4,7 +4,7 @@ import { StoreRecord } from '@/data/mockData';
 import { getAllStores } from '@/lib/db';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Store, DollarSign, TrendingUp, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { Store, DollarSign, TrendingUp, AlertTriangle, CheckCircle, Loader2, Activity } from 'lucide-react';
 
 const SB_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
@@ -30,6 +30,16 @@ export default function AdminOverview() {
   const [realRevenue, setRealRevenue] = useState(0);
   const [realOrdersCount, setRealOrdersCount] = useState(0);
   const [storeOrderCounts, setStoreOrderCounts] = useState<Record<string, number>>({});
+  const [platformAnalytics, setPlatformAnalytics] = useState<any>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/analytics-data?scope=platform&days=30')
+      .then(r => r.json())
+      .then(d => setPlatformAnalytics(d))
+      .catch(() => setPlatformAnalytics(null))
+      .finally(() => setAnalyticsLoading(false));
+  }, []);
 
   useEffect(() => {
     getAllStores().then(data => {
@@ -112,6 +122,32 @@ export default function AdminOverview() {
           )}
         </motion.div>
       )}
+
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32, duration: 0.4 }}>
+        <Card className="bg-card border-border">
+          <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-primary" />
+              {isAr ? 'استخدام المنصة — آخر 30 يوم' : 'Platform usage — last 30 days'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-5">
+            {analyticsLoading ? (
+              <div className="flex justify-center py-4"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>
+            ) : !platformAnalytics?.configured ? (
+              <p className="text-xs text-muted-foreground">
+                {isAr ? 'حساب Google Analytics غير مربوط بعد. أضف مفتاح حساب الخدمة (GA_SERVICE_ACCOUNT_KEY) لتفعيل هذه البطاقة.' : 'Google Analytics isn\'t connected yet. Add the GA_SERVICE_ACCOUNT_KEY to enable this card.'}
+              </p>
+            ) : (
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div><p className="text-xl font-bold text-foreground font-mono">{platformAnalytics.activeUsers}</p><p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'مستخدمون' : 'users'}</p></div>
+                <div><p className="text-xl font-bold text-foreground font-mono">{platformAnalytics.sessions}</p><p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'جلسات' : 'sessions'}</p></div>
+                <div><p className="text-xl font-bold text-foreground font-mono">{platformAnalytics.pageViews}</p><p className="text-xs text-muted-foreground mt-0.5">{isAr ? 'مشاهدات صفحات' : 'page views'}</p></div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35, duration: 0.4 }}>
         <Card className="bg-card border-border">

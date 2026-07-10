@@ -111,6 +111,31 @@ function DataCardView({ card, isAr }: { card: DataCard; isAr: boolean }) {
       </div>
     );
   }
+  if (card.tool === 'get_website_analytics' && card.stats && !card.stats.error) {
+    const s = card.stats;
+    return (
+      <div className="mt-2 rounded-xl border border-border/60 bg-card/50 p-3">
+        <div className="flex items-center gap-1.5 mb-2 text-xs font-bold text-muted-foreground">
+          <TrendingUp className="w-3.5 h-3.5" />{isAr ? `زوار الموقع — آخر ${s.days} يوم` : `Site traffic — last ${s.days} days`}
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div><div className="text-base font-black text-primary">{s.activeUsers}</div><div className="text-[10px] text-muted-foreground">{isAr ? 'زائر' : 'users'}</div></div>
+          <div><div className="text-base font-black text-primary">{s.sessions}</div><div className="text-[10px] text-muted-foreground">{isAr ? 'جلسة' : 'sessions'}</div></div>
+          <div><div className="text-base font-black text-primary">{s.pageViews}</div><div className="text-[10px] text-muted-foreground">{isAr ? 'مشاهدة صفحة' : 'page views'}</div></div>
+        </div>
+        {s.topPages?.length > 0 && (
+          <div className="mt-2.5 pt-2 border-t border-border/40">
+            <p className="text-[10px] font-bold text-muted-foreground mb-1">{isAr ? 'أكثر الصفحات زيارة' : 'Top pages'}</p>
+            {s.topPages.slice(0, 3).map((p: any, i: number) => (
+              <div key={i} className="flex justify-between text-[10px] text-muted-foreground py-0.5">
+                <span className="truncate">{p.pagePath}</span><span className="flex-shrink-0 ms-2">{p.screenPageViews}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
   if (card.tool === 'get_promotions') {
     return (
       <div className="mt-2 rounded-xl border border-border/60 bg-card/50 overflow-hidden">
@@ -175,6 +200,7 @@ export default function AIAdvisor() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           storeId: currentStore.id,
+          storeDomain: (currentStore as any).domain || ((currentStore as any).slug ? `${(currentStore as any).slug}.mawq3i.co` : undefined),
           storeName: currentStore.name,
           messages: nextMessages,
           language,

@@ -72,6 +72,17 @@ const TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'get_website_analytics',
+      description: 'Get real visitor/traffic analytics for this store\'s storefront from Google Analytics: active users, sessions, page views, average session duration, and top-visited pages. Use this for questions about visitors, traffic, popular pages, or where sales-vs-visits gaps might be.',
+      parameters: {
+        type: 'object',
+        properties: { days: { type: 'number', description: 'How many days back to report on. Default 30.' } },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'update_product',
       description: 'Propose an update to a product (name, description, or price). This does NOT execute immediately — it is shown to the merchant as a confirmation card first. Always call search_products first if you do not already know the exact product_id.',
       parameters: {
@@ -132,7 +143,7 @@ const TOOLS = [
 
 const WRITE_TOOLS = new Set(['update_product', 'create_promotion', 'update_promotion']);
 
-async function execReadTool(name, args, storeId) {
+async function execReadTool(name, args, storeId, storeDomain) {
   if (name === 'get_low_stock_products') {
     const threshold = args.threshold || 5;
     const rows = await sbGet(`products?store_id=eq.${storeId}&stock=lte.${threshold}&select=id,name_ar,stock,price&order=stock.asc&limit=20`);
@@ -171,6 +182,18 @@ async function execReadTool(name, args, storeId) {
     const rows = await sbGet(`promotions?store_id=eq.${storeId}&select=id,title_ar,subtitle_ar,discount_text,badge_color,text_color,is_active,expires_at&order=created_at.desc`);
     return rows;
   }
+  if (name === 'get_website_analytics') {
+    const days = args.days || 30;
+    if (!storeDomain) return { error: 'no_domain_configured' };
+    try {
+      const r = await fetch(`https://mawq3i.co/api/analytics-data?scope=storefront&hostname=${encodeURIComponent(storeDomain)}&days=${days}`);
+      const data = await r.json();
+      if (!data.configured) return { error: 'analytics_not_connected' };
+      return data;
+    } catch (e) {
+      return { error: String(e) };
+    }
+  }
   return { error: 'unknown tool' };
 }
 
@@ -179,7 +202,7 @@ function buildSystemPrompt(storeName, isAr) {
     return `أنت "مستشار موقعي الذكي" — مساعد يدير متجر إلكتروني اسمه "${storeName}" على منصة Mawq3i عبر محادثة طبيعية، بدل ما يحتاج صاحب المتجر يتنقل بين صفحات لوحة التحكم.
 
 قدراتك:
-- تقدر تستعلم عن بيانات حقيقية وحية (منتجات، مخزون، طلبات، مبيعات، بنرات العروض) عبر الأدوات المتاحة لك — استخدمها دائماً بدل ما تخمّن أو تعتمد على معلومات قديمة.
+- تقدر تستعلم عن بيانات حقيقية وحية (منتجات، مخزون، طلبات، مبيعات، بنرات العروض، زوار الموقع من Google Analytics) عبر الأدوات المتاحة لك — استخدمها دائماً بدل ما تخمّن أو تعتمد على معلومات قديمة.
 - تقدر تقترح **وتنفذ فعلياً** تعديلات (تعديل منتج، إنشاء بنر عرض، تعديل بنر موجود) — بس التنفيذ الفعلي يصير بعد موافقة صاحب المتجر، مو أنت.
 - إذا صاحب المتجر طلب تعديل شي بدون ما يحدد تفاصيل كافية (مثلاً "خفض السعر" بدون رقم)، اقترح قيمة معقولة بناءً على السياق واذكرها بوضوح، بدل ما تسأل أسئلة كثيرة.
 - إذا الطلب يحتاج تعديل منتج أو بنر، ولسا ما تعرف الـ ID، استخدم أداة البحث (search_products أو get_promotions) أول.
@@ -207,7 +230,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { storeId, storeName, messages, language } = req.body || {};
+    const { storeId, storeName, storeDomain, messages, language } = req.body || {};
     if (!storeId || !storeName || !Array.isArray(messages) || messages.length === 0) {
       res.status(400).json({ error: 'Missing storeId, storeName, or messages' });
       return;
@@ -276,7 +299,7 @@ export default async function handler(req, res) {
         try { args = JSON.parse(tc.function.arguments || '{}'); } catch { /* ignore */ }
         let result;
         try {
-          result = await execReadTool(tc.function.name, args, storeId);
+          result = await execReadTool(tc.function.name, args, storeId, storeDomain);
         } catch (e) {
           result = { error: String(e) };
         }
