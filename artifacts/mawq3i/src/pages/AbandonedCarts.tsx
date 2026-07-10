@@ -26,9 +26,9 @@ function isReadyForReminder(cart: AbandonedCart) {
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  abandoned: { label: 'متروكة',   color: 'bg-red-100 text-red-700' },
-  recovered: { label: 'استُرجعت', color: 'bg-green-100 text-green-700' },
-  ignored:   { label: 'متجاهلة',  color: 'bg-gray-100 text-gray-500' },
+  abandoned: { label: 'متروكة',   color: 'bg-red-500/10 text-red-500 dark:text-red-400' },
+  recovered: { label: 'استُرجعت', color: 'bg-primary/10 text-primary' },
+  ignored:   { label: 'متجاهلة',  color: 'bg-muted text-muted-foreground' },
 }
 
 function timeAgo(dateStr: string) {
@@ -131,12 +131,12 @@ export default function AbandonedCarts() {
     <div className="p-6 max-w-4xl mx-auto" dir="rtl">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">🛒 السلات المتروكة</h1>
-          <p className="text-gray-500 text-sm mt-1">زبائن بدأوا الطلب ولم يكملوه</p>
+          <h1 className="text-2xl font-bold text-foreground">🛒 السلات المتروكة</h1>
+          <p className="text-muted-foreground text-sm mt-1">زبائن بدأوا الطلب ولم يكملوه</p>
         </div>
         <button
           onClick={fetchCarts}
-          className="text-sm px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 transition"
+          className="text-sm px-4 py-2 rounded-lg border border-border/60 bg-card/50 text-foreground hover:bg-accent/40 transition"
         >
           🔄 تحديث
         </button>
@@ -144,28 +144,28 @@ export default function AbandonedCarts() {
 
       {/* بانر السلات الجاهزة للتذكير (مرّ عليها ساعة ولسا ما انبعث لها تذكير) */}
       {readyForReminder.length > 0 && (
-        <div className="mb-5 rounded-xl border border-green-200 bg-green-50 p-4">
+        <div className="mb-5 rounded-xl border border-primary/25 bg-primary/5 p-4">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-bold text-green-800">
+            <p className="text-sm font-bold text-primary">
               🔔 {readyForReminder.length} سلة جاهزة للتذكير الآن (مرّ عليها ساعة أو أكثر)
             </p>
           </div>
           <div className="space-y-2">
             {readyForReminder.map(cart => (
-              <div key={cart.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-green-100">
+              <div key={cart.id} className="flex items-center justify-between bg-card/70 rounded-lg px-3 py-2 border border-primary/15">
                 <div className="text-sm">
-                  <span className="font-semibold text-gray-900">{cart.customer_name || 'زبون مجهول'}</span>
-                  <span className="text-gray-400 mx-1.5">·</span>
-                  <span className="text-gray-500">{cart.total} ₪</span>
-                  <span className="text-gray-400 mx-1.5">·</span>
-                  <span className="text-gray-500">{timeAgo(cart.created_at)}</span>
+                  <span className="font-semibold text-foreground">{cart.customer_name || 'زبون مجهول'}</span>
+                  <span className="text-muted-foreground mx-1.5">·</span>
+                  <span className="text-muted-foreground">{cart.total} ₪</span>
+                  <span className="text-muted-foreground mx-1.5">·</span>
+                  <span className="text-muted-foreground">{timeAgo(cart.created_at)}</span>
                 </div>
                 <a
                   href={whatsappLink(cart.phone, cart.customer_name, cart.items, cart.total)}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => markReminderSent(cart.id)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 transition"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition"
                 >
                   إرسال تذكير واتساب
                 </a>
@@ -182,7 +182,9 @@ export default function AbandonedCarts() {
               key={f}
               onClick={() => setFilter(f)}
               className={`px-4 py-1.5 rounded-full text-sm font-medium border transition ${
-                filter === f ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                filter === f
+                  ? 'bg-foreground text-background border-foreground'
+                  : 'bg-card/50 text-muted-foreground border-border/60 hover:border-foreground/30'
               }`}
             >
               {f === 'all' ? `الكل (${counts.all})` : `${STATUS_LABELS[f].label} (${counts[f]})`}
@@ -192,13 +194,13 @@ export default function AbandonedCarts() {
         {counts.abandoned > 0 && (
           <button
             onClick={toggleSelectAllAbandoned}
-            className="text-sm text-gray-500 hover:text-gray-800 font-medium flex items-center gap-1.5"
+            className="text-sm text-muted-foreground hover:text-foreground font-medium flex items-center gap-1.5"
           >
             <input
               type="checkbox"
               readOnly
               checked={filtered.filter(c => c.status === 'abandoned').length > 0 && filtered.filter(c => c.status === 'abandoned').every(c => selectedIds.has(c.id))}
-              className="w-4 h-4 rounded border-gray-300"
+              className="w-4 h-4 rounded border-border accent-primary"
             />
             تحديد كل السلات المتروكة
           </button>
@@ -207,13 +209,13 @@ export default function AbandonedCarts() {
 
       {/* شريط الإرسال الجماعي */}
       {selectedIds.size > 0 && (
-        <div className="sticky top-2 z-10 mb-5 flex items-center justify-between bg-gray-900 text-white rounded-xl px-4 py-3 shadow-lg">
+        <div className="sticky top-2 z-10 mb-5 flex items-center justify-between bg-foreground text-background rounded-xl px-4 py-3 shadow-lg">
           <span className="text-sm font-medium">{selectedIds.size} سلة محددة</span>
           <div className="flex items-center gap-2">
-            <button onClick={() => setSelectedIds(new Set())} className="text-xs text-gray-300 hover:text-white px-2">إلغاء التحديد</button>
+            <button onClick={() => setSelectedIds(new Set())} className="text-xs text-background/60 hover:text-background px-2">إلغاء التحديد</button>
             <button
               onClick={() => setSendPanelOpen(true)}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-green-500 hover:bg-green-600 rounded-lg text-xs font-bold transition"
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-xs font-bold transition"
             >
               📨 إرسال رسائل واتساب
             </button>
@@ -223,31 +225,31 @@ export default function AbandonedCarts() {
 
       {/* لوحة الإرسال الجماعي — قائمة روابط واتساب جاهزة، وحدة وحدة */}
       {sendPanelOpen && (
-        <div className="mb-5 rounded-xl border border-gray-200 bg-white overflow-hidden">
-          <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
-            <p className="text-sm font-bold text-gray-900">إرسال رسائل واتساب ({selectedIds.size})</p>
-            <button onClick={() => setSendPanelOpen(false)} className="text-gray-400 hover:text-gray-700 text-sm">✕ إغلاق</button>
+        <div className="mb-5 rounded-xl border border-border/60 bg-card/50 overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b border-border/50 bg-background/30">
+            <p className="text-sm font-bold text-foreground">إرسال رسائل واتساب ({selectedIds.size})</p>
+            <button onClick={() => setSendPanelOpen(false)} className="text-muted-foreground hover:text-foreground text-sm">✕ إغلاق</button>
           </div>
-          <p className="text-xs text-gray-500 px-4 pt-3">
+          <p className="text-xs text-muted-foreground px-4 pt-3">
             كبس "فتح واتساب" لكل سلة بيفتحلك محادثة جاهزة بنافذة جديدة — راجع الرسالة واضغط إرسال من واتساب نفسه.
           </p>
           <div className="p-4 space-y-2">
             {carts.filter(c => selectedIds.has(c.id)).map(cart => (
-              <div key={cart.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+              <div key={cart.id} className="flex items-center justify-between bg-background/40 rounded-lg px-3 py-2 border border-border/40">
                 <div className="text-sm">
-                  <span className="font-semibold text-gray-900">{cart.customer_name || 'زبون مجهول'}</span>
-                  <span className="text-gray-400 mx-1.5">·</span>
-                  <span className="text-gray-500">{cart.total} ₪</span>
+                  <span className="font-semibold text-foreground">{cart.customer_name || 'زبون مجهول'}</span>
+                  <span className="text-muted-foreground mx-1.5">·</span>
+                  <span className="text-muted-foreground">{cart.total} ₪</span>
                 </div>
                 {cart.reminder_sent_at ? (
-                  <span className="text-xs text-blue-600 font-medium">✅ أُرسل</span>
+                  <span className="text-xs text-primary font-medium">✅ أُرسل</span>
                 ) : (
                   <a
                     href={whatsappLink(cart.phone, cart.customer_name, cart.items, cart.total)}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => markReminderSent(cart.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 transition"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition"
                   >
                     فتح واتساب
                   </a>
@@ -259,19 +261,19 @@ export default function AbandonedCarts() {
       )}
 
       {loading ? (
-        <div className="text-center py-16 text-gray-400">جاري التحميل...</div>
+        <div className="text-center py-16 text-muted-foreground">جاري التحميل...</div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-muted-foreground">
           <div className="text-5xl mb-3">🛒</div>
           <p>لا توجد سلات متروكة</p>
         </div>
       ) : (
         <div className="space-y-3">
           {filtered.map(cart => (
-            <div key={cart.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div key={cart.id} className="bg-card/50 rounded-xl border border-border/60 overflow-hidden">
               {/* رأس البطاقة */}
               <div
-                className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition"
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-accent/30 transition"
                 onClick={() => setExpandedId(expandedId === cart.id ? null : cart.id)}
               >
                 <div className="flex items-center gap-3">
@@ -281,43 +283,43 @@ export default function AbandonedCarts() {
                       checked={selectedIds.has(cart.id)}
                       onClick={e => e.stopPropagation()}
                       onChange={() => toggleSelect(cart.id)}
-                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      className="w-4 h-4 rounded border-border accent-primary"
                     />
                   )}
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg font-bold text-gray-600">
+                  <div className="w-10 h-10 rounded-full bg-background/60 border border-border/40 flex items-center justify-center text-lg font-bold text-muted-foreground">
                     {cart.customer_name?.[0] || '؟'}
                   </div>
                   <div>
-                    <div className="font-semibold text-gray-900">{cart.customer_name || 'زبون مجهول'}</div>
-                    <div className="text-sm text-gray-500">{cart.phone} — {timeAgo(cart.created_at)}</div>
+                    <div className="font-semibold text-foreground">{cart.customer_name || 'زبون مجهول'}</div>
+                    <div className="text-sm text-muted-foreground">{cart.phone} — {timeAgo(cart.created_at)}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-bold text-gray-900">{cart.total} ₪</span>
+                  <span className="font-bold text-foreground">{cart.total} ₪</span>
                   <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_LABELS[cart.status].color}`}>
                     {STATUS_LABELS[cart.status].label}
                   </span>
                   {isReadyForReminder(cart) && (
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-amber-100 text-amber-700">🔔 جاهزة للتذكير</span>
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-amber-500/10 text-amber-500 dark:text-amber-400">🔔 جاهزة للتذكير</span>
                   )}
                   {cart.reminder_sent_at && (
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-blue-100 text-blue-700">✅ أُرسل تذكير</span>
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-blue-500/10 text-blue-500 dark:text-blue-400">✅ أُرسل تذكير</span>
                   )}
-                  <span className="text-gray-400">{expandedId === cart.id ? '▲' : '▼'}</span>
+                  <span className="text-muted-foreground">{expandedId === cart.id ? '▲' : '▼'}</span>
                 </div>
               </div>
 
               {/* تفاصيل قابلة للطي */}
               {expandedId === cart.id && (
-                <div className="border-t border-gray-100 p-4 bg-gray-50 space-y-4">
+                <div className="border-t border-border/50 p-4 bg-background/30 space-y-4">
                   {/* المنتجات */}
                   <div>
-                    <div className="text-xs font-semibold text-gray-500 uppercase mb-2">المنتجات</div>
+                    <div className="text-xs font-semibold text-muted-foreground uppercase mb-2">المنتجات</div>
                     <div className="space-y-1">
                       {cart.items.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between text-sm">
+                        <div key={i} className="flex items-center justify-between text-sm text-foreground">
                           <span>{item.name_ar} × {item.qty}</span>
-                          <span className="text-gray-600">{(item.price * item.qty).toFixed(2)} ₪</span>
+                          <span className="text-muted-foreground">{(item.price * item.qty).toFixed(2)} ₪</span>
                         </div>
                       ))}
                     </div>
@@ -325,12 +327,12 @@ export default function AbandonedCarts() {
 
                   {/* بيانات التوصيل */}
                   {(cart.city || cart.address) && (
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       📍 {[cart.city, cart.address].filter(Boolean).join(' — ')}
                     </div>
                   )}
                   {cart.notes && (
-                    <div className="text-sm text-gray-600">💬 {cart.notes}</div>
+                    <div className="text-sm text-muted-foreground">💬 {cart.notes}</div>
                   )}
 
                   {/* أزرار الإجراءات */}
@@ -340,7 +342,7 @@ export default function AbandonedCarts() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => markReminderSent(cart.id)}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition"
+                      className="flex items-center gap-1.5 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.117.549 4.107 1.51 5.843L.057 23.5l5.79-1.52A11.93 11.93 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.005-1.366l-.359-.213-3.438.901.921-3.352-.233-.373A9.818 9.818 0 1 1 12 21.818z"/></svg>
                       تواصل واتساب
@@ -349,7 +351,7 @@ export default function AbandonedCarts() {
                     {cart.status !== 'recovered' && (
                       <button
                         onClick={() => updateStatus(cart.id, 'recovered')}
-                        className="px-4 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition"
+                        className="px-4 py-2 bg-primary/10 text-primary rounded-lg text-sm font-medium hover:bg-primary/20 transition"
                       >
                         ✅ تم الاسترجاع
                       </button>
@@ -357,7 +359,7 @@ export default function AbandonedCarts() {
                     {cart.status !== 'ignored' && (
                       <button
                         onClick={() => updateStatus(cart.id, 'ignored')}
-                        className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
+                        className="px-4 py-2 bg-muted text-muted-foreground rounded-lg text-sm font-medium hover:bg-muted/70 transition"
                       >
                         🚫 تجاهل
                       </button>
@@ -365,7 +367,7 @@ export default function AbandonedCarts() {
                     {cart.status !== 'abandoned' && (
                       <button
                         onClick={() => updateStatus(cart.id, 'abandoned')}
-                        className="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition"
+                        className="px-4 py-2 bg-red-500/10 text-red-500 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-500/20 transition"
                       >
                         ↩️ إعادة للمتروكة
                       </button>
