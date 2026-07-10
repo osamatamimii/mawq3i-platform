@@ -17,7 +17,18 @@ async function getAccessToken() {
 
   const raw = process.env.GA_SERVICE_ACCOUNT_KEY;
   if (!raw) throw new Error('Missing GA_SERVICE_ACCOUNT_KEY env var');
-  const key = JSON.parse(raw);
+  let key;
+  try {
+    key = JSON.parse(raw);
+  } catch (e) {
+    // Safe to expose: the JSON boilerplate at the start/end of any GCP key file
+    // carries no secret value. We deliberately avoid the middle (private_key).
+    const err = new Error(
+      `GA_SERVICE_ACCOUNT_KEY is not valid JSON: ${e.message}. ` +
+      `length=${raw.length}, starts="${raw.slice(0, 25)}", ends="${raw.slice(-25)}"`
+    );
+    throw err;
+  }
 
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: 'RS256', typ: 'JWT' };
