@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Loader2, Package, Camera, Upload, Download, Share2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Package, Camera, Upload, Download, Share2, Search, X } from 'lucide-react';
 import ShareProductModal from '@/components/ShareProductModal';
 import { useToast } from '@/hooks/use-toast';
 
@@ -25,6 +25,7 @@ export default function Products() {
   const [, setLocation] = useLocation();
   const isAr = language === 'ar';
   const [products, setProducts] = useState<Product[]>([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -148,16 +149,51 @@ export default function Products() {
     const a = document.createElement('a'); a.href = url; a.download = 'products-template.csv'; a.click();
   };
 
+  const q = search.trim().toLowerCase();
+  const filteredProducts = q
+    ? products.filter(p =>
+        p.nameAr?.toLowerCase().includes(q) ||
+        p.nameEn?.toLowerCase().includes(q) ||
+        p.category?.toLowerCase().includes(q)
+      )
+    : products;
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
       <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
       <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCsvImport} />
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-lg font-semibold">{isAr ? 'قائمة المنتجات' : 'Products'}</h2>
-          <p className="text-sm text-muted-foreground">{products.length} {isAr ? 'منتج' : 'products'}</p>
+          <p className="text-sm text-muted-foreground">
+            {q ? (
+              isAr ? `${filteredProducts.length} من ${products.length} منتج` : `${filteredProducts.length} of ${products.length} products`
+            ) : (
+              <>{products.length} {isAr ? 'منتج' : 'products'}</>
+            )}
+          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative">
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder={isAr ? 'ابحث باسم المنتج أو التصنيف...' : 'Search by name or category...'}
+              className="h-8 w-56 ps-9 pe-8 text-xs bg-background/50 border-border/50"
+              data-testid="input-search-products"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute end-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={isAr ? 'مسح البحث' : 'Clear search'}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
           <Button variant="outline" size="sm" onClick={downloadTemplate} className="gap-1.5 text-xs h-8">
             <Download className="w-3.5 h-3.5" />
             {isAr ? 'قالب CSV' : 'CSV Template'}
@@ -193,6 +229,17 @@ export default function Products() {
                 </Button>
               </Link>
             </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-3">
+              <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                <Search className="w-7 h-7 text-muted-foreground/50" />
+              </div>
+              <p className="text-sm font-medium">{isAr ? 'لا توجد نتائج مطابقة' : 'No matching results'}</p>
+              <p className="text-xs opacity-60">{isAr ? 'جرّب كلمة بحث مختلفة' : 'Try a different search term'}</p>
+              <Button size="sm" variant="outline" className="mt-2" onClick={() => setSearch('')}>
+                {isAr ? 'مسح البحث' : 'Clear search'}
+              </Button>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
@@ -208,7 +255,7 @@ export default function Products() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((product, i) => (
+                  {filteredProducts.map((product, i) => (
                     <motion.tr key={product.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                       className="border-b border-border/30 hover:bg-white/[0.02] transition-colors" data-testid={`row-product-${product.id}`}>
                       <td className="px-6 py-4">

@@ -5,8 +5,9 @@ import { getOrders, updateOrderStatus } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Loader2, Bell, X, Phone, MapPin, CreditCard, Package, MessageSquare, Calendar, Tag, Truck, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, Loader2, Bell, X, Phone, MapPin, CreditCard, Package, MessageSquare, Calendar, Tag, Truck, CheckCircle2, Search } from 'lucide-react';
 
 const statusConfig: Record<OrderStatus, { ar: string; en: string; className: string }> = {
   new:        { ar: 'جديد',         en: 'New',        className: 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30' },
@@ -167,6 +168,7 @@ export default function Orders() {
   const { language, currentStore, isAdminMode } = useAppContext();
   const isAr = language === 'ar';
   const [orders, setOrders] = useState<Order[]>([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
@@ -264,22 +266,60 @@ export default function Orders() {
 
   const cur = (o: Order) => o.currency === 'ILS' ? '₪' : '﷼';
 
+  const q = search.trim().toLowerCase();
+  const filteredOrders = q
+    ? orders.filter(o =>
+        o.customerName?.toLowerCase().includes(q) ||
+        o.phone?.toLowerCase().includes(q) ||
+        o.id?.toLowerCase().includes(q) ||
+        o.productName?.toLowerCase().includes(q)
+      )
+    : orders;
+
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
       <Card className="bg-card border-border/50 shadow-lg">
         <CardHeader className="border-b border-border/50 pb-4">
-          <div className="flex items-center gap-3">
-            <CardTitle className="text-lg font-semibold">{isAr ? 'قائمة الطلبات' : 'Orders List'}</CardTitle>
-            {orders.filter(o => o.status === 'new').length > 0 && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                <Bell className="w-3 h-3" />
-                {orders.filter(o => o.status === 'new').length} {isAr ? 'جديد' : 'new'}
-              </span>
-            )}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
+              <CardTitle className="text-lg font-semibold">{isAr ? 'قائمة الطلبات' : 'Orders List'}</CardTitle>
+              {orders.filter(o => o.status === 'new').length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                  <Bell className="w-3 h-3" />
+                  {orders.filter(o => o.status === 'new').length} {isAr ? 'جديد' : 'new'}
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={isAr ? 'ابحث برقم الطلب أو اسم العميل أو الهاتف...' : 'Search by order ID, customer, or phone...'}
+                className="h-8 w-64 ps-9 pe-8 text-xs bg-background/50 border-border/50"
+                data-testid="input-search-orders"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute end-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={isAr ? 'مسح البحث' : 'Clear search'}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">{orders.length} {isAr ? 'طلب' : 'orders'}</p>
+          <p className="text-sm text-muted-foreground">
+            {q ? (
+              isAr ? `${filteredOrders.length} من ${orders.length} طلب` : `${filteredOrders.length} of ${orders.length} orders`
+            ) : (
+              <>{orders.length} {isAr ? 'طلب' : 'orders'}</>
+            )}
+          </p>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -304,7 +344,15 @@ export default function Orders() {
                       <p className="text-xs opacity-60">{isAr ? 'ستظهر هنا طلبات عملاء متجرك' : 'Orders will appear here'}</p>
                     </div>
                   </td></tr>
-                ) : orders.map((order, i) => (
+                ) : filteredOrders.length === 0 ? (
+                  <tr><td colSpan={7} className="px-6 py-16 text-center text-muted-foreground">
+                    <div className="flex flex-col items-center gap-2">
+                      <Search className="w-7 h-7 text-muted-foreground/50" />
+                      <p className="text-sm">{isAr ? 'لا توجد نتائج مطابقة' : 'No matching results'}</p>
+                      <p className="text-xs opacity-60">{isAr ? 'جرّب كلمة بحث مختلفة' : 'Try a different search term'}</p>
+                    </div>
+                  </td></tr>
+                ) : filteredOrders.map((order, i) => (
                   <motion.tr key={order.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
                     className="border-b border-border/30 hover:bg-white/[0.03] transition-colors cursor-pointer"
                     onClick={() => setSelectedOrder(order)}>
