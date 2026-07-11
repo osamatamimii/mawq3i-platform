@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Check, Loader2, ImageIcon } from 'lucide-react';
+import { Upload, Check, Loader2, ImageIcon, Plus, Trash2 } from 'lucide-react';
 import AiEnhanceButton from '@/components/AiEnhanceButton';
 
 function SectionCard({ titleAr, titleEn, isAr, children }: { titleAr: string; titleEn: string; isAr: boolean; children: React.ReactNode }) {
@@ -188,7 +188,9 @@ export default function Settings() {
     socialSnapchat: '',
     contactEmail: '',
     secondaryPhone: '',
+    returnPolicy: '',
   });
+  const [faq, setFaq] = useState<{ q: string; a: string }[]>([]);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState<string>('');
@@ -220,13 +222,20 @@ export default function Settings() {
         socialSnapchat: currentStore.socialSnapchat ?? '',
         contactEmail: currentStore.contactEmail ?? '',
         secondaryPhone: currentStore.secondaryPhone ?? '',
+        returnPolicy: currentStore.returnPolicy ?? '',
       });
+      setFaq(currentStore.faq && currentStore.faq.length ? currentStore.faq : []);
       setLogoPreview(currentStore.logoUrl ?? '');
       setHeroPreview(currentStore.heroImageUrl ?? '');
     }
   }, [currentStore]);
 
   const set = (key: string, value: string | boolean) => setSettings(s => ({ ...s, [key]: value }));
+
+  const addFaqItem = () => setFaq(f => [...f, { q: '', a: '' }]);
+  const removeFaqItem = (i: number) => setFaq(f => f.filter((_, idx) => idx !== i));
+  const updateFaqItem = (i: number, key: 'q' | 'a', value: string) =>
+    setFaq(f => f.map((item, idx) => idx === i ? { ...item, [key]: value } : item));
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -309,6 +318,8 @@ export default function Settings() {
       socialSnapchat: settings.socialSnapchat,
       contactEmail: settings.contactEmail,
       secondaryPhone: settings.secondaryPhone,
+      faq: faq.filter(f => f.q.trim() && f.a.trim()),
+      returnPolicy: settings.returnPolicy,
     }, isAdminMode);
 
     if (!ok) {
@@ -515,6 +526,50 @@ export default function Settings() {
             className="bg-background/50 border-border/50"
             dir="ltr"
             placeholder="https://snapchat.com/add/yourstore"
+          />
+        </Field>
+      </SectionCard>
+
+      <SectionCard titleAr="الأسئلة الشائعة" titleEn="FAQ" isAr={isAr}>
+        <div className="space-y-3">
+          {faq.length === 0 && (
+            <p className="text-sm text-muted-foreground">{isAr ? 'لا توجد أسئلة بعد. أضف أول سؤال شائع لعملائك.' : 'No questions yet. Add your first FAQ item.'}</p>
+          )}
+          {faq.map((item, i) => (
+            <div key={i} className="flex gap-2 items-start p-3 rounded-lg border border-border/50 bg-background/30">
+              <div className="flex-1 space-y-2">
+                <Input
+                  value={item.q}
+                  onChange={e => updateFaqItem(i, 'q', e.target.value)}
+                  placeholder={isAr ? 'السؤال' : 'Question'}
+                  className="bg-background/50 border-border/50 text-sm"
+                />
+                <Textarea
+                  value={item.a}
+                  onChange={e => updateFaqItem(i, 'a', e.target.value)}
+                  placeholder={isAr ? 'الإجابة' : 'Answer'}
+                  className="bg-background/50 border-border/50 text-sm resize-none h-16"
+                />
+              </div>
+              <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-red-500/50 hover:text-red-400 flex-shrink-0" onClick={() => removeFaqItem(i)}>
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={addFaqItem}>
+            <Plus className="w-3.5 h-3.5" />
+            {isAr ? 'إضافة سؤال' : 'Add Question'}
+          </Button>
+        </div>
+      </SectionCard>
+
+      <SectionCard titleAr="سياسة التبديل والاسترجاع" titleEn="Exchange & Return Policy" isAr={isAr}>
+        <Field labelAr="نص السياسة" labelEn="Policy Text" isAr={isAr}>
+          <Textarea
+            value={settings.returnPolicy}
+            onChange={e => set('returnPolicy', e.target.value)}
+            className="bg-background/50 border-border/50 resize-none h-32"
+            placeholder={isAr ? 'مثال: يمكن استبدال أو استرجاع المنتج خلال 7 أيام من تاريخ الاستلام بشرط أن يكون بحالته الأصلية...' : 'e.g. Products can be exchanged or returned within 7 days of delivery, provided they are in original condition...'}
           />
         </Field>
       </SectionCard>

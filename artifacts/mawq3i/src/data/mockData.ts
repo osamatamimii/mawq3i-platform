@@ -101,6 +101,8 @@ export type StoreRecord = {
   socialSnapchat?: string;
   contactEmail?: string;
   secondaryPhone?: string;
+  faq?: { q: string; a: string }[];
+  returnPolicy?: string;
 };
 
 export type Client = {

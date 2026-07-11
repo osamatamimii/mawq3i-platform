@@ -125,6 +125,8 @@ function rowToStore(row: any): StoreRecord {
     socialSnapchat: row.social_snapchat ?? '',
     contactEmail: row.contact_email ?? '',
     secondaryPhone: row.secondary_phone ?? '',
+    faq: Array.isArray(row.faq) ? row.faq : [],
+    returnPolicy: row.return_policy ?? '',
   };
 }
 
@@ -463,6 +465,8 @@ export async function updateStoreSettings(id: string, settings: {
   socialSnapchat?: string;
   contactEmail?: string;
   secondaryPhone?: string;
+  faq?: { q: string; a: string }[];
+  returnPolicy?: string;
 }, useAdmin = false): Promise<boolean> {
   try {
     const row: Record<string, unknown> = {};
@@ -487,6 +491,8 @@ export async function updateStoreSettings(id: string, settings: {
     if (settings.socialSnapchat !== undefined) row.social_snapchat = settings.socialSnapchat;
     if (settings.contactEmail !== undefined) row.contact_email = settings.contactEmail;
     if (settings.secondaryPhone !== undefined) row.secondary_phone = settings.secondaryPhone;
+    if (settings.faq !== undefined) row.faq = settings.faq;
+    if (settings.returnPolicy !== undefined) row.return_policy = settings.returnPolicy;
 
     if (useAdmin) {
       return await adminRest.update('stores', `id=eq.${id}`, row);
