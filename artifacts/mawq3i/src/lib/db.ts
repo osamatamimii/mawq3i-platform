@@ -119,6 +119,12 @@ function rowToStore(row: any): StoreRecord {
     togoPickupAreaId: row.togo_pickup_area_id ?? '',
     togoPickupDetails: row.togo_pickup_details ?? '',
     togoDeliveryEnabled: Boolean(row.togo_delivery_enabled),
+    socialInstagram: row.social_instagram ?? '',
+    socialFacebook: row.social_facebook ?? '',
+    socialTiktok: row.social_tiktok ?? '',
+    socialSnapchat: row.social_snapchat ?? '',
+    contactEmail: row.contact_email ?? '',
+    secondaryPhone: row.secondary_phone ?? '',
   };
 }
 
@@ -451,6 +457,12 @@ export async function updateStoreSettings(id: string, settings: {
   heroSubtitle?: string;
   footerText?: string;
   showLogo?: boolean;
+  socialInstagram?: string;
+  socialFacebook?: string;
+  socialTiktok?: string;
+  socialSnapchat?: string;
+  contactEmail?: string;
+  secondaryPhone?: string;
 }, useAdmin = false): Promise<boolean> {
   try {
     const row: Record<string, unknown> = {};
@@ -469,6 +481,12 @@ export async function updateStoreSettings(id: string, settings: {
     if (settings.heroSubtitle !== undefined) row.hero_subtitle = settings.heroSubtitle;
     if (settings.footerText !== undefined) row.footer_text = settings.footerText;
     if (settings.showLogo !== undefined) row.show_logo = settings.showLogo;
+    if (settings.socialInstagram !== undefined) row.social_instagram = settings.socialInstagram;
+    if (settings.socialFacebook !== undefined) row.social_facebook = settings.socialFacebook;
+    if (settings.socialTiktok !== undefined) row.social_tiktok = settings.socialTiktok;
+    if (settings.socialSnapchat !== undefined) row.social_snapchat = settings.socialSnapchat;
+    if (settings.contactEmail !== undefined) row.contact_email = settings.contactEmail;
+    if (settings.secondaryPhone !== undefined) row.secondary_phone = settings.secondaryPhone;
 
     if (useAdmin) {
       return await adminRest.update('stores', `id=eq.${id}`, row);

@@ -182,6 +182,12 @@ export default function Settings() {
     heroSubtitle: '',
     footerText: '',
     showLogo: true,
+    socialInstagram: '',
+    socialFacebook: '',
+    socialTiktok: '',
+    socialSnapchat: '',
+    contactEmail: '',
+    secondaryPhone: '',
   });
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -208,6 +214,12 @@ export default function Settings() {
         heroSubtitle: currentStore.heroSubtitle ?? '',
         footerText: currentStore.footerText ?? '',
         showLogo: currentStore.showLogo !== false,
+        socialInstagram: currentStore.socialInstagram ?? '',
+        socialFacebook: currentStore.socialFacebook ?? '',
+        socialTiktok: currentStore.socialTiktok ?? '',
+        socialSnapchat: currentStore.socialSnapchat ?? '',
+        contactEmail: currentStore.contactEmail ?? '',
+        secondaryPhone: currentStore.secondaryPhone ?? '',
       });
       setLogoPreview(currentStore.logoUrl ?? '');
       setHeroPreview(currentStore.heroImageUrl ?? '');
@@ -291,6 +303,12 @@ export default function Settings() {
       heroSubtitle: settings.heroSubtitle,
       footerText: settings.footerText,
       showLogo: settings.showLogo,
+      socialInstagram: settings.socialInstagram,
+      socialFacebook: settings.socialFacebook,
+      socialTiktok: settings.socialTiktok,
+      socialSnapchat: settings.socialSnapchat,
+      contactEmail: settings.contactEmail,
+      secondaryPhone: settings.secondaryPhone,
     }, isAdminMode);
 
     if (!ok) {
@@ -435,6 +453,68 @@ export default function Settings() {
             className="bg-background/50 border-border/50 font-mono"
             dir="ltr"
             placeholder="my-store.mawq3i.com"
+          />
+        </Field>
+      </SectionCard>
+
+      <SectionCard titleAr="روابط التواصل" titleEn="Contact & Social Links" isAr={isAr}>
+        <Field labelAr="رقم هاتف إضافي" labelEn="Secondary Phone" isAr={isAr}>
+          <Input
+            value={settings.secondaryPhone}
+            onChange={e => set('secondaryPhone', e.target.value)}
+            className="bg-background/50 border-border/50 font-mono"
+            dir="ltr"
+            placeholder="+970591234567"
+          />
+        </Field>
+
+        <Field labelAr="البريد الإلكتروني" labelEn="Contact Email" isAr={isAr}>
+          <Input
+            value={settings.contactEmail}
+            onChange={e => set('contactEmail', e.target.value)}
+            className="bg-background/50 border-border/50"
+            dir="ltr"
+            placeholder="info@store.com"
+          />
+        </Field>
+
+        <Field labelAr="انستقرام" labelEn="Instagram" isAr={isAr}>
+          <Input
+            value={settings.socialInstagram}
+            onChange={e => set('socialInstagram', e.target.value)}
+            className="bg-background/50 border-border/50"
+            dir="ltr"
+            placeholder="https://instagram.com/yourstore"
+          />
+        </Field>
+
+        <Field labelAr="فيسبوك" labelEn="Facebook" isAr={isAr}>
+          <Input
+            value={settings.socialFacebook}
+            onChange={e => set('socialFacebook', e.target.value)}
+            className="bg-background/50 border-border/50"
+            dir="ltr"
+            placeholder="https://facebook.com/yourstore"
+          />
+        </Field>
+
+        <Field labelAr="تيك توك" labelEn="TikTok" isAr={isAr}>
+          <Input
+            value={settings.socialTiktok}
+            onChange={e => set('socialTiktok', e.target.value)}
+            className="bg-background/50 border-border/50"
+            dir="ltr"
+            placeholder="https://tiktok.com/@yourstore"
+          />
+        </Field>
+
+        <Field labelAr="سناب شات" labelEn="Snapchat" isAr={isAr}>
+          <Input
+            value={settings.socialSnapchat}
+            onChange={e => set('socialSnapchat', e.target.value)}
+            className="bg-background/50 border-border/50"
+            dir="ltr"
+            placeholder="https://snapchat.com/add/yourstore"
           />
         </Field>
       </SectionCard>

@@ -95,6 +95,12 @@ export type StoreRecord = {
   togoPickupAreaId?: string;
   togoPickupDetails?: string;
   togoDeliveryEnabled?: boolean;
+  socialInstagram?: string;
+  socialFacebook?: string;
+  socialTiktok?: string;
+  socialSnapchat?: string;
+  contactEmail?: string;
+  secondaryPhone?: string;
 };
 
 export type Client = {
