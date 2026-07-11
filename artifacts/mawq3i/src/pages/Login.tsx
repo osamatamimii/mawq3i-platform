@@ -86,23 +86,23 @@ export default function Login() {
         transition={{ duration: 0.7, ease: 'easeOut' }}
       >
         {/* Background layers */}
-        <div className="absolute inset-0 bg-[#060a0d]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_40%,rgba(82,255,63,0.07),transparent)]" />
+        <div className="absolute inset-0 bg-background dark:bg-[#060a0d]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_40%,hsl(var(--primary)/0.07),transparent)]" />
         {/* Grid lines */}
         <div
-          className="absolute inset-0 opacity-[0.04]"
+          className="absolute inset-0 opacity-[0.05] dark:opacity-[0.04]"
           style={{
-            backgroundImage: 'linear-gradient(rgba(82,255,63,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(82,255,63,0.5) 1px, transparent 1px)',
+            backgroundImage: 'linear-gradient(hsl(var(--primary) / 0.6) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary) / 0.6) 1px, transparent 1px)',
             backgroundSize: '60px 60px',
           }}
         />
         {/* Bottom gradient fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#060a0d] to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-background dark:from-[#060a0d] to-transparent" />
 
         {/* Brand */}
         <div className="relative z-10 flex items-center gap-3">
           <img src="/logo.png" alt="Mawq3i" className="w-10 h-10 object-contain" />
-          <span className="text-white text-xl font-bold tracking-tight">Mawq3i | موقعي</span>
+          <span className="text-foreground text-xl font-bold tracking-tight">Mawq3i | موقعي</span>
         </div>
 
         {/* Center content */}
@@ -114,15 +114,15 @@ export default function Login() {
               <img
                 src="/logo.png"
                 alt="Mawq3i"
-                className="relative w-20 h-20 object-contain drop-shadow-[0_0_24px_rgba(82,255,63,0.6)]"
+                className="relative w-20 h-20 object-contain drop-shadow-[0_0_18px_hsl(var(--primary)/0.45)] dark:drop-shadow-[0_0_24px_rgba(82,255,63,0.6)]"
               />
             </div>
             <div>
-              <h1 className="text-4xl font-extrabold text-white leading-tight mb-3">
+              <h1 className="text-4xl font-extrabold text-foreground leading-tight mb-3">
                 أدر متجرك<br />
                 <span className="text-primary">بسهولة واحترافية</span>
               </h1>
-              <p className="text-white/50 text-base leading-relaxed max-w-xs">
+              <p className="text-muted-foreground text-base leading-relaxed max-w-xs">
                 {isAr
                   ? 'منصة متكاملة للتجار الفلسطينيين والسعوديين لبناء متاجرهم الإلكترونية'
                   : 'Complete platform for Palestinian and Saudi merchants to build their online stores'}
@@ -144,8 +144,8 @@ export default function Login() {
                   <f.icon className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-white text-sm font-semibold">{isAr ? f.titleAr : f.titleEn}</p>
-                  <p className="text-white/40 text-xs">{isAr ? f.descAr : f.descEn}</p>
+                  <p className="text-foreground text-sm font-semibold">{isAr ? f.titleAr : f.titleEn}</p>
+                  <p className="text-muted-foreground text-xs">{isAr ? f.descAr : f.descEn}</p>
                 </div>
               </motion.div>
             ))}
