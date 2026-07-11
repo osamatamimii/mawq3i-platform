@@ -119,13 +119,13 @@ export default function Login() {
             </div>
             <div>
               <h1 className="text-4xl font-extrabold text-foreground leading-tight mb-3">
-                أدر متجرك<br />
-                <span className="text-primary">بسهولة واحترافية</span>
+                {isAr ? 'نساعد التجّار على' : 'We help merchants'}<br />
+                <span className="text-primary">{isAr ? 'البيع أكثر' : 'sell more'}</span>
               </h1>
               <p className="text-muted-foreground text-base leading-relaxed max-w-xs">
                 {isAr
-                  ? 'منصة متكاملة للتجار الفلسطينيين والسعوديين لبناء متاجرهم الإلكترونية'
-                  : 'Complete platform for Palestinian and Saudi merchants to build their online stores'}
+                  ? 'منصة متكاملة للتجار في الوطن العربي لبناء متاجرهم الإلكترونية'
+                  : 'Complete platform for merchants across the Arab world to build their online stores'}
               </p>
             </div>
           </div>
