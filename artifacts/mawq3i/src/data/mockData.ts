@@ -103,6 +103,7 @@ export type StoreRecord = {
   secondaryPhone?: string;
   faq?: { q: string; a: string }[];
   returnPolicy?: string;
+  tieredDiscounts?: { threshold: number; percent: number }[];
 };
 
 export type Client = {

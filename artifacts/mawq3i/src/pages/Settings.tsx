@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Check, Loader2, ImageIcon, Plus, Trash2 } from 'lucide-react';
+import { Upload, Check, Loader2, ImageIcon, Plus, Trash2, Percent } from 'lucide-react';
 import AiEnhanceButton from '@/components/AiEnhanceButton';
 
 function SectionCard({ titleAr, titleEn, isAr, children }: { titleAr: string; titleEn: string; isAr: boolean; children: React.ReactNode }) {
@@ -191,6 +191,7 @@ export default function Settings() {
     returnPolicy: '',
   });
   const [faq, setFaq] = useState<{ q: string; a: string }[]>([]);
+  const [tiers, setTiers] = useState<{ threshold: number; percent: number }[]>([]);
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState<string>('');
@@ -225,6 +226,7 @@ export default function Settings() {
         returnPolicy: currentStore.returnPolicy ?? '',
       });
       setFaq(currentStore.faq && currentStore.faq.length ? currentStore.faq : []);
+      setTiers(currentStore.tieredDiscounts && currentStore.tieredDiscounts.length ? currentStore.tieredDiscounts : []);
       setLogoPreview(currentStore.logoUrl ?? '');
       setHeroPreview(currentStore.heroImageUrl ?? '');
     }
@@ -236,6 +238,11 @@ export default function Settings() {
   const removeFaqItem = (i: number) => setFaq(f => f.filter((_, idx) => idx !== i));
   const updateFaqItem = (i: number, key: 'q' | 'a', value: string) =>
     setFaq(f => f.map((item, idx) => idx === i ? { ...item, [key]: value } : item));
+
+  const addTier = () => setTiers(t => [...t, { threshold: 0, percent: 0 }]);
+  const removeTier = (i: number) => setTiers(t => t.filter((_, idx) => idx !== i));
+  const updateTier = (i: number, key: 'threshold' | 'percent', value: number) =>
+    setTiers(t => t.map((item, idx) => idx === i ? { ...item, [key]: value } : item));
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -320,6 +327,7 @@ export default function Settings() {
       secondaryPhone: settings.secondaryPhone,
       faq: faq.filter(f => f.q.trim() && f.a.trim()),
       returnPolicy: settings.returnPolicy,
+      tieredDiscounts: tiers.filter(t => t.threshold > 0 && t.percent > 0).sort((a, b) => a.threshold - b.threshold),
     }, isAdminMode);
 
     if (!ok) {
@@ -572,6 +580,52 @@ export default function Settings() {
             placeholder={isAr ? 'مثال: يمكن استبدال أو استرجاع المنتج خلال 7 أيام من تاريخ الاستلام بشرط أن يكون بحالته الأصلية...' : 'e.g. Products can be exchanged or returned within 7 days of delivery, provided they are in original condition...'}
           />
         </Field>
+      </SectionCard>
+
+      <SectionCard titleAr="عروض تصاعدية على السلة" titleEn="Tiered Cart Discounts" isAr={isAr}>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            {isAr
+              ? 'كل ما زادت قيمة سلة العميل، بيزيد الخصم تلقائياً — بدون كود. مثال: 200₪ خصم 10%، 400₪ خصم 15%.'
+              : 'The bigger the cart, the bigger the automatic discount — no code needed. e.g. 200₪ → 10% off, 400₪ → 15% off.'}
+          </p>
+          {tiers.length === 0 && (
+            <p className="text-sm text-muted-foreground">{isAr ? 'لا توجد عروض تصاعدية بعد.' : 'No tiers configured yet.'}</p>
+          )}
+          {tiers.map((tier, i) => (
+            <div key={i} className="flex gap-2 items-center p-3 rounded-lg border border-border/50 bg-background/30">
+              <div className="flex-1 grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">{isAr ? 'الحد الأدنى للسلة' : 'Min cart value'}</Label>
+                  <Input
+                    type="number"
+                    value={tier.threshold || ''}
+                    onChange={e => updateTier(i, 'threshold', Number(e.target.value))}
+                    className="bg-background/50 border-border/50 text-sm font-mono"
+                    placeholder="200"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">{isAr ? 'نسبة الخصم %' : 'Discount %'}</Label>
+                  <Input
+                    type="number"
+                    value={tier.percent || ''}
+                    onChange={e => updateTier(i, 'percent', Number(e.target.value))}
+                    className="bg-background/50 border-border/50 text-sm font-mono"
+                    placeholder="10"
+                  />
+                </div>
+              </div>
+              <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-red-500/50 hover:text-red-400 flex-shrink-0 self-end" onClick={() => removeTier(i)}>
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={addTier}>
+            <Plus className="w-3.5 h-3.5" />
+            {isAr ? 'إضافة مستوى' : 'Add Tier'}
+          </Button>
+        </div>
       </SectionCard>
 
       <SectionCard titleAr="تخصيص واجهة المتجر" titleEn="Storefront Customization" isAr={isAr}>

@@ -127,6 +127,7 @@ function rowToStore(row: any): StoreRecord {
     secondaryPhone: row.secondary_phone ?? '',
     faq: Array.isArray(row.faq) ? row.faq : [],
     returnPolicy: row.return_policy ?? '',
+    tieredDiscounts: Array.isArray(row.tiered_discounts) ? row.tiered_discounts : [],
   };
 }
 
@@ -467,6 +468,7 @@ export async function updateStoreSettings(id: string, settings: {
   secondaryPhone?: string;
   faq?: { q: string; a: string }[];
   returnPolicy?: string;
+  tieredDiscounts?: { threshold: number; percent: number }[];
 }, useAdmin = false): Promise<boolean> {
   try {
     const row: Record<string, unknown> = {};
@@ -493,6 +495,7 @@ export async function updateStoreSettings(id: string, settings: {
     if (settings.secondaryPhone !== undefined) row.secondary_phone = settings.secondaryPhone;
     if (settings.faq !== undefined) row.faq = settings.faq;
     if (settings.returnPolicy !== undefined) row.return_policy = settings.returnPolicy;
+    if (settings.tieredDiscounts !== undefined) row.tiered_discounts = settings.tieredDiscounts;
 
     if (useAdmin) {
       return await adminRest.update('stores', `id=eq.${id}`, row);
