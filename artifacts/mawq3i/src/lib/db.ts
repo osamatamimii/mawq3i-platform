@@ -512,3 +512,102 @@ export async function deleteStore(id: string): Promise<boolean> {
     return false;
   }
 }
+
+// ─── Staff (multi-user roles) ─────────────────────────────────────────
+
+export type StaffMember = {
+  id: string;
+  storeId: string;
+  userId: string | null;
+  email: string;
+  fullName: string;
+  permissions: { orders: boolean; products: boolean; analytics: boolean; settings: boolean; promotions: boolean };
+  createdAt: string;
+};
+
+function rowToStaff(row: any): StaffMember {
+  return {
+    id: String(row.id),
+    storeId: String(row.store_id),
+    userId: row.user_id ? String(row.user_id) : null,
+    email: row.email ?? '',
+    fullName: row.full_name ?? '',
+    permissions: {
+      orders: !!row.permissions?.orders,
+      products: !!row.permissions?.products,
+      analytics: !!row.permissions?.analytics,
+      settings: !!row.permissions?.settings,
+      promotions: !!row.permissions?.promotions,
+    },
+    createdAt: row.created_at ?? '',
+  };
+}
+
+export async function getStaffForStore(storeId: string, useAdmin = false): Promise<StaffMember[]> {
+  try {
+    if (useAdmin) {
+      const rows = await adminRest.select('store_staff', `store_id=eq.${storeId}&order=created_at.desc`);
+      return rows.map(rowToStaff);
+    }
+    const { data, error } = await supabase.from('store_staff').select('*').eq('store_id', storeId).order('created_at', { ascending: false });
+    if (error || !data) return [];
+    return data.map(rowToStaff);
+  } catch {
+    return [];
+  }
+}
+
+export async function addStaffMember(storeId: string, email: string, fullName: string, permissions: StaffMember['permissions'], useAdmin = false): Promise<boolean> {
+  try {
+    const row = { store_id: storeId, email: email.trim().toLowerCase(), full_name: fullName, permissions };
+    if (useAdmin) {
+      const res = await adminRest.insert('store_staff', row);
+      return !!res;
+    }
+    const { error } = await supabase.from('store_staff').insert([row]);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function updateStaffPermissions(id: string, permissions: StaffMember['permissions'], useAdmin = false): Promise<boolean> {
+  try {
+    if (useAdmin) {
+      return await adminRest.update('store_staff', `id=eq.${id}`, { permissions });
+    }
+    const { error } = await supabase.from('store_staff').update({ permissions }).eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function removeStaffMember(id: string, useAdmin = false): Promise<boolean> {
+  try {
+    if (useAdmin) {
+      return await adminRest.delete('store_staff', `id=eq.${id}`);
+    }
+    const { error } = await supabase.from('store_staff').delete().eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// Looks up whether an email belongs to a staff member, and if so returns
+// the parent store plus that staff member's permissions.
+export async function getStaffMembershipByEmail(email: string): Promise<{ store: StoreRecord; permissions: StaffMember['permissions'] } | null> {
+  try {
+    const { data, error } = await supabase
+      .from('store_staff')
+      .select('*, stores(*)')
+      .eq('email', email.trim().toLowerCase())
+      .maybeSingle();
+    if (error || !data || !data.stores) return null;
+    const staff = rowToStaff(data);
+    return { store: rowToStore(data.stores), permissions: staff.permissions };
+  } catch {
+    return null;
+  }
+}

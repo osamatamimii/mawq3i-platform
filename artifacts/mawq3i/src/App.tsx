@@ -31,6 +31,7 @@ import AbandonedCarts from "@/pages/AbandonedCarts";
 import DiscountCodes from "@/pages/DiscountCodes";
 import AIAdvisor from "@/pages/AIAdvisor";
 import Reviews from "@/pages/Reviews";
+import Staff from "@/pages/Staff";
 
 const queryClient = new QueryClient();
 
@@ -45,7 +46,7 @@ const ADMIN_EMAIL = "admin@mawq3i.com";
 
 function Router() {
   const [location] = useLocation();
-  const { supabaseUser, authLoading, currentUser } = useAppContext();
+  const { supabaseUser, authLoading, currentUser, staffPermissions } = useAppContext();
 
   // Show loading spinner while Supabase session is being checked
   if (authLoading) {
@@ -116,6 +117,27 @@ function Router() {
     if (supabaseUser.email?.toLowerCase() === ADMIN_EMAIL && currentUser === "admin") {
       return <Redirect to="/admin" />;
     }
+    // Staff accounts (limited permissions) can't reach pages outside their grant
+    if (staffPermissions) {
+      if (location.startsWith("/dashboard/staff")) {
+        return <Redirect to="/dashboard/orders" />;
+      }
+      const routePermission: Record<string, keyof typeof staffPermissions> = {
+        "/dashboard/products": "products",
+        "/dashboard/add-product": "products",
+        "/dashboard/analytics": "analytics",
+        "/dashboard/settings": "settings",
+        "/dashboard/promotions": "promotions",
+        "/dashboard/discount-codes": "promotions",
+      };
+      const neededPerm = Object.entries(routePermission).find(([path]) => location.startsWith(path))?.[1];
+      if (neededPerm && !staffPermissions[neededPerm]) {
+        return <Redirect to="/dashboard/orders" />;
+      }
+      if (location === "/dashboard" && !staffPermissions.analytics) {
+        return <Redirect to="/dashboard/orders" />;
+      }
+    }
     return (
       <Layout>
         <AnimatePresence mode="wait">
@@ -128,6 +150,7 @@ function Router() {
               <Route path="/dashboard/orders" component={Orders} />
               <Route path="/dashboard/analytics" component={Analytics} />
               <Route path="/dashboard/settings" component={Settings} />
+              <Route path="/dashboard/staff" component={Staff} />
               <Route path="/dashboard/promotions" component={Promotions} />
               <Route path="/dashboard/discount-codes" component={DiscountCodes} />
               <Route path="/dashboard/ai-advisor" component={AIAdvisor} />

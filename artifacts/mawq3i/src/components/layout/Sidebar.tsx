@@ -17,6 +17,7 @@ import {
   Shield,
   Sparkles,
   MessageSquareText,
+  Users,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -75,7 +76,7 @@ const NavItem = memo(function NavItem({
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const [location, setLocation] = useLocation();
-  const { language, signOut, currentStore, supabaseUser, setCurrentUser, setCurrentStore } = useAppContext();
+  const { language, signOut, currentStore, supabaseUser, setCurrentUser, setCurrentStore, staffPermissions } = useAppContext();
   const isAr = language === 'ar';
   const ADMIN_EMAIL = 'admin@mawq3i.com';
   const isAdminInOwnerMode = supabaseUser?.email?.toLowerCase() === ADMIN_EMAIL;
@@ -100,18 +101,26 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     if (location.startsWith('/dashboard/orders')) setNewOrdersCount(0);
   }, [location]);
 
-  const menuItems: MenuItem[] = [
-    { href: '/dashboard', icon: LayoutDashboard, labelAr: 'لوحة التحكم', labelEn: 'Dashboard', exact: true },
+  const allMenuItems: (MenuItem & { requiresPerm?: 'products' | 'analytics' | 'settings' | 'promotions' })[] = [
+    { href: '/dashboard', icon: LayoutDashboard, labelAr: 'لوحة التحكم', labelEn: 'Dashboard', exact: true, requiresPerm: 'analytics' },
     { href: '/dashboard/ai-advisor', icon: Sparkles, labelAr: 'المستشار الذكي', labelEn: 'AI Advisor', exact: false },
-    { href: '/dashboard/products', icon: Package, labelAr: 'المنتجات', labelEn: 'Products', exact: false },
+    { href: '/dashboard/products', icon: Package, labelAr: 'المنتجات', labelEn: 'Products', exact: false, requiresPerm: 'products' },
     { href: '/dashboard/reviews', icon: MessageSquareText, labelAr: 'التقييمات', labelEn: 'Reviews', exact: false },
     { href: '/dashboard/orders', icon: ShoppingCart, labelAr: 'الطلبات', labelEn: 'Orders', exact: false, badge: newOrdersCount },
     { href: '/dashboard/abandoned-carts', icon: ShoppingBag, labelAr: 'سلات متروكة', labelEn: 'Abandoned Carts', exact: false },
-    { href: '/dashboard/analytics', icon: BarChart3, labelAr: 'الإحصائيات', labelEn: 'Analytics', exact: false },
-    { href: '/dashboard/promotions', icon: Tag, labelAr: 'العروض', labelEn: 'Promotions', exact: false },
-    { href: '/dashboard/discount-codes', icon: Percent, labelAr: 'أكواد الخصم', labelEn: 'Discount Codes', exact: false },
-    { href: '/dashboard/settings', icon: Settings, labelAr: 'إعدادات المتجر', labelEn: 'Store Settings', exact: false },
+    { href: '/dashboard/analytics', icon: BarChart3, labelAr: 'الإحصائيات', labelEn: 'Analytics', exact: false, requiresPerm: 'analytics' },
+    { href: '/dashboard/promotions', icon: Tag, labelAr: 'العروض', labelEn: 'Promotions', exact: false, requiresPerm: 'promotions' },
+    { href: '/dashboard/discount-codes', icon: Percent, labelAr: 'أكواد الخصم', labelEn: 'Discount Codes', exact: false, requiresPerm: 'promotions' },
+    { href: '/dashboard/staff', icon: Users, labelAr: 'الموظفون', labelEn: 'Staff', exact: false, requiresPerm: 'settings' },
+    { href: '/dashboard/settings', icon: Settings, labelAr: 'إعدادات المتجر', labelEn: 'Store Settings', exact: false, requiresPerm: 'settings' },
   ];
+
+  const menuItems: MenuItem[] = allMenuItems.filter(item => {
+    if (item.href === '/dashboard/staff') return !staffPermissions; // owner-only, never delegable
+    if (!staffPermissions) return true; // owner/admin: full access
+    if (!item.requiresPerm) return true; // no restriction (orders, reviews, ai-advisor, abandoned carts)
+    return staffPermissions[item.requiresPerm];
+  });
 
   // ── Sliding indicator ──
   const navRef = useRef<HTMLDivElement>(null);

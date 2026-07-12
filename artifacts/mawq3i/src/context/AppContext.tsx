@@ -1,13 +1,21 @@
 /* @refresh reset */
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
-import { getStoreByOwnerEmail } from '@/lib/db';
+import { getStoreByOwnerEmail, getStaffMembershipByEmail } from '@/lib/db';
 import type { User } from '@supabase/supabase-js';
 import type { StoreRecord } from '@/data/mockData';
 
 type Language = 'ar' | 'en';
 type UserRole = 'owner' | 'admin';
 type Theme = 'dark' | 'light';
+
+export type StaffPermissions = {
+  orders: boolean;
+  products: boolean;
+  analytics: boolean;
+  settings: boolean;
+  promotions: boolean;
+};
 
 interface AppContextType {
   language: Language;
@@ -25,6 +33,7 @@ interface AppContextType {
   storeLoading: boolean;
   refreshStore: () => Promise<void>;
   isAdminMode: boolean;
+  staffPermissions: StaffPermissions | null;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -42,6 +51,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState(true);
   const [currentStore, setCurrentStoreState] = useState<StoreRecord | null>(null);
   const [storeLoading, setStoreLoading] = useState(false);
+  const [staffPermissions, setStaffPermissions] = useState<StaffPermissions | null>(null);
 
   const direction = language === 'ar' ? 'rtl' : 'ltr';
 
@@ -76,6 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (saved) {
           setCurrentStoreState(JSON.parse(saved));
           setCurrentUser('owner');
+          setStaffPermissions(null);
           return;
         }
       } catch {}
@@ -86,10 +97,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setStoreLoading(true);
     try {
       const store = await getStoreByOwnerEmail(email, userId);
-      setCurrentStoreState(store || null);
+      if (store) {
+        setCurrentStoreState(store);
+        setStaffPermissions(null);
+        return;
+      }
+      // Not an owner — check if this email is a staff member of some store
+      const staffMatch = await getStaffMembershipByEmail(email);
+      if (staffMatch) {
+        setCurrentStoreState(staffMatch.store);
+        setStaffPermissions(staffMatch.permissions);
+      } else {
+        setCurrentStoreState(null);
+        setStaffPermissions(null);
+      }
     } catch (err) {
       console.error('loadStore error', err);
       setCurrentStoreState(null);
+      setStaffPermissions(null);
     } finally {
       setStoreLoading(false);
     }
@@ -151,7 +176,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       currentUser, setCurrentUser,
       supabaseUser, authLoading, signOut,
       currentStore, setCurrentStore, storeLoading, refreshStore,
-      isAdminMode,
+      isAdminMode, staffPermissions,
     }}>
       {children}
     </AppContext.Provider>
