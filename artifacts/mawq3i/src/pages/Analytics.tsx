@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Loader2, TrendingUp, ShoppingBag, Package, Star, FileDown, Globe, Percent } from 'lucide-react';
+import { Loader2, TrendingUp, ShoppingBag, Package, Star, FileDown, Globe, Percent, MapPin, Users, Radio } from 'lucide-react';
 
 function useCountUp(target: number, duration = 1200) {
   const [value, setValue] = useState(0);
@@ -117,6 +117,33 @@ export default function Analytics() {
 
   // Overall conversion rate = orders / site visits
   const overallConversionRate = siteTraffic?.visits ? (totalOrders / siteTraffic.visits) * 100 : null;
+
+  // Top cities by sales — helps the merchant target ads geographically
+  const cityMap: Record<string, { orders: number; revenue: number }> = {};
+  orders.filter(o => o.status !== 'cancelled').forEach(o => {
+    const city = ((o as any).city || '').trim();
+    if (!city) return;
+    if (!cityMap[city]) cityMap[city] = { orders: 0, revenue: 0 };
+    cityMap[city].orders += 1;
+    cityMap[city].revenue += o.amount;
+  });
+  const topCities = Object.entries(cityMap)
+    .map(([city, d]) => ({ city, ...d }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 8);
+
+  // Best customers by total spend
+  const customerMap: Record<string, { name: string; phone: string; orders: number; revenue: number }> = {};
+  orders.filter(o => o.status !== 'cancelled').forEach(o => {
+    const phone = ((o as any).phone || '').trim();
+    if (!phone) return;
+    if (!customerMap[phone]) customerMap[phone] = { name: (o as any).customerName || (o as any).customer_name || phone, phone, orders: 0, revenue: 0 };
+    customerMap[phone].orders += 1;
+    customerMap[phone].revenue += o.amount;
+  });
+  const bestCustomers = Object.values(customerMap)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 8);
 
   const animTotal = useCountUp(totalSales);
   const animOrders = useCountUp(totalOrders);
@@ -366,6 +393,101 @@ ${topProducts.length > 0 ? `
           )}
         </CardContent>
       </Card>
+
+      {/* أعلى المدن مبيعاً + أفضل العملاء + مصادر الزيارات */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="bg-card/80 border-border/50 shadow-lg">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              {isAr ? 'أعلى المدن مبيعاً' : 'Top Cities'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {topCities.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">{isAr ? 'لا توجد بيانات مدن كافية بعد.' : 'Not enough city data yet.'}</p>
+            ) : (
+              <div className="space-y-1.5">
+                {topCities.map((c, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs py-1.5 border-b border-border/20 last:border-0">
+                    <span className="truncate text-foreground">{c.city}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-muted-foreground">{c.orders} {isAr ? 'طلب' : 'orders'}</span>
+                      <span className="text-primary font-bold font-mono">{currency}{c.revenue.toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+                <p className="text-[10px] text-muted-foreground/60 pt-1">
+                  {isAr ? '💡 ركّز إعلاناتك على هالمدن لأعلى عائد' : '💡 Focus your ad targeting on these cities for best ROI'}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/80 border-border/50 shadow-lg">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              {isAr ? 'أفضل العملاء' : 'Best Customers'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {bestCustomers.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">{isAr ? 'لا توجد بيانات عملاء كافية بعد.' : 'Not enough customer data yet.'}</p>
+            ) : (
+              <div className="space-y-1.5">
+                {bestCustomers.map((c, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs py-1.5 border-b border-border/20 last:border-0">
+                    <div className="truncate">
+                      <span className="text-foreground">{c.name}</span>
+                      <span className="text-muted-foreground/60 ms-1.5 font-mono" dir="ltr">{c.phone}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-muted-foreground">{c.orders}×</span>
+                      <span className="text-primary font-bold font-mono">{currency}{c.revenue.toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/80 border-border/50 shadow-lg">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
+              <Radio className="w-4 h-4 text-primary" />
+              {isAr ? 'مصادر الزيارات' : 'Traffic Sources'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {!siteTraffic?.configured ? (
+              <p className="text-xs text-muted-foreground py-2">{isAr ? 'غير متاح حالياً.' : 'Not available yet.'}</p>
+            ) : siteTraffic?.trafficSources?.length > 0 ? (
+              <div className="space-y-1.5">
+                {siteTraffic.trafficSources.map((s: any, i: number) => {
+                  const total = siteTraffic.trafficSources.reduce((sum: number, x: any) => sum + x.sessions, 0) || 1;
+                  const pct = Math.round((s.sessions / total) * 100);
+                  return (
+                    <div key={i} className="text-xs py-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-foreground">{s.source}</span>
+                        <span className="text-primary font-bold font-mono">{pct}%</span>
+                      </div>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground py-2">{isAr ? 'لا توجد بيانات كافية بعد.' : 'Not enough data yet.'}</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {statCards.map((card, i) => (

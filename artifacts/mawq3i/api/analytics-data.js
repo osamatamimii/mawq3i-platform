@@ -166,6 +166,24 @@ export default async function handler(req, res) {
       }
     }
 
+    // Traffic sources (storefront scope only) — where visitors are coming from
+    let trafficSources = [];
+    if (scope === 'storefront') {
+      try {
+        const sourcesReport = await runReport(propertyId, {
+          days, hostname,
+          metrics: ['sessions'],
+          dimensions: ['sessionDefaultChannelGroup'],
+        });
+        trafficSources = flattenReport(sourcesReport)
+          .map(r => ({ source: r.sessionDefaultChannelGroup || 'Direct', sessions: r.sessions || 0 }))
+          .sort((a, b) => b.sessions - a.sessions)
+          .slice(0, 8);
+      } catch (e) {
+        console.error('traffic sources report failed:', e?.message);
+      }
+    }
+
     res.status(200).json({
       configured: true,
       scope,
@@ -179,6 +197,7 @@ export default async function handler(req, res) {
       avgSessionSeconds: Math.round(totals.averageSessionDuration || 0),
       topPages,
       topProducts,
+      trafficSources,
       // Back-compat aliases for existing frontend code
       activeUsers: Math.round(totals.activeUsers || 0),
       sessions: Math.round(totals.sessions || 0),
