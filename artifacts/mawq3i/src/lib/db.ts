@@ -24,6 +24,7 @@ function rowToProduct(row: any): Product {
     badge: row.badge ?? '',
     variants: row.variants ? (typeof row.variants === 'string' ? JSON.parse(row.variants) : row.variants) : [],
     storeId: row.store_id ?? '',
+    relatedProductIds: Array.isArray(row.related_product_ids) ? row.related_product_ids : [],
   };
 }
 
@@ -43,6 +44,7 @@ function productToRow(p: Partial<Product> & { storeId?: string }) {
     ...(p.videoUrl !== undefined && { video_url: p.videoUrl }),
     ...(p.badge !== undefined && { badge: p.badge }),
     ...(p.variants !== undefined && { variants: JSON.stringify(p.variants) }),
+    ...(p.relatedProductIds !== undefined && { related_product_ids: p.relatedProductIds }),
   };
 }
 

@@ -21,6 +21,7 @@ export type Product = {
   badge?: string;
   variants?: ProductVariant[];
   storeId?: string;
+  relatedProductIds?: string[];
 };
 
 export type OrderStatus = 'new' | 'processing' | 'delivered' | 'cancelled';

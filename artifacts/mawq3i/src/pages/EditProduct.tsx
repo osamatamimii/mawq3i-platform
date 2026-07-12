@@ -25,6 +25,7 @@ export default function EditProduct() {
   const { toast } = useToast();
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -45,6 +46,7 @@ export default function EditProduct() {
   useEffect(() => {
     if (!currentStore?.id) return;
     getProducts(currentStore.id, isAdminMode).then(products => {
+      setAllProducts(products);
       const found = products.find(p => p.id === params.id);
       if (found) {
         setProduct(found);
@@ -390,6 +392,46 @@ export default function EditProduct() {
                 </button>
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{isAr ? 'منتجات مقترحة معه (Upsell)' : 'Suggested Add-ons (Upsell)'}</CardTitle>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              {isAr ? 'هالمنتجات رح تظهر كـ"أضف معه" بصفحة هالمنتج بالموقع' : 'These products will show as "add together" on this product\'s storefront page'}
+            </p>
+          </CardHeader>
+          <CardContent className="pt-2">
+            {allProducts.filter(p => p.id !== product.id).length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">{isAr ? 'أضف منتجات ثانية عشان تقدر تربطها هون' : 'Add more products first to link them here'}</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto">
+                {allProducts.filter(p => p.id !== product.id).map(p => {
+                  const selected = (product.relatedProductIds || []).includes(p.id);
+                  return (
+                    <button
+                      type="button"
+                      key={p.id}
+                      onClick={() => {
+                        const current = product.relatedProductIds || [];
+                        set('relatedProductIds', selected ? current.filter(id => id !== p.id) : [...current, p.id]);
+                      }}
+                      className={`flex items-center gap-2 p-2 rounded-lg border text-start transition-colors ${
+                        selected ? 'border-primary/50 bg-primary/10' : 'border-border/50 bg-background/30 hover:border-border'
+                      }`}
+                    >
+                      {p.imageUrl ? (
+                        <img src={p.imageUrl} className="w-8 h-8 rounded object-cover flex-shrink-0" alt="" />
+                      ) : (
+                        <div className="w-8 h-8 rounded bg-muted flex-shrink-0 flex items-center justify-center"><ImageIcon className="w-3.5 h-3.5 text-muted-foreground" /></div>
+                      )}
+                      <span className="text-xs truncate">{p.nameAr || p.nameEn}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
