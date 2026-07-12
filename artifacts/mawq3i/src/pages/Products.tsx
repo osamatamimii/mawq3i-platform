@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { Link } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
 import { Product } from '@/data/mockData';
-import { getProducts, updateProduct, deleteProduct } from '@/lib/db';
+import { getProducts, updateProduct, deleteProduct, recordOfflineSale } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Loader2, Package, Camera, Upload, Download, Share2, Search, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Package, Camera, Upload, Download, Share2, Search, X, Store } from 'lucide-react';
 import ShareProductModal from '@/components/ShareProductModal';
 import { useToast } from '@/hooks/use-toast';
 
@@ -29,6 +29,11 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [offlineSaleProduct, setOfflineSaleProduct] = useState<Product | null>(null);
+  const [offlineQty, setOfflineQty] = useState('1');
+  const [offlinePrice, setOfflinePrice] = useState('');
+  const [offlineNote, setOfflineNote] = useState('');
+  const [offlineSaving, setOfflineSaving] = useState(false);
   const [shareProduct, setShareProduct] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImageId, setUploadingImageId] = useState<string | null>(null);
@@ -89,6 +94,34 @@ export default function Products() {
     setProducts(prev => prev.filter(p => p.id !== deleteId));
     await deleteProduct(deleteId, isAdminMode);
     setDeleteId(null);
+  };
+
+  const openOfflineSale = (product: Product) => {
+    setOfflineSaleProduct(product);
+    setOfflineQty('1');
+    setOfflinePrice(String(product.price ?? ''));
+    setOfflineNote('');
+  };
+
+  const submitOfflineSale = async () => {
+    if (!offlineSaleProduct || !currentStore) return;
+    const qty = parseInt(offlineQty, 10) || 0;
+    const price = parseFloat(offlinePrice) || 0;
+    if (qty <= 0) return;
+    setOfflineSaving(true);
+    const ok = await recordOfflineSale(
+      currentStore.id,
+      { id: offlineSaleProduct.id, name: offlineSaleProduct.nameAr || offlineSaleProduct.nameEn, stock: offlineSaleProduct.stock },
+      qty, price, offlineNote, isAdminMode
+    );
+    setOfflineSaving(false);
+    if (ok) {
+      setProducts(prev => prev.map(p => p.id === offlineSaleProduct.id ? { ...p, stock: Math.max(0, p.stock - qty) } : p));
+      toast({ title: isAr ? 'تم تسجيل البيع الأوفلاين' : 'Offline sale recorded' });
+      setOfflineSaleProduct(null);
+    } else {
+      toast({ title: isAr ? 'تعذّر تسجيل البيع' : 'Could not record sale', variant: 'destructive' });
+    }
   };
 
   if (loading) {
@@ -301,6 +334,9 @@ export default function Products() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
+                          <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-amber-500/50 hover:text-amber-400" onClick={() => openOfflineSale(product)} title={isAr ? 'تسجيل بيع أوفلاين' : 'Record offline sale'} data-testid={`button-offline-sale-${product.id}`}>
+                            <Store className="w-3.5 h-3.5" />
+                          </Button>
                           <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/40 hover:text-primary" onClick={() => setShareProduct(product)} title={isAr ? 'مشاركة المنتج' : 'Share product'} data-testid={`button-share-${product.id}`}>
                             <Share2 className="w-3.5 h-3.5" />
                           </Button>
@@ -320,6 +356,48 @@ export default function Products() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!offlineSaleProduct} onOpenChange={o => !o && setOfflineSaleProduct(null)}>
+        <DialogContent className="bg-card border-border/50 sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Store className="w-4 h-4 text-amber-400" />
+              {isAr ? 'تسجيل بيع أوفلاين' : 'Record Offline Sale'}
+            </DialogTitle>
+          </DialogHeader>
+          {offlineSaleProduct && (
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">{offlineSaleProduct.nameAr || offlineSaleProduct.nameEn}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">{isAr ? 'الكمية المباعة' : 'Quantity sold'}</Label>
+                  <Input type="number" min={1} max={offlineSaleProduct.stock} value={offlineQty} onChange={e => setOfflineQty(e.target.value)} className="bg-background/50 border-border/50 font-mono" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">{isAr ? 'سعر البيع' : 'Sale price'}</Label>
+                  <Input type="number" value={offlinePrice} onChange={e => setOfflinePrice(e.target.value)} className="bg-background/50 border-border/50 font-mono" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">{isAr ? 'ملاحظة (اختياري)' : 'Note (optional)'}</Label>
+                <Input value={offlineNote} onChange={e => setOfflineNote(e.target.value)} placeholder={isAr ? 'مثال: بيع من المحل' : 'e.g. sold in-store'} className="bg-background/50 border-border/50" />
+              </div>
+              <p className="text-xs text-muted-foreground bg-amber-500/5 border border-amber-500/20 rounded-lg p-2.5">
+                {isAr
+                  ? `المخزون الحالي: ${offlineSaleProduct.stock} — بعد التسجيل بيصير: ${Math.max(0, offlineSaleProduct.stock - (parseInt(offlineQty, 10) || 0))}`
+                  : `Current stock: ${offlineSaleProduct.stock} — after recording: ${Math.max(0, offlineSaleProduct.stock - (parseInt(offlineQty, 10) || 0))}`}
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOfflineSaleProduct(null)}>{isAr ? 'إلغاء' : 'Cancel'}</Button>
+            <Button onClick={submitOfflineSale} disabled={offlineSaving} className="gap-2">
+              {offlineSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Store className="w-4 h-4" />}
+              {isAr ? 'تسجيل البيع' : 'Record Sale'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editProduct} onOpenChange={o => !o && setEditProduct(null)}>
         <DialogContent className="bg-card border-border/50 sm:max-w-lg">

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import { getOrders, getProducts } from '@/lib/db';
+import { getOrders, getProducts, getOfflineSalesForStore, OfflineSale } from '@/lib/db';
 import { Order, Product } from '@/data/mockData';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Loader2, TrendingUp, ShoppingBag, Package, Star, FileDown, Globe, Percent, MapPin, Users, Radio } from 'lucide-react';
+import { Loader2, TrendingUp, ShoppingBag, Package, Star, FileDown, Globe, Percent, MapPin, Users, Radio, Store } from 'lucide-react';
 
 function useCountUp(target: number, duration = 1200) {
   const [value, setValue] = useState(0);
@@ -29,6 +29,7 @@ export default function Analytics() {
   const isAr = language === 'ar';
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [offlineSales, setOfflineSales] = useState<OfflineSale[]>([]);
   const [loading, setLoading] = useState(true);
   const [siteTraffic, setSiteTraffic] = useState<any>(null);
   const [trafficLoading, setTrafficLoading] = useState(true);
@@ -50,7 +51,8 @@ export default function Analytics() {
     Promise.all([
       getOrders(currentStore?.id, isAdminMode),
       getProducts(currentStore?.id, isAdminMode),
-    ]).then(([o, p]) => { setOrders(o); setProducts(p); setLoading(false); });
+      currentStore?.id ? getOfflineSalesForStore(currentStore.id, isAdminMode) : Promise.resolve([]),
+    ]).then(([o, p, os]) => { setOrders(o); setProducts(p); setOfflineSales(os); setLoading(false); });
   }, [currentStore?.id]);
 
   // Compute real stats
@@ -144,6 +146,15 @@ export default function Analytics() {
   const bestCustomers = Object.values(customerMap)
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 8);
+
+  // Online vs offline (in-store) sales — unified inventory picture
+  const offlineRevenue = offlineSales.reduce((s, o) => s + o.salePrice * o.quantity, 0);
+  const offlineCount = offlineSales.reduce((s, o) => s + o.quantity, 0);
+  const onlineRevenue = totalSales;
+  const onlineCount = orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (Array.isArray(o.items) ? o.items.reduce((n: number, i: any) => n + (i.qty || i.quantity || 1), 0) : 1), 0);
+  const totalChannelRevenue = onlineRevenue + offlineRevenue || 1;
+  const onlinePct = Math.round((onlineRevenue / totalChannelRevenue) * 100);
+  const offlinePct = 100 - onlinePct;
 
   const animTotal = useCountUp(totalSales);
   const animOrders = useCountUp(totalOrders);
@@ -286,6 +297,47 @@ ${topProducts.length > 0 ? `
           {isAr ? 'تصدير PDF' : 'Export PDF'}
         </Button>
       </div>
+
+      {/* أونلاين مقابل أوفلاين — نظرة موحّدة على المبيعات */}
+      {(onlineRevenue > 0 || offlineRevenue > 0) && (
+        <Card className="bg-card/80 border-border/50 shadow-lg">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
+              <Store className="w-4 h-4 text-primary" />
+              {isAr ? 'أونلاين مقابل أوفلاين' : 'Online vs Offline'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-3">
+            <div className="flex h-3 rounded-full overflow-hidden bg-muted">
+              <div className="bg-primary h-full" style={{ width: `${onlinePct}%` }} />
+              <div className="bg-amber-400 h-full" style={{ width: `${offlinePct}%` }} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="text-xs text-muted-foreground">{isAr ? 'أونلاين' : 'Online'}</span>
+                </div>
+                <p className="text-lg font-bold font-mono text-foreground">{currency}{onlineRevenue.toLocaleString()}</p>
+                <p className="text-[11px] text-muted-foreground">{onlineCount} {isAr ? 'قطعة مباعة' : 'items sold'} · {onlinePct}%</p>
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  <span className="text-xs text-muted-foreground">{isAr ? 'أوفلاين (بالمحل)' : 'Offline (in-store)'}</span>
+                </div>
+                <p className="text-lg font-bold font-mono text-foreground">{currency}{offlineRevenue.toLocaleString()}</p>
+                <p className="text-[11px] text-muted-foreground">{offlineCount} {isAr ? 'قطعة مباعة' : 'items sold'} · {offlinePct}%</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground/60 pt-1 border-t border-border/40">
+              {isAr
+                ? '💡 سجّل مبيعاتك من داخل المحل بزر "بيع أوفلاين" بصفحة المنتجات — المخزون بيتحدّث تلقائياً بالاثنين.'
+                : '💡 Record in-store sales via the "Offline sale" button on the Products page — stock updates automatically for both channels.'}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* زوار الموقع — Google Analytics */}
       <Card className="bg-card/80 border-border/50 shadow-lg">

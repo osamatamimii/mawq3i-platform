@@ -611,3 +611,76 @@ export async function getStaffMembershipByEmail(email: string): Promise<{ store:
     return null;
   }
 }
+
+// ─── Offline sales (in-store, unified inventory tracking) ─────────────
+
+export type OfflineSale = {
+  id: string;
+  storeId: string;
+  productId: string | null;
+  productName: string;
+  quantity: number;
+  salePrice: number;
+  note: string;
+  createdAt: string;
+};
+
+function rowToOfflineSale(row: any): OfflineSale {
+  return {
+    id: String(row.id),
+    storeId: String(row.store_id),
+    productId: row.product_id ? String(row.product_id) : null,
+    productName: row.product_name ?? '',
+    quantity: Number(row.quantity) || 0,
+    salePrice: Number(row.sale_price) || 0,
+    note: row.note ?? '',
+    createdAt: row.created_at ?? '',
+  };
+}
+
+export async function getOfflineSalesForStore(storeId: string, useAdmin = false): Promise<OfflineSale[]> {
+  try {
+    if (useAdmin) {
+      const rows = await adminRest.select('offline_sales', `store_id=eq.${storeId}&order=created_at.desc&limit=500`);
+      return rows.map(rowToOfflineSale);
+    }
+    const { data, error } = await supabase.from('offline_sales').select('*').eq('store_id', storeId).order('created_at', { ascending: false }).limit(500);
+    if (error || !data) return [];
+    return data.map(rowToOfflineSale);
+  } catch {
+    return [];
+  }
+}
+
+// Records a manual (in-store/offline) sale and decrements the product's stock accordingly.
+export async function recordOfflineSale(
+  storeId: string,
+  product: { id: string; name: string; stock: number },
+  quantity: number,
+  salePrice: number,
+  note: string,
+  useAdmin = false
+): Promise<boolean> {
+  try {
+    const newStock = Math.max(0, (product.stock || 0) - quantity);
+    const row = {
+      store_id: storeId,
+      product_id: product.id,
+      product_name: product.name,
+      quantity,
+      sale_price: salePrice,
+      note,
+    };
+    if (useAdmin) {
+      const inserted = await adminRest.insert('offline_sales', row);
+      if (!inserted) return false;
+      return await adminRest.update('products', `id=eq.${product.id}`, { stock: newStock });
+    }
+    const { error: insertError } = await supabase.from('offline_sales').insert([row]);
+    if (insertError) return false;
+    const { error: updateError } = await supabase.from('products').update({ stock: newStock }).eq('id', product.id);
+    return !updateError;
+  } catch {
+    return false;
+  }
+}
