@@ -562,17 +562,38 @@ export async function getStaffForStore(storeId: string, useAdmin = false): Promi
   }
 }
 
-export async function addStaffMember(storeId: string, email: string, fullName: string, permissions: StaffMember['permissions'], useAdmin = false): Promise<boolean> {
+export async function addStaffMember(storeId: string, email: string, fullName: string, permissions: StaffMember['permissions'], useAdmin = false): Promise<StaffMember | null> {
   try {
     const row = { store_id: storeId, email: email.trim().toLowerCase(), full_name: fullName, permissions };
     if (useAdmin) {
       const res = await adminRest.insert('store_staff', row);
-      return !!res;
+      return res ? rowToStaff(res) : null;
     }
-    const { error } = await supabase.from('store_staff').insert([row]);
-    return !error;
+    const { data, error } = await supabase.from('store_staff').insert([row]).select().single();
+    if (error || !data) return null;
+    return rowToStaff(data);
   } catch {
-    return false;
+    return null;
+  }
+}
+
+// Provisions (or links) a real Supabase Auth login account for a staff member
+// via the server-side admin endpoint, so the store owner never needs to ask
+// us to create it manually. Returns the temp password to show the owner once.
+export async function createStaffLoginAccount(staffId: string, email: string, fullName: string): Promise<{ success: boolean; tempPassword: string | null; alreadyExisted: boolean; error?: string }> {
+  try {
+    const res = await fetch('/api/create-staff-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ staffId, email, fullName }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, tempPassword: null, alreadyExisted: false, error: data?.error || 'فشل إنشاء الحساب' };
+    }
+    return { success: true, tempPassword: data.tempPassword ?? null, alreadyExisted: !!data.alreadyExisted };
+  } catch {
+    return { success: false, tempPassword: null, alreadyExisted: false, error: 'خطأ بالاتصال' };
   }
 }
 

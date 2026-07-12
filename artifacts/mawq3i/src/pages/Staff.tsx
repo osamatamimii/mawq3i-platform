@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import { getStaffForStore, addStaffMember, updateStaffPermissions, removeStaffMember, StaffMember } from '@/lib/db';
+import { getStaffForStore, addStaffMember, updateStaffPermissions, removeStaffMember, createStaffLoginAccount, StaffMember } from '@/lib/db';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Loader2, Users, ShoppingCart, Package, BarChart3, Settings, Tag } from 'lucide-react';
+import { Plus, Trash2, Loader2, Users, ShoppingCart, Package, BarChart3, Settings, Tag, KeyRound, Copy, CheckCircle2 } from 'lucide-react';
 
 type PermKey = 'orders' | 'products' | 'analytics' | 'settings' | 'promotions';
 
@@ -32,6 +33,8 @@ export default function Staff() {
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [perms, setPerms] = useState(emptyPerms());
+  const [provisioningId, setProvisioningId] = useState<string | null>(null);
+  const [credentialsDialog, setCredentialsDialog] = useState<{ email: string; password: string } | null>(null);
 
   const load = async () => {
     if (!currentStore) return;
@@ -46,15 +49,55 @@ export default function Staff() {
   const handleAdd = async () => {
     if (!currentStore || !email.trim()) return;
     setSaving(true);
-    const ok = await addStaffMember(currentStore.id, email, fullName, perms, isAdminMode);
+    const created = await addStaffMember(currentStore.id, email, fullName, perms, isAdminMode);
+    if (!created) {
+      setSaving(false);
+      toast({ title: isAr ? 'تعذّرت الإضافة' : 'Could not add staff member', variant: 'destructive' });
+      return;
+    }
+    toast({ title: isAr ? 'تمت إضافة الموظف' : 'Staff member added' });
+    const addedEmail = created.email;
+    setEmail(''); setFullName(''); setPerms(emptyPerms());
+    await load();
+
+    // Auto-provision a real login account right away — no manual step needed.
+    setProvisioningId(created.id);
+    const result = await createStaffLoginAccount(created.id, addedEmail, created.fullName);
+    setProvisioningId(null);
     setSaving(false);
-    if (ok) {
-      toast({ title: isAr ? 'تمت إضافة الموظف' : 'Staff member added' });
-      setEmail(''); setFullName(''); setPerms(emptyPerms());
+    if (result.success && result.tempPassword) {
+      setCredentialsDialog({ email: addedEmail, password: result.tempPassword });
+      load();
+    } else if (result.success && result.alreadyExisted) {
+      toast({ title: isAr ? 'الحساب مربوط — البريد كان له حساب دخول مسبقاً' : 'Linked — this email already had a login account' });
       load();
     } else {
-      toast({ title: isAr ? 'تعذّرت الإضافة' : 'Could not add staff member', variant: 'destructive' });
+      toast({ title: isAr ? 'تمت إضافة الموظف لكن تعذّر إنشاء حساب الدخول تلقائياً' : 'Staff member added but auto login setup failed', description: result.error, variant: 'destructive' });
     }
+  };
+
+  const provisionAccount = async (member: StaffMember) => {
+    setProvisioningId(member.id);
+    const result = await createStaffLoginAccount(member.id, member.email, member.fullName);
+    setProvisioningId(null);
+    if (result.success && result.tempPassword) {
+      setCredentialsDialog({ email: member.email, password: result.tempPassword });
+      load();
+    } else if (result.success && result.alreadyExisted) {
+      toast({ title: isAr ? 'الحساب مربوط — البريد كان له حساب دخول مسبقاً' : 'Linked — this email already had a login account' });
+      load();
+    } else {
+      toast({ title: isAr ? 'تعذّر إنشاء الحساب' : 'Could not create account', description: result.error, variant: 'destructive' });
+    }
+  };
+
+  const copyCredentials = () => {
+    if (!credentialsDialog) return;
+    const text = isAr
+      ? `بيانات الدخول لمنصة موقعي:\nالبريد: ${credentialsDialog.email}\nكلمة المرور المؤقتة: ${credentialsDialog.password}\nرابط الدخول: https://mawq3i.co/login`
+      : `Mawq3i login details:\nEmail: ${credentialsDialog.email}\nTemporary password: ${credentialsDialog.password}\nLogin: https://mawq3i.co/login`;
+    navigator.clipboard?.writeText(text);
+    toast({ title: isAr ? 'تم النسخ ✅' : 'Copied ✅' });
   };
 
   const togglePerm = async (member: StaffMember, key: PermKey) => {
@@ -108,10 +151,10 @@ export default function Staff() {
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground bg-amber-500/5 border border-amber-500/20 rounded-lg p-3">
+          <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/20 rounded-lg p-3">
             {isAr
-              ? 'ملاحظة: بعد إضافة الموظف هون، لازم تنشئ له حساب دخول (بريد + كلمة مرور) بنفس هالإيميل — تواصل معنا لإنشائه.'
-              : 'Note: after adding the staff member here, a login account (email + password) still needs to be created for that same email — contact us to set it up.'}
+              ? 'حساب الدخول بينعمل تلقائياً فور الإضافة — رح تظهرلك كلمة مرور مؤقتة تقدر تنسخها وترسلها للموظف على واتساب.'
+              : 'A login account is created automatically as soon as you add the staff member — you\'ll get a temporary password to copy and send them.'}
           </p>
 
           <Button onClick={handleAdd} disabled={saving || !email.trim()} className="gap-2">
@@ -139,9 +182,26 @@ export default function Staff() {
                       <p className="text-sm font-medium">{member.fullName || member.email}</p>
                       <p className="text-xs text-muted-foreground" dir="ltr">{member.email}</p>
                     </div>
-                    <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-red-500/50 hover:text-red-400" onClick={() => handleRemove(member.id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {member.userId ? (
+                        <span className="flex items-center gap-1 text-[11px] text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2 py-1">
+                          <CheckCircle2 className="w-3 h-3" />{isAr ? 'الحساب مفعّل' : 'Account active'}
+                        </span>
+                      ) : (
+                        <Button
+                          variant="outline" size="sm"
+                          className="h-7 text-[11px] gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                          disabled={provisioningId === member.id}
+                          onClick={() => provisionAccount(member)}
+                        >
+                          {provisioningId === member.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
+                          {isAr ? 'إنشاء حساب دخول' : 'Create login'}
+                        </Button>
+                      )}
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-red-500/50 hover:text-red-400" onClick={() => handleRemove(member.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {PERMISSION_FIELDS.map(f => (
@@ -165,6 +225,27 @@ export default function Staff() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!credentialsDialog} onOpenChange={(open) => !open && setCredentialsDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><KeyRound className="w-4 h-4 text-primary" />{isAr ? 'بيانات دخول الموظف' : 'Staff login details'}</DialogTitle>
+            <DialogDescription>
+              {isAr ? 'انسخ البيانات وأرسلها للموظف على واتساب — ما رح تظهر مرة ثانية.' : 'Copy these and send them to the staff member — this won\'t be shown again.'}
+            </DialogDescription>
+          </DialogHeader>
+          {credentialsDialog && (
+            <div className="space-y-2 bg-background/50 border border-border/50 rounded-lg p-4" dir="ltr">
+              <p className="text-sm"><span className="text-muted-foreground">Email:</span> <span className="font-mono">{credentialsDialog.email}</span></p>
+              <p className="text-sm"><span className="text-muted-foreground">Password:</span> <span className="font-mono font-semibold">{credentialsDialog.password}</span></p>
+              <p className="text-sm"><span className="text-muted-foreground">Login:</span> <span className="font-mono">mawq3i.co/login</span></p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={copyCredentials} className="gap-2 w-full"><Copy className="w-4 h-4" />{isAr ? 'نسخ البيانات' : 'Copy details'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
