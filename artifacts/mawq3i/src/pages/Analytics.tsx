@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Loader2, TrendingUp, ShoppingBag, Package, Star, FileDown, Globe } from 'lucide-react';
+import { Loader2, TrendingUp, ShoppingBag, Package, Star, FileDown, Globe, Percent } from 'lucide-react';
 
 function useCountUp(target: number, duration = 1200) {
   const [value, setValue] = useState(0);
@@ -98,6 +98,26 @@ export default function Analytics() {
   });
   const topProducts = Object.entries(productSales).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
+  // ── Per-product performance: merge GA4 views with real sales/revenue per product ──
+  const productPerformance = products.map(p => {
+    const productOrders = orders.filter(o =>
+      o.status !== 'cancelled' &&
+      Array.isArray(o.items) &&
+      o.items.some((i: any) => i.productId === p.id || i.product_id === p.id)
+    );
+    const revenue = productOrders.reduce((s, o) => s + o.amount, 0);
+    const viewEntry = siteTraffic?.topProducts?.find((tp: any) => tp.itemId === p.id);
+    const views = viewEntry?.itemsViewed || 0;
+    const conversionRate = views > 0 ? (productOrders.length / views) * 100 : null;
+    return { id: p.id, name: p.nameAr || p.nameEn, views, orders: productOrders.length, revenue, conversionRate };
+  })
+    .filter(p => p.views > 0 || p.orders > 0)
+    .sort((a, b) => b.revenue - a.revenue || b.views - a.views)
+    .slice(0, 10);
+
+  // Overall conversion rate = orders / site visits
+  const overallConversionRate = siteTraffic?.visits ? (totalOrders / siteTraffic.visits) * 100 : null;
+
   const animTotal = useCountUp(totalSales);
   const animOrders = useCountUp(totalOrders);
   const animDelivered = useCountUp(deliveredOrders);
@@ -108,6 +128,7 @@ export default function Analytics() {
     { titleAr: 'إجمالي الطلبات', titleEn: 'Total Orders', value: animOrders, icon: ShoppingBag, color: 'text-blue-400', bg: 'bg-blue-400/10', ring: 'ring-blue-400/20' },
     { titleAr: 'تم التسليم', titleEn: 'Delivered', value: animDelivered, icon: Package, color: 'text-emerald-400', bg: 'bg-emerald-400/10', ring: 'ring-emerald-400/20' },
     { titleAr: 'متوسط قيمة الطلب', titleEn: 'Avg Order', value: `${currency}${animAvg}`, icon: Star, color: 'text-amber-400', bg: 'bg-amber-400/10', ring: 'ring-amber-400/20' },
+    { titleAr: 'نسبة التحويل', titleEn: 'Conversion Rate', value: overallConversionRate !== null ? `${overallConversionRate.toFixed(1)}%` : (isAr ? '—' : '—'), icon: Percent, color: 'text-purple-400', bg: 'bg-purple-400/10', ring: 'ring-purple-400/20' },
   ];
 
 
@@ -297,8 +318,56 @@ ${topProducts.length > 0 ? `
           )}
         </CardContent>
       </Card>
+
+      {/* أداء كل منتج — مشاهدات + طلبات + تحويل */}
+      <Card className="bg-card/80 border-border/50 shadow-lg">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold text-foreground/80 flex items-center gap-2">
+            <Package className="w-4 h-4 text-primary" />
+            {isAr ? 'أداء المنتجات' : 'Product Performance'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {productPerformance.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">
+              {isAr ? 'لسا ما في بيانات كافية عن أداء المنتجات.' : 'Not enough product performance data yet.'}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-muted-foreground border-b border-border/40">
+                    <th className="text-start py-2 font-medium">{isAr ? 'المنتج' : 'Product'}</th>
+                    <th className="text-center py-2 font-medium">{isAr ? 'مشاهدات' : 'Views'}</th>
+                    <th className="text-center py-2 font-medium">{isAr ? 'طلبات' : 'Orders'}</th>
+                    <th className="text-center py-2 font-medium">{isAr ? 'الإيراد' : 'Revenue'}</th>
+                    <th className="text-center py-2 font-medium">{isAr ? 'نسبة التحويل' : 'Conversion'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {productPerformance.map(p => (
+                    <tr key={p.id} className="border-b border-border/20 last:border-0">
+                      <td className="py-2 text-foreground truncate max-w-[160px]">{p.name}</td>
+                      <td className="py-2 text-center text-foreground/80 font-mono">{p.views || '—'}</td>
+                      <td className="py-2 text-center text-foreground/80 font-mono">{p.orders}</td>
+                      <td className="py-2 text-center text-primary font-bold font-mono">{currency}{p.revenue.toLocaleString()}</td>
+                      <td className="py-2 text-center font-mono">
+                        {p.conversionRate !== null ? (
+                          <span className={p.conversionRate >= 2 ? 'text-emerald-400 font-bold' : 'text-muted-foreground'}>
+                            {p.conversionRate.toFixed(1)}%
+                          </span>
+                        ) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {statCards.map((card, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07, duration: 0.45, ease: [0.22, 1, 0.36, 1] }} whileHover={{ y: -3, transition: { duration: 0.2 } }}>
             <Card className={card.glow
