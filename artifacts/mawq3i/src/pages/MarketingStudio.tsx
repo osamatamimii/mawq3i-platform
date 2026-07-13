@@ -70,6 +70,7 @@ export default function MarketingStudio() {
           currentText: `${name} — ${price}${selectedProduct.descAr ? ' — ' + selectedProduct.descAr : ''}`,
           context: `${currentStore.name} — ${selectedProduct.category || ''}`,
           language,
+          storeId: currentStore.id,
         }),
       });
       const data = await res.json();
@@ -109,6 +110,7 @@ export default function MarketingStudio() {
           currentText: waPrompt,
           context: currentStore.name,
           language,
+          storeId: currentStore.id,
         }),
       });
       const data = await res.json();

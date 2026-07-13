@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Loader2, Check, RefreshCw } from 'lucide-react';
+import { useAppContext } from '@/context/AppContext';
 
 interface AiEnhanceButtonProps {
   fieldType: 'product_name' | 'product_description' | 'promo_title' | 'promo_subtitle' | 'store_description';
@@ -26,6 +27,7 @@ export default function AiEnhanceButton({
   disabled,
 }: AiEnhanceButtonProps) {
   const isAr = language !== 'en';
+  const { currentStore } = useAppContext();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -39,7 +41,7 @@ export default function AiEnhanceButton({
       const res = await fetch('/api/enhance-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fieldType, currentText, context, language }),
+        body: JSON.stringify({ fieldType, currentText, context, language, storeId: currentStore?.id }),
       });
       const data = await res.json();
       if (!res.ok || !data.suggestions?.length) {

@@ -81,6 +81,7 @@ export default function ShareProductModal({
           currentText: `${productName} — ${price}${product.descAr ? ' — ' + product.descAr : ''}`,
           context: `${storeName} — ${product.category || ''}`,
           language,
+          storeId: store.id,
         }),
       });
       const data = await res.json();

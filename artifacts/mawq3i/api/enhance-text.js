@@ -1,5 +1,20 @@
 const OPENAI_MODEL = 'gpt-4.1-nano';
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const SUPABASE_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
+
+async function logUsageEvent(storeId, featureKey) {
+  if (!storeId) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/feature_usage_events`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ store_id: storeId, event_type: 'ai_tool', feature_key: featureKey }),
+    });
+  } catch (e) {
+    console.error('logUsageEvent failed:', e);
+  }
+}
 
 // Per-field-type instructions — keeps each field's enhancement style appropriate
 // (a product description needs different guidance than a short promo tag).
@@ -83,7 +98,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { fieldType, currentText, context, language } = req.body || {};
+    const { fieldType, currentText, context, language, storeId } = req.body || {};
 
     if (!fieldType) {
       res.status(400).json({ error: 'Missing fieldType' });
@@ -143,6 +158,8 @@ export default async function handler(req, res) {
       });
       return;
     }
+
+    await logUsageEvent(storeId, `text:${fieldType}`);
 
     res.status(200).json({ suggestions });
   } catch (err) {

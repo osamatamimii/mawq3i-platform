@@ -1,12 +1,25 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
+import { useAppContext } from '@/context/AppContext';
+import { supabase } from '@/lib/supabase';
 
 export function Layout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [location] = useLocation();
+  const { currentStore } = useAppContext();
+
+  // Fire-and-forget page-view tracking per dashboard section, so admins can
+  // see which parts of the platform actually get used.
+  useEffect(() => {
+    if (!currentStore?.id) return;
+    supabase
+      .from('feature_usage_events')
+      .insert([{ store_id: currentStore.id, event_type: 'page_view', feature_key: location }])
+      .then(() => {}, () => {});
+  }, [location, currentStore?.id]);
 
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden selection:bg-primary/30">

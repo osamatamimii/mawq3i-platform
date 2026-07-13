@@ -5,6 +5,19 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const sbHeaders = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' };
 
+async function logUsageEvent(storeId, featureKey) {
+  if (!storeId) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/feature_usage_events`, {
+      method: 'POST',
+      headers: { ...sbHeaders, Prefer: 'return=minimal' },
+      body: JSON.stringify({ store_id: storeId, event_type: 'ai_tool', feature_key: featureKey }),
+    });
+  } catch (e) {
+    console.error('logUsageEvent failed:', e);
+  }
+}
+
 async function sbGet(path) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: sbHeaders });
   if (!r.ok) throw new Error(`Supabase GET failed: ${r.status}`);
@@ -311,6 +324,8 @@ export default async function handler(req, res) {
         chatMessages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
       }
     }
+
+    await logUsageEvent(storeId, 'ai_agent');
 
     res.status(200).json({ reply: finalReply, dataCards, pendingAction });
   } catch (err) {

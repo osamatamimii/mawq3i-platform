@@ -14,6 +14,7 @@ import {
   Menu,
   Sun,
   Moon,
+  Sparkles,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -25,6 +26,7 @@ const adminNavItems = [
   { href: '/admin/clients', icon: Users, labelAr: 'العملاء', labelEn: 'Clients', exact: false },
   { href: '/admin/subscriptions', icon: CreditCard, labelAr: 'الاشتراكات', labelEn: 'Subscriptions', exact: false },
   { href: '/admin/domains', icon: Globe, labelAr: 'الدومينات', labelEn: 'Domains', exact: false },
+  { href: '/admin/ai-usage', icon: Sparkles, labelAr: 'استخدام الذكاء الاصطناعي', labelEn: 'AI Usage', exact: false },
   { href: '/admin/settings', icon: Settings, labelAr: 'الإعدادات', labelEn: 'Settings', exact: false },
 ];
 
@@ -34,6 +36,7 @@ const adminRouteNames: Record<string, { ar: string; en: string }> = {
   '/admin/clients': { ar: 'العملاء', en: 'Clients' },
   '/admin/subscriptions': { ar: 'الاشتراكات', en: 'Subscriptions' },
   '/admin/domains': { ar: 'الدومينات', en: 'Domains' },
+  '/admin/ai-usage': { ar: 'استخدام الذكاء الاصطناعي', en: 'AI Usage' },
   '/admin/settings': { ar: 'الإعدادات', en: 'Settings' },
   '/admin/site-builder': { ar: 'منشئ المواقع', en: 'Site Builder' },
 };

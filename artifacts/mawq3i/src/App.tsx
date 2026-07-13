@@ -24,6 +24,7 @@ import AdminClients from "@/pages/admin/Clients";
 import AdminSubscriptions from "@/pages/admin/Subscriptions";
 import AdminDomains from "@/pages/admin/Domains";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import AIUsage from "@/pages/admin/AIUsage";
 import SiteBuilder from "@/pages/SiteBuilder";
 import EditProduct from "@/pages/EditProduct";
 import Promotions from "@/pages/Promotions";
@@ -101,6 +102,7 @@ function Router() {
               <Route path="/admin/subscriptions" component={AdminSubscriptions} />
               <Route path="/admin/domains" component={AdminDomains} />
               <Route path="/admin/settings" component={AdminSettings} />
+              <Route path="/admin/ai-usage" component={AIUsage} />
               <Route path="/admin/site-builder/:slug" component={SiteBuilder} />
               <Route component={NotFound} />
             </Switch>
