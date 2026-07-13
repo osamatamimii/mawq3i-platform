@@ -3,7 +3,7 @@ export const config = { maxDuration: 60 };
 const OPENAI_IMAGES_URL = 'https://api.openai.com/v1/images/edits';
 const OPENAI_IMAGE_MODEL = 'gpt-image-2';
 const ALLOWED_SIZES = ['1024x1024', '1024x1536', '1536x1024'];
-const MAX_TOTAL_IMAGES = 6; // guardrail on cost/time for the multi-image 'promo' mode
+const MAX_TOTAL_IMAGES = 3; // guardrail on cost/time for the multi-image 'promo' mode — tuned from live timeout testing
 
 function buildEnhancePrompt(brandIdentity, isAr) {
   const hasIdentity = brandIdentity && brandIdentity.trim();
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
         : ['1024x1024'];
       if (!requestedSizes.length) requestedSizes = ['1024x1024'];
 
-      let n = Number.isFinite(count) ? Math.max(1, Math.min(4, Math.floor(count))) : 1;
+      let n = Number.isFinite(count) ? Math.max(1, Math.min(3, Math.floor(count))) : 1;
       while (requestedSizes.length * n > MAX_TOTAL_IMAGES && requestedSizes.length > 1) {
         requestedSizes = requestedSizes.slice(0, requestedSizes.length - 1);
       }

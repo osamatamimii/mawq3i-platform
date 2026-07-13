@@ -345,7 +345,7 @@ export default function MarketingStudio() {
           <div className="flex items-center justify-between">
             <label className="text-xs text-muted-foreground font-medium">{isAr ? 'عدد الصور لكل مقاس' : 'Images per size'}</label>
             <div className="flex items-center gap-1">
-              {[1, 2, 3, 4].map(n => (
+              {[1, 2, 3].map(n => (
                 <button
                   key={n}
                   onClick={() => setImgCount(n)}
