@@ -28,6 +28,10 @@ const FIELD_GUIDANCE = {
     ar: 'منشور إنستغرام/فيسبوك ترويجي لمنتج، بلهجة عربية دارجة حماسية (مو فصحى رسمية)، يشمل: جملة افتتاحية تلفت الانتباه، ذكر السعر والميزة الأساسية، دعوة واضحة للطلب (مثل "اطلبه الحين 🛒" أو "الكمية محدودة")، وبنهايته 5-8 هاشتاقات مناسبة للسوق العربي المحلي (مزيج من هاشتاقات عامة للتسوق وهاشتاقات خاصة بنوع المنتج). لا تستخدم إيموجي أكتر من اللازم (3-5 بالمنشور كامل).',
     en: 'A promotional Instagram/Facebook post for a product, casual and energetic tone, including: an attention-grabbing opener, the price and key benefit, a clear call to order, and 5-8 relevant hashtags at the end (mix of general shopping hashtags and product-specific ones). Use emoji sparingly (3-5 total).',
   },
+  whatsapp_broadcast: {
+    ar: 'رسالة تسويقية قصيرة يرسلها صاحب المتجر لعملائه بشكل جماعي عبر واتساب (مو محادثة فردية). يجب أن تكون: مباشرة وقصيرة (4-7 أسطر قصيرة، تصلح للقراءة السريعة على الجوال)، بلهجة عربية دارجة ودّية ومو رسمية جداً، تبدأ بجملة تلفت الانتباه (مو "مرحباً" عادية)، توضح العرض/المناسبة بوضوح مع أي تفاصيل معطاة (نسبة خصم، تاريخ انتهاء، إلخ) بدون اختراع تفاصيل غير مذكورة، وتنتهي بدعوة واضحة للفعل. استخدم إيموجي قليلة ومناسبة (2-4). لا تضف رابط المتجر لأن صاحب المتجر رح يضيفه بنفسه.',
+    en: 'A short marketing message a store owner sends to a broadcast list of customers on WhatsApp (not a 1:1 chat). It should be: direct and short (4-7 short lines, easy to skim on mobile), casual and friendly tone, open with an attention-grabbing line (not a plain "Hello"), clearly state the offer/occasion with any given details (discount %, expiry date, etc.) without inventing details not provided, and end with a clear call to action. Use a few relevant emoji (2-4). Do not add the store link since the owner will add it themselves.',
+  },
 };
 
 function buildSystemPrompt(fieldType, isAr) {
