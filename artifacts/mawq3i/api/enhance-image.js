@@ -141,7 +141,7 @@ export default async function handler(req, res) {
 
       const results = await Promise.all(
         requestedSizes.map(async (size) => {
-          const r = await callImageEdit(apiKey, buffer, contentType, finalPrompt, size, n, 'high');
+          const r = await callImageEdit(apiKey, buffer, contentType, finalPrompt, size, n, 'medium');
           return { size, images: r.images };
         })
       );
