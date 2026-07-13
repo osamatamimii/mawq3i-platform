@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { getProducts } from '@/lib/db';
-import { generateStoryImage } from '@/lib/storyGenerator';
 import type { Product } from '@/data/mockData';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import {
   Megaphone, Sparkles, Loader2, Copy, Check, Image as ImageIcon,
-  Download, Share2, MessageCircle, ChevronDown,
+  Download, MessageCircle, ChevronDown, Square, RectangleVertical, RectangleHorizontal,
 } from 'lucide-react';
 
 function getCurrencySymbol(currency: string): string {
@@ -32,9 +31,18 @@ export default function MarketingStudio() {
   const [captionsError, setCaptionsError] = useState('');
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
-  const [storyBlob, setStoryBlob] = useState<Blob | null>(null);
-  const [storyUrl, setStoryUrl] = useState('');
-  const [storyLoading, setStoryLoading] = useState(false);
+  const IMG_SIZES: { key: string; labelAr: string; labelEn: string; icon: typeof Square }[] = [
+    { key: '1024x1024', labelAr: 'مربع (منشور)', labelEn: 'Square (Feed)', icon: Square },
+    { key: '1024x1536', labelAr: 'عمودي (ستوري)', labelEn: 'Portrait (Story)', icon: RectangleVertical },
+    { key: '1536x1024', labelAr: 'أفقي (بانر)', labelEn: 'Landscape (Banner)', icon: RectangleHorizontal },
+  ];
+
+  const [imgPrompt, setImgPrompt] = useState('');
+  const [imgSelectedSizes, setImgSelectedSizes] = useState<string[]>(['1024x1024']);
+  const [imgCount, setImgCount] = useState(1);
+  const [imgLoading, setImgLoading] = useState(false);
+  const [imgError, setImgError] = useState('');
+  const [imgResults, setImgResults] = useState<{ size: string; urls: string[] }[]>([]);
 
   const [waPrompt, setWaPrompt] = useState('');
   const [waMessage, setWaMessage] = useState('');
@@ -58,8 +66,8 @@ export default function MarketingStudio() {
   useEffect(() => {
     setCaptions([]);
     setCaptionsError('');
-    setStoryBlob(null);
-    setStoryUrl('');
+    setImgResults([]);
+    setImgError('');
   }, [selectedId]);
 
   const generateCaptions = async () => {
@@ -103,43 +111,49 @@ export default function MarketingStudio() {
     }
   };
 
-  const generateStory = async () => {
-    if (!selectedProduct || !currentStore) return;
-    setStoryLoading(true);
-    try {
-      const blob = await generateStoryImage(selectedProduct, currentStore, isAr);
-      if (blob) {
-        setStoryBlob(blob);
-        setStoryUrl(URL.createObjectURL(blob));
-      } else {
-        toast({ title: isAr ? 'تعذّر إنشاء الصورة' : 'Could not create image', variant: 'destructive' });
-      }
-    } finally {
-      setStoryLoading(false);
-    }
+  const toggleSize = (key: string) => {
+    setImgSelectedSizes(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   };
 
-  const downloadStory = () => {
-    if (!storyBlob || !selectedProduct) return;
-    const a = document.createElement('a');
-    a.href = storyUrl;
-    a.download = `${selectedProduct.nameAr || selectedProduct.nameEn}-story.png`;
-    a.click();
-    toast({ title: isAr ? '✅ تم التحميل' : '✅ Downloaded' });
-  };
-
-  const shareStory = async () => {
-    if (!storyBlob || !selectedProduct) return;
+  const generateImages = async () => {
+    if (!selectedProduct?.imageUrl || !imgSelectedSizes.length) return;
+    setImgLoading(true);
+    setImgError('');
+    setImgResults([]);
     try {
-      const file = new File([storyBlob], 'story.png', { type: 'image/png' });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: selectedProduct.nameAr });
-      } else {
-        downloadStory();
+      const res = await fetch('/api/marketing-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: selectedProduct.imageUrl,
+          prompt: imgPrompt,
+          sizes: imgSelectedSizes,
+          count: imgCount,
+          language,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.results?.length) throw new Error(data.error || 'failed');
+      const results = (data.results as { size: string; images: string[] }[]).map(r => ({
+        size: r.size,
+        urls: r.images.map((b64) => `data:image/png;base64,${b64}`),
+      }));
+      setImgResults(results);
+      if (!results.some(r => r.urls.length)) {
+        setImgError(isAr ? 'ما قدرنا نولّد صور، جرب برومت مختلف' : 'Could not generate images, try a different prompt');
       }
     } catch {
-      downloadStory();
+      setImgError(isAr ? 'ما قدرنا نولّد صور، جرب تاني' : 'Could not generate images, try again');
+    } finally {
+      setImgLoading(false);
     }
+  };
+
+  const downloadImage = (url: string, size: string, idx: number) => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedProduct?.nameAr || 'promo'}-${size}-${idx + 1}.png`;
+    a.click();
   };
 
   const generateWaMessage = async () => {
@@ -293,33 +307,84 @@ export default function MarketingStudio() {
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2">
             <ImageIcon className="w-4 h-4 text-primary" />
-            {isAr ? 'صورة ترويجية (Story)' : 'Promotional image (Story)'}
+            {isAr ? 'صور ترويجية بالذكاء الاصطناعي' : 'AI promotional images'}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0 space-y-3">
-          {!storyUrl && !storyLoading && (
-            <Button onClick={generateStory} disabled={!selectedProduct} className="w-full gap-2">
-              <Sparkles className="w-4 h-4" />
-              {isAr ? 'أنشئ الصورة' : 'Generate image'}
-            </Button>
-          )}
-          {storyLoading && (
-            <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" /> {isAr ? 'جاري التوليد...' : 'Generating...'}
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground font-medium">{isAr ? 'وصف المشهد يلي بدك ياه (اختياري)' : 'Describe the scene you want (optional)'}</label>
+            <Textarea
+              value={imgPrompt}
+              onChange={e => setImgPrompt(e.target.value)}
+              rows={2}
+              placeholder={isAr ? 'مثال: المنتج فوق طاولة خشبية بإضاءة دافئة وأجواء شتوية' : 'e.g. product on a wooden table with warm winter lighting'}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs text-muted-foreground font-medium">{isAr ? 'المقاسات' : 'Sizes'}</label>
+            <div className="grid grid-cols-3 gap-2">
+              {IMG_SIZES.map(s => {
+                const Icon = s.icon;
+                const on = imgSelectedSizes.includes(s.key);
+                return (
+                  <button
+                    key={s.key}
+                    onClick={() => toggleSize(s.key)}
+                    className={`flex flex-col items-center gap-1.5 p-2.5 rounded-lg border text-xs transition-colors ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border/50 text-muted-foreground hover:border-border'}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {isAr ? s.labelAr : s.labelEn}
+                  </button>
+                );
+              })}
             </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <label className="text-xs text-muted-foreground font-medium">{isAr ? 'عدد الصور لكل مقاس' : 'Images per size'}</label>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4].map(n => (
+                <button
+                  key={n}
+                  onClick={() => setImgCount(n)}
+                  className={`w-7 h-7 rounded-md text-xs font-medium transition-colors ${imgCount === n ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Button onClick={generateImages} disabled={!selectedProduct?.imageUrl || !imgSelectedSizes.length || imgLoading} className="w-full gap-2">
+            {imgLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {isAr ? 'أنشئ الصور' : 'Generate images'}
+          </Button>
+          {!selectedProduct?.imageUrl && (
+            <p className="text-xs text-muted-foreground text-center">{isAr ? 'المنتج المختار بدون صورة' : 'Selected product has no image'}</p>
           )}
-          {storyUrl && (
-            <div className="space-y-3">
-              <div className="flex justify-center">
-                <img src={storyUrl} alt="" className="w-48 rounded-2xl shadow-lg border border-border/30" style={{ aspectRatio: '9/16' }} />
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={shareStory} className="flex-1 gap-2"><Share2 className="w-4 h-4" />{isAr ? 'مشاركة' : 'Share'}</Button>
-                <Button onClick={downloadStory} variant="outline" className="flex-1 gap-2"><Download className="w-4 h-4" />{isAr ? 'تحميل' : 'Download'}</Button>
-              </div>
-              <button onClick={generateStory} className="text-xs text-muted-foreground hover:text-foreground w-full text-center">
-                {isAr ? '↻ إعادة التوليد' : '↻ Regenerate'}
-              </button>
+          {imgError && <p className="text-sm text-red-400 text-center">{imgError}</p>}
+
+          {imgResults.length > 0 && (
+            <div className="space-y-4 pt-2">
+              {imgResults.map(group => (
+                <div key={group.size}>
+                  <p className="text-xs text-muted-foreground font-medium mb-2">{IMG_SIZES.find(s => s.key === group.size)?.[isAr ? 'labelAr' : 'labelEn'] || group.size}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {group.urls.map((url, i) => (
+                      <div key={i} className="relative group rounded-lg overflow-hidden border border-border/40">
+                        <img src={url} alt="" className="w-full object-cover" style={{ aspectRatio: group.size.replace('x', '/') }} />
+                        <button
+                          onClick={() => downloadImage(url, group.size, i)}
+                          className="absolute bottom-1.5 end-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
