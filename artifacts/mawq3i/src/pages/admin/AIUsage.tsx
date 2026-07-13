@@ -146,7 +146,7 @@ export default function AIUsage() {
               {storeUsage.map((s) => (
                 <div key={s.storeId} className="grid grid-cols-[1fr_auto_auto] gap-3 items-center p-2.5 rounded-lg border border-border/40 bg-background/50">
                   <span className="text-sm font-medium truncate">{s.storeName}</span>
-                  <span className="w-16 text-center text-sm font-mono">{s.images}<span className="text-muted-foreground">/100</span></span>
+                  <span className="w-16 text-center text-sm font-mono">{s.images}<span className="text-muted-foreground">/150</span></span>
                   <span className="w-20 text-center text-sm font-mono">{s.aiTools}</span>
                 </div>
               ))}

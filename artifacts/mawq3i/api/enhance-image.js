@@ -2,7 +2,7 @@ const OPENAI_IMAGES_URL = 'https://api.openai.com/v1/images/edits';
 const OPENAI_IMAGE_MODEL = 'gpt-image-2';
 const SUPABASE_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
-const MONTHLY_IMAGE_LIMIT = 100;
+const MONTHLY_IMAGE_LIMIT = 150;
 
 async function getMonthlyImageCount(storeId) {
   const startOfMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString();
