@@ -1,5 +1,32 @@
 const OPENAI_IMAGES_URL = 'https://api.openai.com/v1/images/edits';
 const OPENAI_IMAGE_MODEL = 'gpt-image-2';
+const SUPABASE_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
+const MONTHLY_IMAGE_LIMIT = 100;
+
+async function getMonthlyImageCount(storeId) {
+  const startOfMonth = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1)).toISOString();
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/ai_image_generations?store_id=eq.${storeId}&created_at=gte.${startOfMonth}&select=id`,
+    { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, Prefer: 'count=exact' } }
+  );
+  const range = r.headers.get('content-range'); // e.g. "0-9/45"
+  if (!range) return 0;
+  const total = parseInt(range.split('/')[1], 10);
+  return Number.isFinite(total) ? total : 0;
+}
+
+async function logImageGeneration(storeId) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/ai_image_generations`, {
+      method: 'POST',
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ store_id: storeId }),
+    });
+  } catch (e) {
+    console.error('logImageGeneration failed:', e);
+  }
+}
 
 function buildPrompt(brandIdentity, isAr) {
   const hasIdentity = brandIdentity && brandIdentity.trim();
@@ -46,13 +73,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { imageBase64, mimeType, brandIdentity, language } = req.body || {};
+    const { imageBase64, mimeType, brandIdentity, language, storeId } = req.body || {};
     if (!imageBase64) {
       res.status(400).json({ error: 'Missing imageBase64' });
       return;
     }
 
     const isAr = language !== 'en';
+
+    if (storeId) {
+      const usedThisMonth = await getMonthlyImageCount(storeId);
+      if (usedThisMonth >= MONTHLY_IMAGE_LIMIT) {
+        res.status(200).json({
+          limitReached: true,
+          error: isAr
+            ? `وصلت للحد الأقصى الشهري لتحسين الصور بالذكاء الاصطناعي (${MONTHLY_IMAGE_LIMIT} صورة). الحد بيتجدد أول الشهر الجاي.`
+            : `You've reached the monthly AI image limit (${MONTHLY_IMAGE_LIMIT} images). The limit resets at the start of next month.`,
+        });
+        return;
+      }
+    }
+
     const prompt = buildPrompt(brandIdentity, isAr);
 
     // Build a multipart/form-data request for the OpenAI image edit endpoint
@@ -87,6 +128,8 @@ export default async function handler(req, res) {
       res.status(502).json({ error: isAr ? 'ما قدر الذكاء الاصطناعي يحسّن الصورة، جرب صورة ثانية' : 'AI could not enhance this image, try another one' });
       return;
     }
+
+    if (storeId) await logImageGeneration(storeId);
 
     res.status(200).json({
       imageBase64: b64,

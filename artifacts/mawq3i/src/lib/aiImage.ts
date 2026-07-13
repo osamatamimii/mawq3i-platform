@@ -12,11 +12,18 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+export type EnhanceImageResult = {
+  file: File | null;
+  limitReached?: boolean;
+  errorMessage?: string;
+};
+
 export async function enhanceProductImage(
   file: File,
   brandIdentity: string,
-  language: 'ar' | 'en'
-): Promise<File | null> {
+  language: 'ar' | 'en',
+  storeId?: string
+): Promise<EnhanceImageResult> {
   try {
     const imageBase64 = await fileToBase64(file);
     const res = await fetch('/api/enhance-image', {
@@ -27,10 +34,16 @@ export async function enhanceProductImage(
         mimeType: file.type || 'image/jpeg',
         brandIdentity,
         language,
+        storeId,
       }),
     });
     const data = await res.json();
-    if (!res.ok || !data.imageBase64) return null;
+    if (data.limitReached) {
+      return { file: null, limitReached: true, errorMessage: data.error };
+    }
+    if (!res.ok || !data.imageBase64) {
+      return { file: null, errorMessage: data.error };
+    }
 
     const byteChars = atob(data.imageBase64);
     const byteNumbers = new Array(byteChars.length);
@@ -38,8 +51,9 @@ export async function enhanceProductImage(
     const byteArray = new Uint8Array(byteNumbers);
     const mimeType = data.mimeType || 'image/png';
     const ext = mimeType.split('/')[1] || 'png';
-    return new File([byteArray], `enhanced-${Date.now()}.${ext}`, { type: mimeType });
+    const enhancedFile = new File([byteArray], `enhanced-${Date.now()}.${ext}`, { type: mimeType });
+    return { file: enhancedFile };
   } catch {
-    return null;
+    return { file: null };
   }
 }

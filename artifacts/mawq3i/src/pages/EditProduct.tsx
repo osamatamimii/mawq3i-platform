@@ -82,11 +82,13 @@ export default function EditProduct() {
         const blob = await fetch(imagePreview).then((r) => r.blob());
         sourceFile = new File([blob], 'current-image.jpg', { type: blob.type || 'image/jpeg' });
       }
-      const enhanced = await enhanceProductImage(sourceFile, currentStore?.brandIdentity || '', isAr ? 'ar' : 'en');
-      if (enhanced) {
-        setImageFile(enhanced);
-        setImagePreview(URL.createObjectURL(enhanced));
+      const result = await enhanceProductImage(sourceFile, currentStore?.brandIdentity || '', isAr ? 'ar' : 'en', currentStore?.id);
+      if (result.file) {
+        setImageFile(result.file);
+        setImagePreview(URL.createObjectURL(result.file));
         toast({ title: isAr ? '✨ تم تحسين الصورة' : '✨ Image enhanced' });
+      } else if (result.limitReached) {
+        toast({ title: result.errorMessage || (isAr ? 'وصلت للحد الأقصى الشهري' : 'Monthly limit reached'), variant: 'destructive' });
       } else {
         toast({ title: isAr ? 'ما قدرنا نحسّن الصورة' : "Couldn't enhance the image", variant: 'destructive' });
       }

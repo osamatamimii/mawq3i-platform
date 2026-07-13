@@ -90,11 +90,13 @@ export default function AddProduct() {
     if (enhancingIdx !== null) return;
     setEnhancingIdx(idx);
     const current = mainImages[idx];
-    const enhanced = await enhanceProductImage(current.file, currentStore?.brandIdentity || '', isAr ? 'ar' : 'en');
-    if (enhanced) {
-      const preview = URL.createObjectURL(enhanced);
-      setMainImages(prev => prev.map((img, i) => (i === idx ? { preview, file: enhanced } : img)));
+    const result = await enhanceProductImage(current.file, currentStore?.brandIdentity || '', isAr ? 'ar' : 'en', currentStore?.id);
+    if (result.file) {
+      const preview = URL.createObjectURL(result.file);
+      setMainImages(prev => prev.map((img, i) => (i === idx ? { preview, file: result.file! } : img)));
       toast({ title: isAr ? '✨ تم تحسين الصورة' : '✨ Image enhanced' });
+    } else if (result.limitReached) {
+      toast({ title: result.errorMessage || (isAr ? 'وصلت للحد الأقصى الشهري' : 'Monthly limit reached'), variant: 'destructive' });
     } else {
       toast({ title: isAr ? 'ما قدرنا نحسّن الصورة' : "Couldn't enhance the image", variant: 'destructive' });
     }
