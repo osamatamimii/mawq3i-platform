@@ -32,14 +32,13 @@ export default function MarketingStudio() {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   const IMG_SIZES: { key: string; labelAr: string; labelEn: string; icon: typeof Square }[] = [
-    { key: '1024x1024', labelAr: 'مربع (منشور)', labelEn: 'Square (Feed)', icon: Square },
-    { key: '1024x1536', labelAr: 'عمودي (ستوري)', labelEn: 'Portrait (Story)', icon: RectangleVertical },
-    { key: '1536x1024', labelAr: 'أفقي (بانر)', labelEn: 'Landscape (Banner)', icon: RectangleHorizontal },
+    { key: '1024x1024', labelAr: '1:1 مربع (منشور)', labelEn: '1:1 Square (Feed)', icon: Square },
+    { key: '1024x1536', labelAr: '2:3 عمودي (ستوري)', labelEn: '2:3 Portrait (Story)', icon: RectangleVertical },
+    { key: '1536x1024', labelAr: '3:2 أفقي (بانر)', labelEn: '3:2 Landscape (Banner)', icon: RectangleHorizontal },
   ];
 
   const [imgPrompt, setImgPrompt] = useState('');
-  const [imgSelectedSizes, setImgSelectedSizes] = useState<string[]>(['1024x1024']);
-  const [imgCount, setImgCount] = useState(1);
+  const [imgSelectedSize, setImgSelectedSize] = useState('1024x1024');
   const [imgLoading, setImgLoading] = useState(false);
   const [imgError, setImgError] = useState('');
   const [imgResults, setImgResults] = useState<{ size: string; urls: string[] }[]>([]);
@@ -111,12 +110,8 @@ export default function MarketingStudio() {
     }
   };
 
-  const toggleSize = (key: string) => {
-    setImgSelectedSizes(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
-  };
-
   const generateImages = async () => {
-    if (!selectedProduct?.imageUrl || !imgSelectedSizes.length) return;
+    if (!selectedProduct?.imageUrl) return;
     setImgLoading(true);
     setImgError('');
     setImgResults([]);
@@ -128,8 +123,8 @@ export default function MarketingStudio() {
           mode: 'promo',
           imageUrl: selectedProduct.imageUrl,
           prompt: imgPrompt,
-          sizes: imgSelectedSizes,
-          count: imgCount,
+          sizes: [imgSelectedSize],
+          count: 1,
           language,
         }),
       });
@@ -323,15 +318,15 @@ export default function MarketingStudio() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs text-muted-foreground font-medium">{isAr ? 'المقاسات' : 'Sizes'}</label>
+            <label className="text-xs text-muted-foreground font-medium">{isAr ? 'المقاس' : 'Size'}</label>
             <div className="grid grid-cols-3 gap-2">
               {IMG_SIZES.map(s => {
                 const Icon = s.icon;
-                const on = imgSelectedSizes.includes(s.key);
+                const on = imgSelectedSize === s.key;
                 return (
                   <button
                     key={s.key}
-                    onClick={() => toggleSize(s.key)}
+                    onClick={() => setImgSelectedSize(s.key)}
                     className={`flex flex-col items-center gap-1.5 p-2.5 rounded-lg border text-xs transition-colors ${on ? 'border-primary bg-primary/10 text-primary' : 'border-border/50 text-muted-foreground hover:border-border'}`}
                   >
                     <Icon className="w-4 h-4" />
@@ -342,29 +337,17 @@ export default function MarketingStudio() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <label className="text-xs text-muted-foreground font-medium">{isAr ? 'عدد الصور لكل مقاس' : 'Images per size'}</label>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3].map(n => (
-                <button
-                  key={n}
-                  onClick={() => setImgCount(n)}
-                  className={`w-7 h-7 rounded-md text-xs font-medium transition-colors ${imgCount === n ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/70'}`}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <Button onClick={generateImages} disabled={!selectedProduct?.imageUrl || !imgSelectedSizes.length || imgLoading} className="w-full gap-2">
+          <Button onClick={generateImages} disabled={!selectedProduct?.imageUrl || imgLoading} className="w-full gap-2">
             {imgLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-            {isAr ? 'أنشئ الصور' : 'Generate images'}
+            {isAr ? 'أنشئ الصورة' : 'Generate image'}
           </Button>
           {!selectedProduct?.imageUrl && (
             <p className="text-xs text-muted-foreground text-center">{isAr ? 'المنتج المختار بدون صورة' : 'Selected product has no image'}</p>
           )}
           {imgError && <p className="text-sm text-red-400 text-center">{imgError}</p>}
+          {imgResults.length > 0 && !imgError && (
+            <p className="text-xs text-muted-foreground text-center">{isAr ? 'بدك صورة كمان؟ غيّر المقاس أو الوصف واضغط "أنشئ الصورة" مرة ثانية' : 'Want another? Change the size or prompt and generate again'}</p>
+          )}
 
           {imgResults.length > 0 && (
             <div className="space-y-4 pt-2">
