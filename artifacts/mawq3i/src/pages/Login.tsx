@@ -100,9 +100,9 @@ export default function Login() {
         {/* Bottom gradient fade */}
         <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-background dark:from-[#060a0d] to-transparent" />
 
-        {/* Animated globe decoration */}
-        <div className="hidden xl:block absolute top-1/2 end-8 -translate-y-1/2 pointer-events-none">
-          <AnimatedGlobe size={340} />
+        {/* Animated globe decoration (large, subtle background layer) */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-[0.14] pointer-events-none overflow-hidden">
+          <AnimatedGlobe size={900} />
         </div>
 
         {/* Brand */}
