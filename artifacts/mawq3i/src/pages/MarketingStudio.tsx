@@ -121,10 +121,11 @@ export default function MarketingStudio() {
     setImgError('');
     setImgResults([]);
     try {
-      const res = await fetch('/api/marketing-image', {
+      const res = await fetch('/api/enhance-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          mode: 'promo',
           imageUrl: selectedProduct.imageUrl,
           prompt: imgPrompt,
           sizes: imgSelectedSizes,
