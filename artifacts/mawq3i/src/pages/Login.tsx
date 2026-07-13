@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Store, BarChart3, Sliders, ArrowLeft, ArrowRight } from 'lucide-react';
 import SupportContact from '@/components/SupportContact';
+import AnimatedGlobe from '@/components/AnimatedGlobe';
 
 function navigateByEmail(email: string, setLocation: (path: string) => void) {
   if (email.trim().toLowerCase() === 'admin@mawq3i.com') {
@@ -98,6 +99,11 @@ export default function Login() {
         />
         {/* Bottom gradient fade */}
         <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-background dark:from-[#060a0d] to-transparent" />
+
+        {/* Animated globe decoration */}
+        <div className="hidden xl:block absolute top-1/2 end-8 -translate-y-1/2 opacity-90 pointer-events-none">
+          <AnimatedGlobe size={240} />
+        </div>
 
         {/* Brand */}
         <div className="relative z-10 flex items-center gap-3">
