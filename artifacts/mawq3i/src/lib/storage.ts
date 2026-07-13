@@ -71,21 +71,3 @@ export async function uploadStoreHeroImage(file: File, storeId: string): Promise
     return null;
   }
 }
-
-export async function uploadBlogCoverImage(file: File, storeId: string): Promise<string | null> {
-  try {
-    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-    const path = `${storeId}/blog/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-    const { error } = await supabase.storage
-      .from('product-images')
-      .upload(path, file, { cacheControl: '3600', upsert: false });
-
-    if (error) return null;
-
-    const { data } = supabase.storage.from('product-images').getPublicUrl(path);
-    return data.publicUrl;
-  } catch {
-    return null;
-  }
-}

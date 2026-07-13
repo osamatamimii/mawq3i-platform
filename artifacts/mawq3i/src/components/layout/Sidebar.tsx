@@ -18,7 +18,6 @@ import {
   Sparkles,
   MessageSquareText,
   Users,
-  Newspaper,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -112,7 +111,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: '/dashboard/analytics', icon: BarChart3, labelAr: 'الإحصائيات', labelEn: 'Analytics', exact: false, requiresPerm: 'analytics' },
     { href: '/dashboard/promotions', icon: Tag, labelAr: 'العروض', labelEn: 'Promotions', exact: false, requiresPerm: 'promotions' },
     { href: '/dashboard/discount-codes', icon: Percent, labelAr: 'أكواد الخصم', labelEn: 'Discount Codes', exact: false, requiresPerm: 'promotions' },
-    { href: '/dashboard/blog', icon: Newspaper, labelAr: 'المدونة', labelEn: 'Blog', exact: false, requiresPerm: 'products' },
     { href: '/dashboard/staff', icon: Users, labelAr: 'الموظفون', labelEn: 'Staff', exact: false, requiresPerm: 'settings' },
     { href: '/dashboard/settings', icon: Settings, labelAr: 'إعدادات المتجر', labelEn: 'Store Settings', exact: false, requiresPerm: 'settings' },
   ];

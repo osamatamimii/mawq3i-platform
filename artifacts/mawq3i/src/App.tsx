@@ -32,8 +32,6 @@ import DiscountCodes from "@/pages/DiscountCodes";
 import AIAdvisor from "@/pages/AIAdvisor";
 import Reviews from "@/pages/Reviews";
 import Staff from "@/pages/Staff";
-import Blog from "@/pages/Blog";
-import BlogEditor from "@/pages/BlogEditor";
 
 const queryClient = new QueryClient();
 
@@ -153,9 +151,6 @@ function Router() {
               <Route path="/dashboard/analytics" component={Analytics} />
               <Route path="/dashboard/settings" component={Settings} />
               <Route path="/dashboard/staff" component={Staff} />
-              <Route path="/dashboard/blog" component={Blog} />
-              <Route path="/dashboard/blog/new" component={BlogEditor} />
-              <Route path="/dashboard/blog/edit/:id" component={BlogEditor} />
               <Route path="/dashboard/promotions" component={Promotions} />
               <Route path="/dashboard/discount-codes" component={DiscountCodes} />
               <Route path="/dashboard/ai-advisor" component={AIAdvisor} />
