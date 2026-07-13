@@ -1,3 +1,5 @@
+export const config = { maxDuration: 60 };
+
 const OPENAI_IMAGES_URL = 'https://api.openai.com/v1/images/edits';
 const OPENAI_IMAGE_MODEL = 'gpt-image-2';
 const ALLOWED_SIZES = ['1024x1024', '1024x1536', '1536x1024'];
