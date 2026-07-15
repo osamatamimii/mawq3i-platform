@@ -42,12 +42,16 @@ const features = [
   },
 ];
 
+const DEMO_EMAIL = 'demo@mawq3i.com';
+const DEMO_PASSWORD = 'MawqDemo2026!';
+
 export default function Login() {
   const [, setLocation] = useLocation();
   const { language, setLanguage } = useAppContext();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [error, setError] = useState('');
   const isAr = language === 'ar';
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
@@ -74,6 +78,26 @@ export default function Login() {
       setError(isAr ? 'حدث خطأ، يرجى المحاولة مجدداً' : 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTryDemo = async () => {
+    setDemoLoading(true);
+    setError('');
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: DEMO_EMAIL,
+        password: DEMO_PASSWORD,
+      });
+      if (!signInError && data.user) {
+        setLocation('/dashboard');
+        return;
+      }
+      setError(isAr ? 'تعذّر فتح النسخة التجريبية، حاول لاحقاً' : 'Could not open the demo, try again later');
+    } catch {
+      setError(isAr ? 'حدث خطأ، يرجى المحاولة مجدداً' : 'An error occurred. Please try again.');
+    } finally {
+      setDemoLoading(false);
     }
   };
 
@@ -264,6 +288,30 @@ export default function Login() {
               </Button>
             </motion.div>
           </form>
+
+          {/* Try demo */}
+          <div className="mt-5">
+            <div className="relative flex items-center">
+              <div className="flex-1 border-t border-border/40" />
+              <span className="px-3 text-xs text-muted-foreground">{isAr ? 'أو' : 'or'}</span>
+              <div className="flex-1 border-t border-border/40" />
+            </div>
+            <motion.div whileHover={{ scale: 1.015 }} whileTap={{ scale: 0.985 }} className="mt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleTryDemo}
+                disabled={demoLoading}
+                className="w-full h-11 text-sm font-semibold gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+                data-testid="button-try-demo"
+              >
+                {demoLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Store className="w-4 h-4" />}
+                {demoLoading
+                  ? (isAr ? 'جاري الفتح...' : 'Opening...')
+                  : (isAr ? 'جرّب المنصة الآن كتاجر' : 'Try the platform as a merchant')}
+              </Button>
+            </motion.div>
+          </div>
 
           {/* Support contact */}
           <div className="mt-8 pt-6 border-t border-border/40 flex flex-col items-center gap-2.5">
