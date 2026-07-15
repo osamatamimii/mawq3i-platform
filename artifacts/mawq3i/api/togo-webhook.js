@@ -94,19 +94,23 @@ export default async function handler(req, res) {
         const storeKey = match.stores?.togo_api_key;
 
         // Verify the key in the payload matches the store's own Togo API key.
-        // If we don't have a key to compare (either side), proceed but note it —
-        // better to still update than silently drop a legitimate payment update.
-        const keyMatches = !payloadKey || !storeKey || payloadKey === storeKey;
+        // If the store has no key on file, there's nothing to verify against
+        // (and no card/COD orders would exist for it via Togo anyway) — but if
+        // the store DOES have a key configured, the payload must present a
+        // matching key. Previously a payload with no key at all was treated as
+        // "trust it", which let anyone holding the webhook URL spoof a payment
+        // status for any store that has Togo configured. This closes that gap.
+        const keyMatches = !storeKey || (!!payloadKey && payloadKey === storeKey);
 
         if (!keyMatches) {
-          note = 'key mismatch — update REJECTED (possible spoofed webhook)';
+          note = 'key mismatch or missing — update REJECTED (possible spoofed webhook)';
         } else if (status) {
           await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${match.id}`, {
             method: 'PATCH',
             headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
             body: JSON.stringify({ payment_status: status }),
           });
-          note = `updated to ${status}` + (payloadKey ? ' (key verified)' : ' (no key to verify against)');
+          note = `updated to ${status}` + (payloadKey ? ' (key verified)' : ' (store has no key configured — unverified)');
         } else {
           note = 'matched order but no usable status in payload';
         }
