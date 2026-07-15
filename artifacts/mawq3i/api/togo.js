@@ -159,6 +159,51 @@ async function handleDeliveryBids(req, res) {
   return res.status(405).json({ success: false, message: 'Method not allowed' });
 }
 
+// ─── cancel-delivery ────────────────────────────────────────────────
+async function handleCancelDelivery(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ success: false, message: 'Method not allowed' });
+
+  const { storeId, orderId, togoDeliveryOrderId } = req.body || {};
+  if (!storeId || !orderId || !togoDeliveryOrderId) {
+    return res.status(400).json({ success: false, message: 'Missing storeId, orderId, or togoDeliveryOrderId' });
+  }
+
+  const store = await getStore(storeId, 'togo_api_key');
+  const apiKey = store && store.togo_api_key;
+  if (!apiKey) return res.status(400).json({ success: false, message: 'Store has no Togo API key configured' });
+
+  try {
+    const cancelRes = await fetch(`${TOGO_BASE_URL}/api/v1/actions`, {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'Cancel', orderId: togoDeliveryOrderId }),
+    });
+    const cancelData = await cancelRes.json();
+    if (!cancelRes.ok || !cancelData.success) {
+      return res.status(502).json({ success: false, message: 'Failed to cancel delivery with Togo', details: cancelData });
+    }
+
+    // Reset the order's delivery fields so the merchant can request delivery again or arrange it themselves
+    await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${orderId}`, {
+      method: 'PATCH',
+      headers: { ...SB_HEADERS_JSON, Prefer: 'return=minimal' },
+      body: JSON.stringify({
+        delivery_provider: 'self',
+        togo_delivery_order_id: null,
+        togo_delivery_hashed_id: null,
+        togo_delivery_status: null,
+        togo_bid_id: null,
+        togo_courier_name: null,
+        togo_delivery_price: null,
+      }),
+    });
+
+    return res.status(200).json({ success: true });
+  } catch (e) {
+    return res.status(500).json({ success: false, message: 'Unexpected error', error: String(e) });
+  }
+}
+
 // ─── merchant-address ───────────────────────────────────────────────
 async function handleMerchantAddress(req, res) {
   const { action } = req.query || {};
@@ -238,6 +283,7 @@ export default async function handler(req, res) {
   const resource = (req.query && req.query.resource) || (req.body && req.body.resource);
   if (resource === 'create-delivery') return handleCreateDelivery(req, res);
   if (resource === 'delivery-bids') return handleDeliveryBids(req, res);
+  if (resource === 'cancel-delivery') return handleCancelDelivery(req, res);
   if (resource === 'merchant-address') return handleMerchantAddress(req, res);
-  return res.status(400).json({ success: false, message: 'Missing or invalid resource (expected create-delivery, delivery-bids, or merchant-address)' });
+  return res.status(400).json({ success: false, message: 'Missing or invalid resource (expected create-delivery, delivery-bids, cancel-delivery, or merchant-address)' });
 }

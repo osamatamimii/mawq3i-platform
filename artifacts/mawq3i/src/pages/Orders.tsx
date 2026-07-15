@@ -21,6 +21,7 @@ function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; st
   const [bids, setBids] = useState<any[] | null>(null);
   const [loadingBids, setLoadingBids] = useState(false);
   const [assigningBidId, setAssigningBidId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState('');
 
   const provider = (order as any).deliveryProvider || 'self';
@@ -99,6 +100,30 @@ function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; st
     }
   };
 
+  const cancelDelivery = async () => {
+    if (!togoDeliveryOrderId) return;
+    setCancelling(true);
+    setError('');
+    try {
+      const res = await fetch('/api/togo?resource=cancel-delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId, orderId: order.id, togoDeliveryOrderId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBids(null);
+        onUpdated();
+      } else {
+        setError(data.message || (isAr ? 'تعذّر إلغاء التوصيل' : 'Could not cancel delivery'));
+      }
+    } catch {
+      setError(isAr ? 'خطأ بالاتصال' : 'Connection error');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (provider === 'togo' && deliveryStatus === 'assigned') {
     return (
       <div className="bg-white/[0.03] rounded-lg p-4 space-y-3">
@@ -118,6 +143,12 @@ function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; st
             )}
           </div>
         </div>
+        <button onClick={cancelDelivery} disabled={cancelling}
+          className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg py-2 text-xs font-medium transition-colors disabled:opacity-50">
+          {cancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+          {cancelling ? (isAr ? 'جاري الإلغاء...' : 'Cancelling...') : (isAr ? 'إلغاء التوصيل مع Togo' : 'Cancel Togo delivery')}
+        </button>
+        {error && <p className="text-xs text-red-400">{error}</p>}
       </div>
     );
   }
@@ -142,7 +173,12 @@ function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; st
 
       {bids && bids.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">{isAr ? 'اختر شركة التوصيل:' : 'Choose a courier:'}</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">{isAr ? 'اختر شركة التوصيل:' : 'Choose a courier:'}</p>
+            <button onClick={() => togoDeliveryOrderId && fetchBids(togoDeliveryOrderId)} className="text-xs text-indigo-400 hover:text-indigo-300">
+              {isAr ? 'تحديث العروض' : 'Refresh offers'}
+            </button>
+          </div>
           {bids.map((b: any, i: number) => (
             <div key={b.id || b.bid_id || i} className="flex items-center justify-between bg-background/40 border border-border/50 rounded-lg px-3 py-2">
               <span className="text-xs font-medium">{b.company_name || b.courier_name || b.name || '—'} <span className="text-muted-foreground font-normal">— ₪{b.price || b.value}</span></span>
@@ -157,6 +193,14 @@ function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; st
 
       {bids && bids.length === 0 && !loadingBids && (
         <p className="text-xs text-muted-foreground">{isAr ? 'لا يوجد عروض حالياً، حاول لاحقاً' : 'No offers yet, try again shortly'}</p>
+      )}
+
+      {provider === 'togo' && togoDeliveryOrderId && (
+        <button onClick={cancelDelivery} disabled={cancelling}
+          className="w-full flex items-center justify-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg py-2 text-xs font-medium transition-colors disabled:opacity-50">
+          {cancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+          {cancelling ? (isAr ? 'جاري الإلغاء...' : 'Cancelling...') : (isAr ? 'إلغاء طلب التوصيل' : 'Cancel delivery request')}
+        </button>
       )}
 
       {error && <p className="text-xs text-red-400">{error}</p>}
