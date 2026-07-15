@@ -31,7 +31,7 @@ function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; st
     setLoadingBids(true);
     setError('');
     try {
-      const res = await fetch(`/api/togo-delivery-bids?storeId=${storeId}&togoDeliveryOrderId=${togoOrderId}`);
+      const res = await fetch(`/api/togo?resource=delivery-bids&storeId=${storeId}&togoDeliveryOrderId=${togoOrderId}`);
       const data = await res.json();
       if (data.success) setBids(data.data?.items || data.data || []);
       else setError(data.message || (isAr ? 'تعذّر جلب العروض' : 'Could not load bids'));
@@ -53,7 +53,7 @@ function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; st
     setRequesting(true);
     setError('');
     try {
-      const res = await fetch('/api/togo-create-delivery', {
+      const res = await fetch('/api/togo?resource=create-delivery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storeId, orderId: order.id }),
@@ -76,7 +76,7 @@ function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; st
     setAssigningBidId(bid.id || bid.bid_id);
     setError('');
     try {
-      const res = await fetch('/api/togo-delivery-bids', {
+      const res = await fetch('/api/togo?resource=delivery-bids', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

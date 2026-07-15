@@ -5,7 +5,7 @@ const GA_PROPERTY_PLATFORM = '545007188';   // mawq3i.co — G-N41DTN4060
 const GA_PROPERTY_STOREFRONTS = '545020889'; // shared by all client stores — G-K8F17WB4Q0
 
 const SUPABASE_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 async function fetchProductNames(ids) {
   if (!ids.length) return {};

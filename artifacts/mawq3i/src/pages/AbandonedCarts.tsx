@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAppContext } from '@/context/AppContext'
-
-const SUPA_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co'
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo'
+import { adminRest } from '@/lib/supabase'
 
 interface AbandonedCart {
   id: string
@@ -51,26 +49,13 @@ export default function AbandonedCarts() {
   async function fetchCarts() {
     if (!currentStore?.id) return
     setLoading(true)
-    const res = await fetch(
-      `${SUPA_URL}/rest/v1/abandoned_carts?store_id=eq.${currentStore.id}&order=created_at.desc`,
-      { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } }
-    )
-    const data = await res.json()
+    const data = await adminRest.select('abandoned_carts', `store_id=eq.${currentStore.id}&order=created_at.desc`, currentStore.id)
     setCarts(Array.isArray(data) ? data : [])
     setLoading(false)
   }
 
   async function updateStatus(id: string, status: AbandonedCart['status']) {
-    await fetch(`${SUPA_URL}/rest/v1/abandoned_carts?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: {
-        apikey: SERVICE_KEY,
-        Authorization: `Bearer ${SERVICE_KEY}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal',
-      },
-      body: JSON.stringify({ status, updated_at: new Date().toISOString() }),
-    })
+    await adminRest.update('abandoned_carts', `id=eq.${id}`, { status, updated_at: new Date().toISOString() }, currentStore?.id)
     setCarts(prev => prev.map(c => c.id === id ? { ...c, status } : c))
   }
 
@@ -86,16 +71,7 @@ export default function AbandonedCarts() {
   const readyForReminder = carts.filter(isReadyForReminder)
 
   async function markReminderSent(id: string) {
-    await fetch(`${SUPA_URL}/rest/v1/abandoned_carts?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: {
-        apikey: SERVICE_KEY,
-        Authorization: `Bearer ${SERVICE_KEY}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal',
-      },
-      body: JSON.stringify({ reminder_sent_at: new Date().toISOString() }),
-    })
+    await adminRest.update('abandoned_carts', `id=eq.${id}`, { reminder_sent_at: new Date().toISOString() }, currentStore?.id)
     setCarts(prev => prev.map(c => c.id === id ? { ...c, reminder_sent_at: new Date().toISOString() } : c))
   }
 

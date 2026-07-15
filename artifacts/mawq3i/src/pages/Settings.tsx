@@ -58,7 +58,7 @@ function DeliveryAddressSection({ isAr, currentStore }: { isAr: boolean; current
     setAreaResults([]);
     setSelectedArea(null);
     try {
-      const res = await fetch(`/api/togo-merchant-address?action=areas&storeId=${currentStore.id}&search=${encodeURIComponent(q)}`);
+      const res = await fetch(`/api/togo?resource=merchant-address&action=areas&storeId=${currentStore.id}&search=${encodeURIComponent(q)}`);
       const data = await res.json();
       setAreaResults(data?.data?.items || []);
       if (!data?.data?.items?.length) {
@@ -78,7 +78,7 @@ function DeliveryAddressSection({ isAr, currentStore }: { isAr: boolean; current
     }
     setSaving(true);
     try {
-      const res = await fetch('/api/togo-merchant-address', {
+      const res = await fetch('/api/togo?resource=merchant-address', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

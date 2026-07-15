@@ -2,12 +2,10 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { StoreRecord } from '@/data/mockData';
 import { getAllStores } from '@/lib/db';
+import { adminRest } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Store, DollarSign, TrendingUp, AlertTriangle, CheckCircle, Loader2, Activity } from 'lucide-react';
-
-const SB_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
 
 const cardV = {
   hidden: { opacity: 0, y: 20 },
@@ -47,10 +45,7 @@ export default function AdminOverview() {
       setLoading(false);
     });
     // Fetch all orders to compute per-store counts and total revenue
-    fetch(`${SB_URL}/rest/v1/orders?select=store_id,amount,status`, {
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
-    })
-      .then(r => r.json())
+    adminRest.select('orders', 'select=store_id,amount,status')
       .then((rows: any[]) => {
         const counts: Record<string, number> = {};
         let revenue = 0;

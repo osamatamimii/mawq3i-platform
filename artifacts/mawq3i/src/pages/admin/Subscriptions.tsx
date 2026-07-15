@@ -10,9 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { CheckCircle2, AlertTriangle, DollarSign, Clock, Loader2, Pencil, Settings, Plus, Trash2, X } from 'lucide-react';
-
-const SB_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
+import { adminRest } from '@/lib/supabase';
 
 interface StoreRow {
   id: string;
@@ -70,18 +68,10 @@ export default function AdminSubscriptions() {
   }, []);
 
   async function load() {
-    const [storesRes, plansRes] = await Promise.all([
-      fetch(
-        `${SB_URL}/rest/v1/stores?select=id,name,owner_email,subscription_plan,subscription_status,subscription_price,subscription_currency,status,created_at,join_date,renewal_date,subscription_paid&order=created_at.desc`,
-        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
-      ),
-      fetch(
-        `${SB_URL}/rest/v1/subscription_plans?select=*&order=sort_order.asc`,
-        { headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` } }
-      ),
+    const [storesData, plansData] = await Promise.all([
+      adminRest.select('stores', 'select=id,name,owner_email,subscription_plan,subscription_status,subscription_price,subscription_currency,status,created_at,join_date,renewal_date,subscription_paid&order=created_at.desc'),
+      adminRest.select('subscription_plans', 'select=*&order=sort_order.asc'),
     ]);
-    const storesData = await storesRes.json();
-    const plansData = await plansRes.json();
     setStores(Array.isArray(storesData) ? storesData : []);
     setPlans(Array.isArray(plansData) ? plansData : []);
     setLoading(false);
@@ -89,11 +79,7 @@ export default function AdminSubscriptions() {
 
   async function togglePaid(id: string, current: boolean) {
     setSaving(id);
-    await fetch(`${SB_URL}/rest/v1/stores?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription_paid: !current })
-    });
+    await adminRest.update('stores', `id=eq.${id}`, { subscription_paid: !current });
     setStores(prev => prev.map(s => s.id === id ? { ...s, subscription_paid: !current } : s));
     setSaving(null);
   }
@@ -133,11 +119,7 @@ export default function AdminSubscriptions() {
       join_date: editForm.join_date || null,
       renewal_date: editForm.renewal_date || null,
     };
-    await fetch(`${SB_URL}/rest/v1/stores?id=eq.${editStore.id}`, {
-      method: 'PATCH',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+    await adminRest.update('stores', `id=eq.${editStore.id}`, body);
     setStores(prev => prev.map(s => s.id === editStore.id ? { ...s, ...body } : s));
     setSavingEdit(false);
     setEditStore(null);
@@ -147,20 +129,15 @@ export default function AdminSubscriptions() {
   async function addPlan() {
     if (!newPlan.name.trim()) return;
     setSavingPlan(true);
-    const res = await fetch(`${SB_URL}/rest/v1/subscription_plans`, {
-      method: 'POST',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
-      body: JSON.stringify({
-        name: newPlan.name.trim(),
-        price: Number(newPlan.price) || 0,
-        currency: newPlan.currency,
-        period: newPlan.period,
-        sort_order: plans.length,
-      })
+    const created = await adminRest.insert('subscription_plans', {
+      name: newPlan.name.trim(),
+      price: Number(newPlan.price) || 0,
+      currency: newPlan.currency,
+      period: newPlan.period,
+      sort_order: plans.length,
     });
-    const created = await res.json();
-    if (Array.isArray(created) && created[0]) {
-      setPlans(prev => [...prev, created[0]]);
+    if (created) {
+      setPlans(prev => [...prev, created]);
     }
     setNewPlan(emptyPlan);
     setSavingPlan(false);
@@ -173,16 +150,12 @@ export default function AdminSubscriptions() {
 
   async function saveEditPlan(id: string) {
     if (!editPlanForm) return;
-    await fetch(`${SB_URL}/rest/v1/subscription_plans?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: editPlanForm.name,
-        price: Number(editPlanForm.price) || 0,
-        currency: editPlanForm.currency,
-        period: editPlanForm.period,
-        is_active: editPlanForm.is_active,
-      })
+    await adminRest.update('subscription_plans', `id=eq.${id}`, {
+      name: editPlanForm.name,
+      price: Number(editPlanForm.price) || 0,
+      currency: editPlanForm.currency,
+      period: editPlanForm.period,
+      is_active: editPlanForm.is_active,
     });
     setPlans(prev => prev.map(p => p.id === id ? { ...p, ...editPlanForm, price: Number(editPlanForm.price) || 0 } : p));
     setEditPlanId(null);
@@ -191,10 +164,7 @@ export default function AdminSubscriptions() {
 
   async function confirmDeletePlan() {
     if (!deletePlanId) return;
-    await fetch(`${SB_URL}/rest/v1/subscription_plans?id=eq.${deletePlanId}`, {
-      method: 'DELETE',
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` },
-    });
+    await adminRest.delete('subscription_plans', `id=eq.${deletePlanId}`);
     setPlans(prev => prev.filter(p => p.id !== deletePlanId));
     setDeletePlanId(null);
   }

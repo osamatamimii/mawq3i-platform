@@ -1,5 +1,5 @@
 const SUPABASE_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const sbHeaders = (extra) => ({ apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', ...extra });
 
 const ALLOWED_PRODUCT_FIELDS = ['name_ar', 'name_en', 'desc_ar', 'desc_en', 'price'];

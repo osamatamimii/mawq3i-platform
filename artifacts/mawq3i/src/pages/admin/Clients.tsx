@@ -3,9 +3,7 @@ import { useAppContext } from '@/context/AppContext';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, Store, Mail, Phone, ExternalLink } from 'lucide-react';
-
-const SB_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
+import { adminRest } from '@/lib/supabase';
 
 interface Client {
   id: string;
@@ -24,10 +22,7 @@ export default function AdminClients() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`${SB_URL}/rest/v1/stores?select=id,name,slug,domain,owner_email,owner_phone,status,created_at&order=created_at.desc`, {
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
-    })
-      .then(r => r.json())
+    adminRest.select('stores', 'select=id,name,slug,domain,owner_email,owner_phone,status,created_at&order=created_at.desc')
       .then((data: any[]) => {
         setClients((data || []).map(s => ({
           id: s.id,

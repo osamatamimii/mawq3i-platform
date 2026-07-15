@@ -670,10 +670,12 @@ export async function addStaffMember(storeId: string, email: string, fullName: s
 // us to create it manually. Returns the temp password to show the owner once.
 export async function createStaffLoginAccount(staffId: string, email: string, fullName: string): Promise<{ success: boolean; tempPassword: string | null; alreadyExisted: boolean; error?: string }> {
   try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
     const res = await fetch('/api/create-staff-account', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ staffId, email, fullName }),
+      body: JSON.stringify({ staffId, email, fullName, accessToken }),
     });
     const data = await res.json();
     if (!res.ok) {

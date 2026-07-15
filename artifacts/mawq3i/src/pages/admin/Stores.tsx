@@ -12,9 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, LogIn, ExternalLink, Pencil, BanIcon, CheckCircle2, Loader2, Trash2, Globe } from 'lucide-react';
-
-const SUPABASE_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
+import { adminRest } from '@/lib/supabase';
 
 const subStatusCfg: Record<string, { ar: string; en: string; cls: string }> = {
   active: { ar: 'نشط', en: 'Active', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
@@ -57,10 +55,7 @@ export default function AdminStores() {
       setLoading(false);
     });
     // Fetch real order counts and revenue per store
-    fetch(`${SUPABASE_URL}/rest/v1/orders?select=store_id,amount,status`, {
-      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` }
-    })
-      .then(r => r.json())
+    adminRest.select('orders', 'select=store_id,amount,status')
       .then((rows: any[]) => {
         const counts: Record<string, number> = {};
         const sales: Record<string, number> = {};
@@ -96,27 +91,10 @@ export default function AdminStores() {
     // 1. Create auth user
     let newUserId: string | null = null;
     let authOk = false;
-    try {
-      const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SERVICE_KEY}`,
-          'apikey': SERVICE_KEY,
-        },
-        body: JSON.stringify({
-          email: newStore.ownerEmail,
-          password: newStore.password,
-          email_confirm: true,
-        }),
-      });
-      if (authRes.ok) {
-        const userData = await authRes.json();
-        newUserId = userData?.id ?? null;
-        authOk = true;
-      }
-    } catch {
-      authOk = false;
+    const authResult = await adminRest.authCreateUser(newStore.ownerEmail, newStore.password);
+    if (authResult?.id) {
+      newUserId = authResult.id;
+      authOk = true;
     }
 
     // 2. Create store record
@@ -140,15 +118,7 @@ export default function AdminStores() {
 
     // 3. Link owner_id to store so the owner can access their dashboard
     if (created && newUserId) {
-      await fetch(`${SUPABASE_URL}/rest/v1/stores?id=eq.${created.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SERVICE_KEY}`,
-          'apikey': SERVICE_KEY,
-        },
-        body: JSON.stringify({ owner_id: newUserId }),
-      });
+      await adminRest.update('stores', `id=eq.${created.id}`, { owner_id: newUserId });
     }
 
     if (created) setStores(prev => [created, ...prev]);

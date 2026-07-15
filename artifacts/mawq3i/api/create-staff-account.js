@@ -3,14 +3,49 @@
 // Uses the Supabase Admin Auth API (service role key) to create a confirmed
 // user with a randomly generated temporary password, then links that user's
 // id back onto the store_staff row.
+//
+// SECURITY: this endpoint performs a privileged action (creating real login
+// accounts), so it must verify the caller actually owns the store that the
+// target staffId belongs to (or is the platform admin) before doing anything.
 
 const SUPABASE_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1iZW5zemVnY2ptd2dtYmp5bGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Nzk3Nzg2OSwiZXhwIjoyMDkzNTUzODY5fQ.LmCOC7T9iC2SuKzRH9aVeUz0eml8RM95chPGMQgvuFo';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const ANON_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
+const ADMIN_EMAIL = 'admin@mawq3i.com';
 const ADMIN_HEADERS = {
   apikey: SUPABASE_KEY,
   Authorization: `Bearer ${SUPABASE_KEY}`,
   'Content-Type': 'application/json',
 };
+
+async function getCallerFromToken(accessToken) {
+  if (!accessToken || !ANON_KEY) return null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: ANON_KEY, Authorization: `Bearer ${accessToken}` },
+    });
+    if (!r.ok) return null;
+    const user = await r.json();
+    if (!user?.id) return null;
+    return { id: user.id, email: (user.email || '').toLowerCase() };
+  } catch {
+    return null;
+  }
+}
+
+async function callerOwnsStaffRow(staffId, callerId) {
+  try {
+    const staffRes = await fetch(`${SUPABASE_URL}/rest/v1/store_staff?id=eq.${staffId}&select=store_id`, { headers: ADMIN_HEADERS });
+    const staffRows = await staffRes.json();
+    const storeId = staffRows?.[0]?.store_id;
+    if (!storeId) return false;
+    const storeRes = await fetch(`${SUPABASE_URL}/rest/v1/stores?id=eq.${storeId}&select=owner_id`, { headers: ADMIN_HEADERS });
+    const storeRows = await storeRes.json();
+    return storeRows?.[0]?.owner_id === callerId;
+  } catch {
+    return false;
+  }
+}
 
 function generateTempPassword() {
   // 10 chars, letters + digits, avoids ambiguous characters (0/O, 1/l/I)
@@ -37,13 +72,32 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
+  if (!SUPABASE_KEY) {
+    res.status(500).json({ error: 'create-staff-account is not configured (missing SUPABASE_SERVICE_ROLE_KEY)' });
+    return;
+  }
 
   try {
-    const { staffId, email, fullName } = req.body || {};
+    const { staffId, email, fullName, accessToken } = req.body || {};
     if (!staffId || !email || !String(email).trim()) {
       res.status(400).json({ error: 'Missing staffId or email' });
       return;
     }
+
+    const caller = await getCallerFromToken(accessToken);
+    if (!caller) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+    const isAdmin = caller.email === ADMIN_EMAIL;
+    if (!isAdmin) {
+      const owns = await callerOwnsStaffRow(staffId, caller.id);
+      if (!owns) {
+        res.status(403).json({ error: 'Not authorized to manage this staff account' });
+        return;
+      }
+    }
+
     const cleanEmail = String(email).trim().toLowerCase();
 
     // 1) Try to create a brand-new confirmed auth user with a temp password
