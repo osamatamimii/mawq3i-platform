@@ -11,8 +11,7 @@ import { Loader2 } from "lucide-react";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
-import Products from "@/pages/Products";
-import Bundles from "@/pages/Bundles";
+import ProductsHub from "@/pages/ProductsHub";
 import WinningProducts from "@/pages/WinningProducts";
 import CompetitorPrices from "@/pages/CompetitorPrices";
 import AddProduct from "@/pages/AddProduct";
@@ -30,9 +29,8 @@ import AdminSettings from "@/pages/admin/AdminSettings";
 import AIUsage from "@/pages/admin/AIUsage";
 import SiteBuilder from "@/pages/SiteBuilder";
 import EditProduct from "@/pages/EditProduct";
-import Promotions from "@/pages/Promotions";
+import PromotionsHub from "@/pages/PromotionsHub";
 import AbandonedCarts from "@/pages/AbandonedCarts";
-import DiscountCodes from "@/pages/DiscountCodes";
 import AIAdvisor from "@/pages/AIAdvisor";
 import Reviews from "@/pages/Reviews";
 import Staff from "@/pages/Staff";
@@ -153,8 +151,8 @@ function Router() {
           <motion.div key={location} {...pageMotion}>
             <Switch>
               <Route path="/dashboard" component={Dashboard} />
-              <Route path="/dashboard/products" component={Products} />
-              <Route path="/dashboard/bundles" component={Bundles} />
+              <Route path="/dashboard/products" component={ProductsHub} />
+              <Route path="/dashboard/bundles" component={ProductsHub} />
               <Route path="/dashboard/winning-products" component={WinningProducts} />
               <Route path="/dashboard/competitor-prices" component={CompetitorPrices} />
               <Route path="/dashboard/add-product" component={AddProduct} />
@@ -164,8 +162,8 @@ function Router() {
               <Route path="/dashboard/settings" component={Settings} />
               <Route path="/dashboard/staff" component={Staff} />
               <Route path="/dashboard/marketing-studio" component={MarketingStudio} />
-              <Route path="/dashboard/promotions" component={Promotions} />
-              <Route path="/dashboard/discount-codes" component={DiscountCodes} />
+              <Route path="/dashboard/promotions" component={PromotionsHub} />
+              <Route path="/dashboard/discount-codes" component={PromotionsHub} />
               <Route path="/dashboard/ai-advisor" component={AIAdvisor} />
               <Route path="/dashboard/reviews" component={Reviews} />
               <Route path="/dashboard/abandoned-carts" component={AbandonedCarts} />
