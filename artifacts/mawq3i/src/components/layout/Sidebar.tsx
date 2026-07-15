@@ -6,9 +6,7 @@ import {
   LayoutDashboard,
   Package,
   TrendingUp,
-  Scale,
   ShoppingCart,
-  ShoppingBag,
   BarChart3,
   Settings,
   Tag,
@@ -18,8 +16,6 @@ import {
   X,
   Shield,
   Sparkles,
-  MessageSquareText,
-  Users,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -108,14 +104,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: '/dashboard/ai-advisor', icon: Sparkles, labelAr: 'المستشار الذكي', labelEn: 'AI Advisor', exact: false },
     { href: '/dashboard/products', icon: Package, labelAr: 'المنتجات', labelEn: 'Products', exact: false, requiresPerm: 'products' },
     { href: '/dashboard/winning-products', icon: TrendingUp, labelAr: 'المنتجات الرابحة', labelEn: 'Winning Products', exact: false, requiresPerm: 'products' },
-    { href: '/dashboard/competitor-prices', icon: Scale, labelAr: 'أسعار المنافسين', labelEn: 'Competitor Prices', exact: false, requiresPerm: 'products' },
-    { href: '/dashboard/reviews', icon: MessageSquareText, labelAr: 'التقييمات', labelEn: 'Reviews', exact: false },
     { href: '/dashboard/orders', icon: ShoppingCart, labelAr: 'الطلبات', labelEn: 'Orders', exact: false, badge: newOrdersCount },
-    { href: '/dashboard/abandoned-carts', icon: ShoppingBag, labelAr: 'سلات متروكة', labelEn: 'Abandoned Carts', exact: false },
     { href: '/dashboard/analytics', icon: BarChart3, labelAr: 'الإحصائيات', labelEn: 'Analytics', exact: false, requiresPerm: 'analytics' },
     { href: '/dashboard/promotions', icon: Tag, labelAr: 'العروض', labelEn: 'Promotions', exact: false, requiresPerm: 'promotions' },
     { href: '/dashboard/marketing-studio', icon: Megaphone, labelAr: 'استوديو التسويق', labelEn: 'Marketing Studio', exact: false, requiresPerm: 'promotions' },
-    { href: '/dashboard/staff', icon: Users, labelAr: 'الموظفون', labelEn: 'Staff', exact: false, requiresPerm: 'settings' },
     { href: '/dashboard/settings', icon: Settings, labelAr: 'إعدادات المتجر', labelEn: 'Store Settings', exact: false, requiresPerm: 'settings' },
   ];
 

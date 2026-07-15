@@ -12,12 +12,11 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import ProductsHub from "@/pages/ProductsHub";
-import WinningProducts from "@/pages/WinningProducts";
-import CompetitorPrices from "@/pages/CompetitorPrices";
+import ResearchHub from "@/pages/ResearchHub";
 import AddProduct from "@/pages/AddProduct";
 import Orders from "@/pages/Orders";
-import Analytics from "@/pages/Analytics";
-import Settings from "@/pages/Settings";
+import AnalyticsHub from "@/pages/AnalyticsHub";
+import SettingsHub from "@/pages/SettingsHub";
 import StoreFront from "@/pages/StoreFront";
 
 import AdminOverview from "@/pages/admin/Overview";
@@ -30,11 +29,8 @@ import AIUsage from "@/pages/admin/AIUsage";
 import SiteBuilder from "@/pages/SiteBuilder";
 import EditProduct from "@/pages/EditProduct";
 import PromotionsHub from "@/pages/PromotionsHub";
-import AbandonedCarts from "@/pages/AbandonedCarts";
+import MarketingStudioHub from "@/pages/MarketingStudioHub";
 import AIAdvisor from "@/pages/AIAdvisor";
-import Reviews from "@/pages/Reviews";
-import Staff from "@/pages/Staff";
-import MarketingStudio from "@/pages/MarketingStudio";
 
 const queryClient = new QueryClient();
 
@@ -153,20 +149,20 @@ function Router() {
               <Route path="/dashboard" component={Dashboard} />
               <Route path="/dashboard/products" component={ProductsHub} />
               <Route path="/dashboard/bundles" component={ProductsHub} />
-              <Route path="/dashboard/winning-products" component={WinningProducts} />
-              <Route path="/dashboard/competitor-prices" component={CompetitorPrices} />
+              <Route path="/dashboard/winning-products" component={ResearchHub} />
+              <Route path="/dashboard/competitor-prices" component={ResearchHub} />
               <Route path="/dashboard/add-product" component={AddProduct} />
               <Route path="/dashboard/products/edit/:id" component={EditProduct} />
               <Route path="/dashboard/orders" component={Orders} />
-              <Route path="/dashboard/analytics" component={Analytics} />
-              <Route path="/dashboard/settings" component={Settings} />
-              <Route path="/dashboard/staff" component={Staff} />
-              <Route path="/dashboard/marketing-studio" component={MarketingStudio} />
+              <Route path="/dashboard/analytics" component={AnalyticsHub} />
+              <Route path="/dashboard/reviews" component={AnalyticsHub} />
+              <Route path="/dashboard/settings" component={SettingsHub} />
+              <Route path="/dashboard/staff" component={SettingsHub} />
+              <Route path="/dashboard/marketing-studio" component={MarketingStudioHub} />
+              <Route path="/dashboard/abandoned-carts" component={MarketingStudioHub} />
               <Route path="/dashboard/promotions" component={PromotionsHub} />
               <Route path="/dashboard/discount-codes" component={PromotionsHub} />
               <Route path="/dashboard/ai-advisor" component={AIAdvisor} />
-              <Route path="/dashboard/reviews" component={Reviews} />
-              <Route path="/dashboard/abandoned-carts" component={AbandonedCarts} />
               <Route component={NotFound} />
             </Switch>
           </motion.div>
