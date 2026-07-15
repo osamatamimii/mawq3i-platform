@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import {
   LayoutDashboard,
   Package,
+  Boxes,
   ShoppingCart,
   ShoppingBag,
   BarChart3,
@@ -106,6 +107,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: '/dashboard', icon: LayoutDashboard, labelAr: 'لوحة التحكم', labelEn: 'Dashboard', exact: true, requiresPerm: 'analytics' },
     { href: '/dashboard/ai-advisor', icon: Sparkles, labelAr: 'المستشار الذكي', labelEn: 'AI Advisor', exact: false },
     { href: '/dashboard/products', icon: Package, labelAr: 'المنتجات', labelEn: 'Products', exact: false, requiresPerm: 'products' },
+    { href: '/dashboard/bundles', icon: Boxes, labelAr: 'الباكجات', labelEn: 'Bundles', exact: false, requiresPerm: 'products' },
     { href: '/dashboard/reviews', icon: MessageSquareText, labelAr: 'التقييمات', labelEn: 'Reviews', exact: false },
     { href: '/dashboard/orders', icon: ShoppingCart, labelAr: 'الطلبات', labelEn: 'Orders', exact: false, badge: newOrdersCount },
     { href: '/dashboard/abandoned-carts', icon: ShoppingBag, labelAr: 'سلات متروكة', labelEn: 'Abandoned Carts', exact: false },

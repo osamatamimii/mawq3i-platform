@@ -1,5 +1,5 @@
 import { supabase, adminRest } from './supabase';
-import { Product, Order, StoreRecord, Review } from '@/data/mockData';
+import { Product, Order, StoreRecord, Review, Bundle } from '@/data/mockData';
 
 // When useAdmin=true, use adminRest (REST API with service key, no extra GoTrueClient)
 // When useAdmin=false, use standard supabase client (respects RLS)
@@ -45,6 +45,36 @@ function productToRow(p: Partial<Product> & { storeId?: string }) {
     ...(p.badge !== undefined && { badge: p.badge }),
     ...(p.variants !== undefined && { variants: JSON.stringify(p.variants) }),
     ...(p.relatedProductIds !== undefined && { related_product_ids: p.relatedProductIds }),
+  };
+}
+
+function rowToBundle(row: any): Bundle {
+  return {
+    id: String(row.id),
+    storeId: row.store_id ?? '',
+    nameAr: row.name_ar ?? '',
+    nameEn: row.name_en ?? '',
+    descAr: row.desc_ar ?? '',
+    imageUrl: row.image_url ?? '',
+    productIds: Array.isArray(row.product_ids) ? row.product_ids : (row.product_ids ? JSON.parse(row.product_ids) : []),
+    price: Number(row.price),
+    currency: row.currency ?? 'ILS',
+    status: row.status ?? 'visible',
+    createdAt: row.created_at ?? '',
+  };
+}
+
+function bundleToRow(b: Partial<Bundle> & { storeId?: string }) {
+  return {
+    ...(b.storeId !== undefined && { store_id: b.storeId }),
+    ...(b.nameAr !== undefined && { name_ar: b.nameAr }),
+    ...(b.nameEn !== undefined && { name_en: b.nameEn }),
+    ...(b.descAr !== undefined && { desc_ar: b.descAr }),
+    ...(b.imageUrl !== undefined && { image_url: b.imageUrl }),
+    ...(b.productIds !== undefined && { product_ids: b.productIds }),
+    ...(b.price !== undefined && { price: b.price }),
+    ...(b.currency !== undefined && { currency: b.currency }),
+    ...(b.status !== undefined && { status: b.status }),
   };
 }
 
@@ -187,6 +217,64 @@ export async function deleteProduct(id: string, useAdmin = false): Promise<boole
       return await adminRest.delete('products', `id=eq.${id}`);
     }
     const { error } = await supabase.from('products').delete().eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// ─── Bundles (packages) ─────────────────────────────────────────────
+
+export async function getBundles(storeId?: string, useAdmin = false): Promise<Bundle[]> {
+  try {
+    if (useAdmin && storeId) {
+      const rows = await adminRest.select('bundles', `store_id=eq.${storeId}&order=created_at.desc`);
+      return rows.map(rowToBundle);
+    }
+    let query = supabase.from('bundles').select('*').order('created_at', { ascending: false });
+    if (storeId) query = query.eq('store_id', storeId);
+    const { data, error } = await query;
+    if (error || !data) return [];
+    return data.map(rowToBundle);
+  } catch {
+    return [];
+  }
+}
+
+export async function addBundle(bundle: Omit<Bundle, 'id'> & { storeId?: string }, useAdmin = false): Promise<Bundle | null> {
+  try {
+    if (useAdmin) {
+      const row = bundleToRow(bundle);
+      const data = await adminRest.insert('bundles', row);
+      if (!data) return null;
+      return rowToBundle(data);
+    }
+    const { data, error } = await supabase.from('bundles').insert([bundleToRow(bundle)]).select().single();
+    if (error || !data) return null;
+    return rowToBundle(data);
+  } catch {
+    return null;
+  }
+}
+
+export async function updateBundle(id: string, updates: Partial<Bundle>, useAdmin = false): Promise<boolean> {
+  try {
+    if (useAdmin) {
+      return await adminRest.update('bundles', `id=eq.${id}`, bundleToRow(updates));
+    }
+    const { error } = await supabase.from('bundles').update(bundleToRow(updates)).eq('id', id);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteBundle(id: string, useAdmin = false): Promise<boolean> {
+  try {
+    if (useAdmin) {
+      return await adminRest.delete('bundles', `id=eq.${id}`);
+    }
+    const { error } = await supabase.from('bundles').delete().eq('id', id);
     return !error;
   } catch {
     return false;

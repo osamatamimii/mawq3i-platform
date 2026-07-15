@@ -12,6 +12,7 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Products from "@/pages/Products";
+import Bundles from "@/pages/Bundles";
 import AddProduct from "@/pages/AddProduct";
 import Orders from "@/pages/Orders";
 import Analytics from "@/pages/Analytics";
@@ -127,6 +128,7 @@ function Router() {
       }
       const routePermission: Record<string, keyof typeof staffPermissions> = {
         "/dashboard/products": "products",
+        "/dashboard/bundles": "products",
         "/dashboard/add-product": "products",
         "/dashboard/analytics": "analytics",
         "/dashboard/settings": "settings",
@@ -148,6 +150,7 @@ function Router() {
             <Switch>
               <Route path="/dashboard" component={Dashboard} />
               <Route path="/dashboard/products" component={Products} />
+              <Route path="/dashboard/bundles" component={Bundles} />
               <Route path="/dashboard/add-product" component={AddProduct} />
               <Route path="/dashboard/products/edit/:id" component={EditProduct} />
               <Route path="/dashboard/orders" component={Orders} />

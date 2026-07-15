@@ -24,6 +24,22 @@ export type Product = {
   relatedProductIds?: string[];
 };
 
+export type BundleItem = { productId: string; qty: number };
+
+export type Bundle = {
+  id: string;
+  storeId: string;
+  nameAr: string;
+  nameEn: string;
+  descAr?: string;
+  imageUrl?: string;
+  productIds: BundleItem[];
+  price: number;
+  currency: 'ILS' | 'SAR';
+  status: 'visible' | 'hidden';
+  createdAt?: string;
+};
+
 export type OrderStatus = 'new' | 'processing' | 'delivered' | 'cancelled';
 
 export type Order = {
