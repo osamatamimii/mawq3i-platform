@@ -30,6 +30,7 @@ function ManualConnectForm({ isAr, platform, currentStore, onConnected }: { isAr
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [accountId, setAccountId] = useState('');
+  const [pixelId, setPixelId] = useState('');
   const [accessToken, setAccessToken] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -43,7 +44,7 @@ function ManualConnectForm({ isAr, platform, currentStore, onConnected }: { isAr
       const res = await fetch('/api/growth-agent?action=connect-manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ store_id: currentStore.id, platform, external_account_id: accountId.trim(), access_token: accessToken.trim() }),
+        body: JSON.stringify({ store_id: currentStore.id, platform, external_account_id: accountId.trim(), access_token: accessToken.trim(), pixel_id: pixelId.trim() || null }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -51,7 +52,7 @@ function ManualConnectForm({ isAr, platform, currentStore, onConnected }: { isAr
         return;
       }
       toast({ title: isAr ? `تم ربط ${data.account_name} ✅` : `Connected ${data.account_name} ✅` });
-      setAccountId(''); setAccessToken(''); setOpen(false);
+      setAccountId(''); setPixelId(''); setAccessToken(''); setOpen(false);
       onConnected();
     } catch {
       toast({ title: isAr ? 'صار خطأ، حاول لاحقاً' : 'Something went wrong', variant: 'destructive' });
@@ -61,11 +62,11 @@ function ManualConnectForm({ isAr, platform, currentStore, onConnected }: { isAr
   };
 
   const metaGuide = isAr
-    ? ['روح لـ business.facebook.com وسجّل دخول', 'من الإعدادات → مستخدمو النظام (System Users)، أنشئ مستخدم جديد وأعطيه صلاحية على حسابك الإعلاني (ads_read)', 'ولّد توكن (Access Token) بصلاحية "لا ينتهي" (Never expire)', 'انسخ رقم حسابك الإعلاني (يبدأ بـ act_ أو أرقام فقط) والتوكن، وحطهم هون']
-    : ['Go to business.facebook.com and sign in', 'Settings → System Users, create one and grant it ads_read on your ad account', 'Generate an access token set to never expire', 'Copy your ad account ID (starts with act_ or digits) and the token, paste them here'];
+    ? ['روح لـ business.facebook.com وسجّل دخول', 'من الإعدادات → مستخدمو النظام (System Users)، أنشئ مستخدم جديد وأعطيه صلاحية على حسابك الإعلاني (ads_read) وعلى الـ Pixel', 'ولّد توكن (Access Token) بصلاحية "لا ينتهي" (Never expire)', 'انسخ رقم حسابك الإعلاني (يبدأ بـ act_ أو أرقام فقط)، ورقم الـ Pixel (من Events Manager)، والتوكن، وحطهم هون']
+    : ['Go to business.facebook.com and sign in', 'Settings → System Users, create one and grant it ads_read on your ad account and your Pixel', 'Generate an access token set to never expire', 'Copy your ad account ID (starts with act_ or digits), your Pixel ID (from Events Manager), and the token, paste them here'];
   const tiktokGuide = isAr
-    ? ['روح لإعدادات TikTok Ads Manager الخاص فيك', 'دوّر على "API Access" أو "التطبيقات المصرّح لها"', 'ولّد Access Token طويل الأمد لحسابك الإعلاني', 'انسخ رقم الحساب الإعلاني (Advertiser ID) والتوكن، وحطهم هون']
-    : ["Go to your TikTok Ads Manager settings", 'Find "API Access" or authorized apps', 'Generate a long-term access token for your ad account', 'Copy your Advertiser ID and the token, paste them here'];
+    ? ['روح لإعدادات TikTok Ads Manager الخاص فيك', 'دوّر على "API Access" أو "التطبيقات المصرّح لها"', 'ولّد Access Token طويل الأمد لحسابك الإعلاني', 'انسخ رقم الحساب الإعلاني (Advertiser ID)، ورقم الـ Pixel (Pixel Code من Assets → Events)، والتوكن، وحطهم هون']
+    : ["Go to your TikTok Ads Manager settings", 'Find "API Access" or authorized apps', 'Generate a long-term access token for your ad account', 'Copy your Advertiser ID, your Pixel Code (from Assets → Events), and the token, paste them here'];
   const guide = platform === 'meta' ? metaGuide : tiktokGuide;
 
   return (
@@ -85,6 +86,10 @@ function ManualConnectForm({ isAr, platform, currentStore, onConnected }: { isAr
                 <div>
                   <Label className="text-[11px]">{isAr ? 'رقم الحساب الإعلاني' : 'Ad Account ID'}</Label>
                   <Input value={accountId} onChange={(e) => setAccountId(e.target.value)} placeholder={platform === 'meta' ? 'act_1234567890' : '1234567890'} className="h-8 text-xs" dir="ltr" />
+                </div>
+                <div>
+                  <Label className="text-[11px]">{isAr ? 'رقم الـ Pixel (اختياري — لتحسين دقة التتبع)' : 'Pixel ID (optional — improves tracking accuracy)'}</Label>
+                  <Input value={pixelId} onChange={(e) => setPixelId(e.target.value)} placeholder="1234567890123456" className="h-8 text-xs" dir="ltr" />
                 </div>
                 <div>
                   <Label className="text-[11px]">{isAr ? 'التوكن (Access Token)' : 'Access Token'}</Label>

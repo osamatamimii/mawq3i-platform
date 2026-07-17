@@ -73,6 +73,113 @@ function isValidUuid(v) { return typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]
 function pctChange(before, after) { if (before <= 0) return after > 0 ? 100 : 0; return ((after - before) / before) * 100; }
 
 // ============================================================
+// CONVERSIONS API — إرسال حدث "طلب مكتمل" من السيرفر مباشرة لـ Meta/TikTok
+// (مو بس قراءة بيانات — هاد بيرجّع بيانات حقيقية لخوارزمية الإعلان نفسها،
+// وبيصير مقاوم لأدبلوكر/iOS restrictions عكس الاعتماد على رابط المتصفح بس)
+// ============================================================
+
+function sha256Hex(input) {
+  return crypto.createHash('sha256').update(String(input).trim().toLowerCase()).digest('hex');
+}
+function normalizePhoneForHash(phone) {
+  // Meta/TikTok بيتوقعوا رقم بصيغة دولية بدون + أو مسافات (مثال: 970599123456)
+  return String(phone || '').replace(/[^\d]/g, '');
+}
+
+async function sendMetaConversion({ pixelId, accessToken, order, clientIp, userAgent }) {
+  const userData = {};
+  if (order.customer_name) userData.fn = [sha256Hex(order.customer_name.split(' ')[0])];
+  if (order.phone) userData.ph = [sha256Hex(normalizePhoneForHash(order.phone))];
+  if (clientIp) userData.client_ip_address = clientIp;
+  if (userAgent) userData.client_user_agent = userAgent;
+  if (order.attribution?.fbclid) userData.fbc = `fb.1.${Date.now()}.${order.attribution.fbclid}`;
+
+  const payload = {
+    data: [{
+      event_name: 'Purchase',
+      event_time: Math.floor(new Date(order.created_at || Date.now()).getTime() / 1000),
+      event_id: order.id, // للتخلص من التكرار لو في pixel بالمتصفح كمان
+      action_source: 'website',
+      user_data: userData,
+      custom_data: { value: Number(order.amount || 0), currency: order.currency || 'USD', content_ids: (order.items || []).map((i) => i.product_id).filter(Boolean), num_items: (order.items || []).length },
+    }],
+  };
+  const r = await fetch(`https://graph.facebook.com/v19.0/${pixelId}/events?access_token=${accessToken}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) throw new Error(`Meta CAPI failed: ${r.status} ${await r.text()}`);
+  return r.json();
+}
+
+async function sendTikTokConversion({ pixelId, accessToken, order, clientIp, userAgent }) {
+  const payload = {
+    pixel_code: pixelId,
+    event: 'CompletePayment',
+    event_id: order.id,
+    timestamp: new Date(order.created_at || Date.now()).toISOString(),
+    context: {
+      ip: clientIp || undefined,
+      user_agent: userAgent || undefined,
+      user: {
+        phone_number: order.phone ? sha256Hex(normalizePhoneForHash(order.phone)) : undefined,
+      },
+      ad: order.attribution?.ttclid ? { callback: order.attribution.ttclid } : undefined,
+    },
+    properties: {
+      value: Number(order.amount || 0),
+      currency: order.currency || 'USD',
+      content_id: (order.items || [])[0]?.product_id || undefined,
+    },
+  };
+  const r = await fetch('https://business-api.tiktok.com/open_api/v1.3/event/track/', {
+    method: 'POST',
+    headers: { 'Access-Token': accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) throw new Error(`TikTok Events API failed: ${r.status} ${await r.text()}`);
+  return r.json();
+}
+
+async function handleSendConversionEvent(req, res) {
+  const { order_id: orderId, store_id: storeId } = req.body || {};
+  if (!orderId || !storeId) { res.status(400).json({ error: 'Missing order_id or store_id' }); return; }
+
+  const [order] = await sbGet(`orders?id=eq.${encodeURIComponent(orderId)}&store_id=eq.${storeId}&select=*`);
+  if (!order) { res.status(404).json({ error: 'Order not found' }); return; }
+
+  const accounts = await sbGet(`ad_accounts?store_id=eq.${storeId}&status=eq.connected&pixel_id=not.is.null&select=platform,access_token,pixel_id`);
+  if (!accounts.length) { res.status(200).json({ sent: false, reason: 'No connected ad account with a pixel_id configured' }); return; }
+
+  const clientIp = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress;
+  const userAgent = req.headers['user-agent'];
+  const sentFlags = { ...(order.conversion_sent || {}) };
+  const results = {};
+
+  for (const account of accounts) {
+    if (sentFlags[account.platform]) continue; // ما نرسل مرتين لنفس الطلب لنفس المنصة
+    try {
+      if (account.platform === 'meta') {
+        await sendMetaConversion({ pixelId: account.pixel_id, accessToken: account.access_token, order, clientIp, userAgent });
+      } else {
+        await sendTikTokConversion({ pixelId: account.pixel_id, accessToken: account.access_token, order, clientIp, userAgent });
+      }
+      sentFlags[account.platform] = true;
+      results[account.platform] = 'sent';
+    } catch (e) {
+      results[account.platform] = `error: ${e?.message}`;
+      console.error(`conversion event failed for ${account.platform}:`, e?.message);
+    }
+  }
+
+  await sbPatch('orders', `id=eq.${encodeURIComponent(orderId)}`, { conversion_sent: sentFlags });
+  res.status(200).json({ sent: true, results });
+}
+
+
+
+// ============================================================
 // 1) SYNC — مزامنة يومية لـ product_daily_stats (GA4 + orders + offline_sales)
 // ============================================================
 
@@ -870,7 +977,7 @@ async function runMonthlyPlan() {
 async function handleManualConnect(req, res) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.replace(/^Bearer\s+/i, '');
-  const { store_id: storeId, platform, external_account_id: accountId, access_token: accessToken } = req.body || {};
+  const { store_id: storeId, platform, external_account_id: accountId, access_token: accessToken, pixel_id: pixelId } = req.body || {};
   if (!token || !storeId || !['meta', 'tiktok'].includes(platform) || !accountId || !accessToken) {
     res.status(400).json({ error: 'Missing required fields' }); return;
   }
@@ -890,14 +997,14 @@ async function handleManualConnect(req, res) {
       if (!r.ok) { res.status(400).json({ error: 'التوكن أو رقم الحساب غير صحيح — تحقق منهم وحاول من جديد' }); return; }
       const data = await r.json();
       accountName = data.name || cleanId;
-      await sbUpsert('ad_accounts', [{ store_id: storeId, platform: 'meta', external_account_id: cleanId, external_account_name: accountName, access_token: accessToken, token_expires_at: null, status: 'connected', connected_by: user.id }], 'store_id,platform,external_account_id');
+      await sbUpsert('ad_accounts', [{ store_id: storeId, platform: 'meta', external_account_id: cleanId, external_account_name: accountName, access_token: accessToken, token_expires_at: null, status: 'connected', connected_by: user.id, pixel_id: pixelId || null }], 'store_id,platform,external_account_id');
     } else {
       const r = await fetch(`https://business-api.tiktok.com/open_api/v1.3/advertiser/info/?advertiser_ids=${encodeURIComponent(JSON.stringify([accountId]))}`, { headers: { 'Access-Token': accessToken } });
       const data = await r.json();
       const info = data?.data?.list?.[0];
       if (!info) { res.status(400).json({ error: 'التوكن أو رقم الحساب غير صحيح — تحقق منهم وحاول من جديد' }); return; }
       accountName = info.name || accountId;
-      await sbUpsert('ad_accounts', [{ store_id: storeId, platform: 'tiktok', external_account_id: accountId, external_account_name: accountName, access_token: accessToken, token_expires_at: null, status: 'connected', connected_by: user.id }], 'store_id,platform,external_account_id');
+      await sbUpsert('ad_accounts', [{ store_id: storeId, platform: 'tiktok', external_account_id: accountId, external_account_name: accountName, access_token: accessToken, token_expires_at: null, status: 'connected', connected_by: user.id, pixel_id: pixelId || null }], 'store_id,platform,external_account_id');
     }
   } catch (e) {
     console.error('manual connect verification failed:', e);
@@ -980,7 +1087,14 @@ async function handleOAuthCallback(req, res, platform) {
       const firstAccount = adAccountsData?.data?.[0];
       if (!firstAccount) { redirectWithMessage(res, false, 'ما لقينا حساب إعلانات مربوط بحسابك على Meta'); return; }
 
-      await sbUpsert('ad_accounts', [{ store_id: intent.store_id, platform: 'meta', external_account_id: firstAccount.account_id, external_account_name: firstAccount.name, access_token: finalToken, token_expires_at: new Date(Date.now() + expiresInSec * 1000).toISOString(), status: 'connected', connected_by: intent.created_by }], 'store_id,platform,external_account_id');
+      // جلب أول Pixel مربوط بالحساب تلقائياً (لازم لإرسال Conversions API لاحقاً)
+      let pixelId = null;
+      try {
+        const pixelsRes = await fetch(`https://graph.facebook.com/v19.0/act_${firstAccount.account_id}/adspixels?fields=id&access_token=${finalToken}`);
+        if (pixelsRes.ok) { const pixelsData = await pixelsRes.json(); pixelId = pixelsData?.data?.[0]?.id || null; }
+      } catch (e) { console.error('pixel lookup failed:', e?.message); }
+
+      await sbUpsert('ad_accounts', [{ store_id: intent.store_id, platform: 'meta', external_account_id: firstAccount.account_id, external_account_name: firstAccount.name, access_token: finalToken, token_expires_at: new Date(Date.now() + expiresInSec * 1000).toISOString(), status: 'connected', connected_by: intent.created_by, pixel_id: pixelId }], 'store_id,platform,external_account_id');
       await sbPatch('oauth_connect_intents', `id=eq.${intent.id}`, { used: true });
       redirectWithMessage(res, true, `تم ربط حساب ${firstAccount.name}`);
     } catch (err) { console.error('meta oauth callback error:', err); redirectWithMessage(res, false, 'صار خطأ غير متوقع أثناء الربط'); }
@@ -1044,6 +1158,9 @@ export default async function handler(req, res) {
       case 'connect-manual':
         if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
         return await handleManualConnect(req, res);
+      case 'send-conversion-event':
+        if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
+        return await handleSendConversionEvent(req, res);
       case 'oauth-callback':
         if (!['meta', 'tiktok'].includes(platform)) { res.status(400).json({ error: 'Invalid platform' }); return; }
         return await handleOAuthCallback(req, res, platform);
