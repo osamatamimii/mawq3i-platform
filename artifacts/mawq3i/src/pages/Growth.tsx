@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import { adminRest } from '@/lib/supabase';
+import { adminRest, supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
-import { TrendingUp, Package, ShoppingCart, Store as StoreIcon, Loader2 } from 'lucide-react';
+import { TrendingUp, Package, ShoppingCart, Store as StoreIcon, Loader2, Check, X, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 interface GrowthEvent {
   id: string;
-  category: 'product' | 'store' | 'cart' | string;
+  event_type: 'diagnosis' | 'suggested_action' | 'auto_action' | string;
+  category: 'product' | 'store' | 'cart' | 'ad' | string;
   title: string;
   description: string;
   related_product_id: string | null;
@@ -34,23 +37,53 @@ function timeAgo(dateStr: string, isAr: boolean) {
 
 export default function Growth() {
   const { language, currentStore } = useAppContext();
+  const { toast } = useToast();
   const isAr = language === 'ar';
   const [events, setEvents] = useState<GrowthEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [decidingId, setDecidingId] = useState<string | null>(null);
+
+  const fetchEvents = async () => {
+    if (!currentStore?.id) return;
+    const data = await adminRest.select(
+      'store_growth_events',
+      `store_id=eq.${currentStore.id}&order=created_at.desc&limit=50`,
+      currentStore.id
+    );
+    setEvents(Array.isArray(data) ? data : []);
+  };
 
   useEffect(() => {
     (async () => {
-      if (!currentStore?.id) return;
       setLoading(true);
-      const data = await adminRest.select(
-        'store_growth_events',
-        `store_id=eq.${currentStore.id}&order=created_at.desc&limit=50`,
-        currentStore.id
-      );
-      setEvents(Array.isArray(data) ? data : []);
+      await fetchEvents();
       setLoading(false);
     })();
   }, [currentStore?.id]);
+
+  const decide = async (eventId: string, decision: 'approve' | 'reject') => {
+    setDecidingId(eventId);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) { toast({ title: isAr ? 'سجّل دخولك من جديد' : 'Please sign in again', variant: 'destructive' }); return; }
+
+      const res = await fetch('/api/growth-agent-execute-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ event_id: eventId, decision }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: isAr ? 'صار خطأ' : 'Something went wrong', description: err.error, variant: 'destructive' });
+        return;
+      }
+      toast({ title: decision === 'approve' ? (isAr ? 'تم التنفيذ ✅' : 'Executed ✅') : (isAr ? 'تم الرفض' : 'Rejected') });
+      await fetchEvents();
+    } finally {
+      setDecidingId(null);
+    }
+  };
 
   if (loading) {
     return <div className="flex justify-center py-24"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
@@ -94,6 +127,36 @@ export default function Growth() {
                     <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(e.created_at, isAr)}</span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{e.description}</p>
+
+                  {e.event_type === 'auto_action' && (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-primary bg-primary/10 rounded-full px-2 py-0.5 mt-2">
+                      <Zap className="w-3 h-3" />
+                      {isAr ? 'نُفّذ تلقائياً — قابل للتراجع من صفحة المنتجات' : 'Auto-executed — reversible from Products page'}
+                    </span>
+                  )}
+
+                  {e.event_type === 'suggested_action' && e.status === 'pending' && (
+                    <div className="flex gap-2 mt-3">
+                      <Button size="sm" disabled={decidingId === e.id} onClick={() => decide(e.id, 'approve')}>
+                        {decidingId === e.id ? <Loader2 className="w-3.5 h-3.5 animate-spin me-1.5" /> : <Check className="w-3.5 h-3.5 me-1.5" />}
+                        {isAr ? 'موافق، نفّذ' : 'Approve'}
+                      </Button>
+                      <Button size="sm" variant="outline" disabled={decidingId === e.id} onClick={() => decide(e.id, 'reject')}>
+                        <X className="w-3.5 h-3.5 me-1.5" />
+                        {isAr ? 'رفض' : 'Reject'}
+                      </Button>
+                    </div>
+                  )}
+                  {e.event_type === 'suggested_action' && e.status === 'approved' && (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-primary bg-primary/10 rounded-full px-2 py-0.5 mt-2">
+                      <Check className="w-3 h-3" />{isAr ? 'وافقت ونُفّذ' : 'Approved & executed'}
+                    </span>
+                  )}
+                  {e.event_type === 'suggested_action' && e.status === 'rejected' && (
+                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted rounded-full px-2 py-0.5 mt-2">
+                      <X className="w-3 h-3" />{isAr ? 'رُفض' : 'Rejected'}
+                    </span>
+                  )}
                 </div>
               </div>
             );
