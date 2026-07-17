@@ -123,7 +123,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
   const allMenuItems: (MenuItem & { requiresPerm?: 'products' | 'analytics' | 'settings' | 'promotions' })[] = [
     { href: '/dashboard', icon: LayoutDashboard, labelAr: 'لوحة التحكم', labelEn: 'Dashboard', exact: true, requiresPerm: 'analytics' },
-    { href: '/dashboard/growth', icon: Activity, labelAr: 'النمو', labelEn: 'Growth', exact: false, requiresPerm: 'analytics', badge: newGrowthCount },
+    { href: '/dashboard/growth', icon: Activity, labelAr: 'خبير النمو', labelEn: 'Growth Expert', exact: false, requiresPerm: 'analytics', badge: newGrowthCount },
     { href: '/dashboard/ai-advisor', icon: Sparkles, labelAr: 'المستشار الذكي', labelEn: 'AI Advisor', exact: false },
     { href: '/dashboard/products', icon: Package, labelAr: 'المنتجات', labelEn: 'Products', exact: false, requiresPerm: 'products' },
     { href: '/dashboard/winning-products', icon: TrendingUp, labelAr: 'المنتجات الرابحة', labelEn: 'Winning Products', exact: false, requiresPerm: 'products' },
