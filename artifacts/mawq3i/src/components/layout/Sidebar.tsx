@@ -2,6 +2,7 @@ import { Link, useLocation } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
 import { useEffect, useLayoutEffect, useState, useRef, memo } from 'react';
 import { supabase } from '@/lib/supabase';
+import { sendBrowserNotification } from '@/lib/notifications';
 import {
   LayoutDashboard,
   Package,
@@ -97,6 +98,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     return () => clearInterval(interval);
   }, [currentStore?.id]);
 
+  const growthCountRef = useRef<number | null>(null);
   useEffect(() => {
     if (!currentStore?.id) return;
     const fetchGrowthCount = async () => {
@@ -106,7 +108,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         .select('id', { count: 'exact', head: true })
         .eq('store_id', currentStore.id)
         .gte('created_at', since);
-      setNewGrowthCount(count ?? 0);
+      const newCount = count ?? 0;
+      // نبّه فقط لما يزيد العدد بعد أول تحميل (تجنب إشعار عن سجل قديم أول ما يفتح التطبيق)
+      if (growthCountRef.current !== null && newCount > growthCountRef.current) {
+        sendBrowserNotification('🧠 خبير النمو عنده جديد', `في ${newCount - growthCountRef.current} إجراء/ملاحظة جديدة بانتظارك`);
+      }
+      growthCountRef.current = newCount;
+      setNewGrowthCount(newCount);
     };
     fetchGrowthCount();
     const interval = setInterval(fetchGrowthCount, 60000);

@@ -256,11 +256,39 @@ async function hideProduct(productId) {
   await sbPatch('products', `id=eq.${productId}`, { status: 'hidden' });
 }
 
+// ============================================================
+// 3.5) VARIANT SUGGEST — يقترح نسخة بديلة فعلية (وصف منتج) لاختبارها، مش بس "حسّن الوصف"
+// ============================================================
+
+const OPENAI_MODEL = 'gpt-4.1-nano';
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+
+async function generateVariantDescription(productName, currentDesc) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const systemPrompt = `أنت خبير نمو لمتجر إلكتروني عربي. مهمتك تكتب نسخة بديلة من وصف منتج (2-4 جمل) بيعية أقوى من الأصلي — تبرز الفائدة للزبون، تخلق ثقة، وتشجع على الشراء. لا تخترع مواصفات غير مذكورة أصلاً بالوصف الحالي. رد بالوصف الجديد فقط، بدون أي مقدمة أو علامات اقتباس.`;
+    const userContent = `اسم المنتج: ${productName}\nالوصف الحالي: ${currentDesc || '(فارغ)'}`;
+    const res = await fetch(OPENAI_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: OPENAI_MODEL, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userContent }], temperature: 0.7, max_tokens: 300 }),
+    });
+    if (!res.ok) { console.error('variant generation failed:', res.status, await res.text()); return null; }
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content?.trim() || null;
+  } catch (e) {
+    console.error('generateVariantDescription error:', e?.message);
+    return null;
+  }
+}
+
+
 async function diagnoseStore(store, sinceDate, bench) {
   const events = [];
   const [stats, products] = await Promise.all([
     sbGet(`product_daily_stats?store_id=eq.${store.id}&stat_date=gte.${sinceDate}&select=product_id,views,purchases,revenue`),
-    sbGet(`products?store_id=eq.${store.id}&select=id,name_ar,name_en,status,created_at`),
+    sbGet(`products?store_id=eq.${store.id}&select=id,name_ar,name_en,desc_ar,status,created_at`),
   ]);
   if (!stats.length) return events;
 
@@ -315,7 +343,18 @@ async function diagnoseStore(store, sinceDate, bench) {
       if (productConversionPct < storeConversionPct * 0.5) {
         const key = 'low_conversion_product';
         if (await alreadyDiagnosedRecently(store.id, key, pid)) continue;
-        events.push({ store_id: store.id, event_type: 'diagnosis', category: 'product', related_product_id: pid, requires_approval: false, title: `تحويل ضعيف: ${productName(product)}`, description: `${agg.views} مشاهدة بس ${agg.purchases} مبيعة فقط (تحويل ${productConversionPct.toFixed(1)}% مقابل متوسط المتجر ${storeConversionPct.toFixed(1)}%). المشكلة على الأغلب بصفحة المنتج (الصورة/السعر/الوصف) مش بجذب الزوار.`, data: { diagnosis_key: key, views: agg.views, purchases: agg.purchases, product_cvr: productConversionPct, store_cvr: storeConversionPct } });
+
+        const variantText = await generateVariantDescription(productName(product), product.desc_ar);
+        if (variantText && variantText !== product.desc_ar) {
+          events.push({
+            store_id: store.id, event_type: 'suggested_action', category: 'product', related_product_id: pid, requires_approval: true,
+            title: `اقترحت نسخة بديلة لوصف: ${productName(product)}`,
+            description: `${agg.views} مشاهدة بس ${agg.purchases} مبيعة فقط (تحويل ${productConversionPct.toFixed(1)}% مقابل متوسط المتجر ${storeConversionPct.toFixed(1)}%). جرّبت أكتبلك وصف بديل أقوى بيعياً — شوف البريفيو وقرر.`,
+            data: { diagnosis_key: key, action_type: 'apply_product_variant', views: agg.views, purchases: agg.purchases, product_cvr: productConversionPct, store_cvr: storeConversionPct, variant: { field: 'desc_ar', original: product.desc_ar || '', suggested: variantText } },
+          });
+        } else {
+          events.push({ store_id: store.id, event_type: 'diagnosis', category: 'product', related_product_id: pid, requires_approval: false, title: `تحويل ضعيف: ${productName(product)}`, description: `${agg.views} مشاهدة بس ${agg.purchases} مبيعة فقط (تحويل ${productConversionPct.toFixed(1)}% مقابل متوسط المتجر ${storeConversionPct.toFixed(1)}%). المشكلة على الأغلب بصفحة المنتج (الصورة/السعر/الوصف) مش بجذب الزوار.`, data: { diagnosis_key: key, views: agg.views, purchases: agg.purchases, product_cvr: productConversionPct, store_cvr: storeConversionPct } });
+        }
       }
     }
   }
@@ -403,6 +442,12 @@ async function executeAction(event) {
   const actionType = event.data?.action_type;
   if (actionType === 'hide_product' && event.related_product_id) {
     await hideProduct(event.related_product_id);
+    return { executed: true, action_type: actionType };
+  }
+  if (actionType === 'apply_product_variant' && event.related_product_id && event.data?.variant) {
+    const { field, suggested } = event.data.variant;
+    if (!['desc_ar'].includes(field)) throw new Error(`Unsupported variant field: ${field}`);
+    await sbPatch('products', `id=eq.${event.related_product_id}`, { [field]: suggested });
     return { executed: true, action_type: actionType };
   }
   throw new Error(`Unknown or unsupported action_type: ${actionType}`);

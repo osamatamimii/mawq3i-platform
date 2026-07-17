@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Brain, Package, ShoppingCart, Store as StoreIcon, Loader2, Check, X, Zap,
   ArrowUpRight, ArrowDownRight, Minus, Radio, Megaphone, Link2, ShieldCheck,
-  Eye, ShoppingBag, DollarSign, ExternalLink, ChevronDown, KeyRound,
+  ExternalLink, ChevronDown, KeyRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,7 @@ interface GrowthEvent {
   related_product_id: string | null;
   created_at: string;
   status: string;
+  data?: { variant?: { field: string; original: string; suggested: string } };
 }
 interface AdAccount {
   id: string;
@@ -67,30 +68,16 @@ function timeAgo(dateStr: string, isAr: boolean) {
 }
 function daysAgoISO(n: number) { const d = new Date(); d.setUTCDate(d.getUTCDate() - n); return d.toISOString().slice(0, 10); }
 
-function Sparkline({ points }: { points: number[] }) {
-  if (points.length < 2) return null;
-  const max = Math.max(...points, 1);
-  const min = Math.min(...points, 0);
-  const range = max - min || 1;
-  const w = 100, h = 28;
-  const step = w / (points.length - 1);
-  const coords = points.map((v, i) => `${i * step},${h - ((v - min) / range) * h}`).join(' ');
+function VariantPreview({ isAr, original, suggested }: { isAr: boolean; original: string; suggested: string }) {
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="w-24 h-7" preserveAspectRatio="none">
-      <polyline points={coords} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary" />
-    </svg>
-  );
-}
-
-function StatCard({ icon: Icon, label, value }: { icon: any; label: string; value: string | number }) {
-  return (
-    <div className="rounded-xl border border-border/40 bg-card p-3 flex items-center gap-2.5">
-      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-        <Icon className="w-4 h-4 text-primary" />
+    <div className="mt-3 space-y-2">
+      <div className="rounded-lg border border-border/40 bg-muted/30 p-2.5">
+        <p className="text-[10px] font-semibold text-muted-foreground mb-1">{isAr ? 'الحالي' : 'Current'}</p>
+        <p className="text-xs text-muted-foreground line-through decoration-muted-foreground/40">{original || (isAr ? '(فارغ)' : '(empty)')}</p>
       </div>
-      <div className="min-w-0">
-        <p className="text-[11px] text-muted-foreground truncate">{label}</p>
-        <p className="text-sm font-bold font-mono">{value}</p>
+      <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5">
+        <p className="text-[10px] font-semibold text-primary mb-1">{isAr ? 'النسخة اللي اقترحتها' : 'My suggested version'}</p>
+        <p className="text-xs">{suggested}</p>
       </div>
     </div>
   );
@@ -181,8 +168,7 @@ export default function Growth() {
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<GrowthEvent[]>([]);
   const [plan, setPlan] = useState<GrowthPlan | null>(null);
-  const [weekStats, setWeekStats] = useState({ views: 0, purchases: 0, revenue: 0 });
-  const [trend, setTrend] = useState<number[]>([]);
+  const [hasEnoughData, setHasEnoughData] = useState(false);
   const [decidingId, setDecidingId] = useState<string | null>(null);
 
   const [adAccounts, setAdAccounts] = useState<AdAccount[]>([]);
@@ -199,21 +185,11 @@ export default function Growth() {
     const data = await adminRest.select('store_growth_plans', `store_id=eq.${currentStore.id}&order=period_end.desc&limit=1`, currentStore.id);
     setPlan(Array.isArray(data) && data.length ? data[0] : null);
   };
-  const fetchWeekStats = async () => {
+  const fetchHasEnoughData = async () => {
     if (!currentStore?.id) return;
-    const since = daysAgoISO(13);
-    const rows = await adminRest.select('product_daily_stats', `store_id=eq.${currentStore.id}&stat_date=gte.${since}&select=stat_date,views,purchases,revenue`, currentStore.id);
-    const arr = Array.isArray(rows) ? rows : [];
-    const last7 = arr.filter((r: any) => r.stat_date >= daysAgoISO(6));
-    setWeekStats({
-      views: last7.reduce((s: number, r: any) => s + (r.views || 0), 0),
-      purchases: last7.reduce((s: number, r: any) => s + (r.purchases || 0), 0),
-      revenue: last7.reduce((s: number, r: any) => s + Number(r.revenue || 0), 0),
-    });
-    const byDate: Record<string, number> = {};
-    for (const r of arr) byDate[r.stat_date] = (byDate[r.stat_date] || 0) + Number(r.revenue || 0);
-    const sortedDates = Object.keys(byDate).sort();
-    setTrend(sortedDates.map((d) => byDate[d]));
+    const since = daysAgoISO(6);
+    const rows = await adminRest.select('product_daily_stats', `store_id=eq.${currentStore.id}&stat_date=gte.${since}&limit=1&select=id`, currentStore.id);
+    setHasEnoughData(Array.isArray(rows) && rows.length > 0);
   };
   const fetchAdAccounts = async () => {
     if (!currentStore?.id) return;
@@ -225,7 +201,7 @@ export default function Growth() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await Promise.all([fetchEvents(), fetchPlan(), fetchWeekStats(), fetchAdAccounts()]);
+      await Promise.all([fetchEvents(), fetchPlan(), fetchHasEnoughData(), fetchAdAccounts()]);
       setLoading(false);
     })();
   }, [currentStore?.id]);
@@ -292,14 +268,14 @@ export default function Growth() {
 
   const liveBriefing = (() => {
     if (plan) return plan.summary;
-    if (weekStats.views === 0 && weekStats.purchases === 0) {
+    if (!hasEnoughData) {
       return isAr
-        ? 'لسا عم أجمع بيانات عن متجرك. خلال أيام قليلة رح يصير عندي صورة كافية أقيّم فيها أداءك وأبني خطة نمو مخصصة إلك.'
-        : "Still gathering data on your store. Within a few days I'll have enough to assess performance and build a tailored growth plan.";
+        ? 'لسا عم أجمع بيانات عن متجرك. خلال أيام قليلة رح يصير عندي صورة كافية أبدأ فيها أفحص وأتصرف.'
+        : "Still gathering data on your store. Within a few days I'll have enough to start checking and acting.";
     }
     return isAr
-      ? `راقبت متجرك آخر 7 أيام: ${weekStats.views} مشاهدة و${weekStats.purchases} مبيعة، بإيراد ${weekStats.revenue.toLocaleString()}. لسا ما لقيت مشكلة تستاهل تدخّل فوري — بس بواصل الفحص يومياً، وأول ما ألقى شي، بحطه هون فوراً.`
-      : `I reviewed your store over the last 7 days: ${weekStats.views} views, ${weekStats.purchases} sales, ${weekStats.revenue.toLocaleString()} revenue. Nothing urgent yet — I keep checking daily and will flag anything the moment it matters.`;
+      ? 'فحصت متجرك اليوم بكل قواعدي: منتجات راكدة، معدل التحويل، السلة المتروكة، وأداء الإعلانات. ما لقيت شي يستاهل قرار منك هلأ — رح أنبهك فوراً أول ما يصير في شي.'
+      : "I checked your store today against all my rules: stagnant products, conversion rate, cart abandonment, ad performance. Nothing needs your decision right now — I'll alert you the moment something does.";
   })();
 
   if (loading) {
@@ -332,22 +308,12 @@ export default function Growth() {
                   <span className={`inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-2.5 py-1 ${st.cls}`}><Icon className="w-3.5 h-3.5" />{plan.stage_label_ar}</span>
                 ); })()}
               </div>
-              {trend.length >= 2 && (
-                <div className="flex items-center gap-1.5 text-white/60">
-                  <span className="text-[10px]">{isAr ? 'اتجاه الإيراد 14 يوم' : '14-day revenue trend'}</span>
-                  <Sparkline points={trend} />
-                </div>
-              )}
+              <a href="/dashboard/analytics" className="text-[11px] text-white/50 hover:text-white/80 transition-colors flex items-center gap-1">
+                {isAr ? 'شوف الأرقام الكاملة بالإحصائيات' : 'See full numbers in Analytics'}<ExternalLink className="w-3 h-3" />
+              </a>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* كروت أداء الأسبوع — تملأ الصفحة بمحتوى حقيقي */}
-      <div className="grid grid-cols-3 gap-2">
-        <StatCard icon={Eye} label={isAr ? 'مشاهدات (7 أيام)' : 'Views (7d)'} value={weekStats.views} />
-        <StatCard icon={ShoppingBag} label={isAr ? 'مبيعات (7 أيام)' : 'Sales (7d)'} value={weekStats.purchases} />
-        <StatCard icon={DollarSign} label={isAr ? 'إيراد (7 أيام)' : 'Revenue (7d)'} value={weekStats.revenue.toLocaleString()} />
       </div>
 
       {/* أولويات الخبير */}
@@ -384,6 +350,9 @@ export default function Growth() {
                     <span className="text-[11px] text-muted-foreground shrink-0">{timeAgo(e.created_at, isAr)}</span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{e.description}</p>
+                  {e.data?.variant && (
+                    <VariantPreview isAr={isAr} original={e.data.variant.original} suggested={e.data.variant.suggested} />
+                  )}
                   {e.event_type === 'auto_action' && (
                     <span className="inline-flex items-center gap-1 text-[11px] text-primary bg-primary/10 rounded-full px-2 py-0.5 mt-2"><Zap className="w-3 h-3" />{isAr ? 'نفّذته بنفسي — قابل للتراجع من صفحة المنتجات' : 'I executed this — reversible from Products page'}</span>
                   )}
