@@ -33,6 +33,7 @@ import PromotionsHub from "@/pages/PromotionsHub";
 import MarketingStudioHub from "@/pages/MarketingStudioHub";
 import AIAdvisor from "@/pages/AIAdvisor";
 import Growth from "@/pages/Growth";
+import GrowthConnections from "@/pages/GrowthConnections";
 
 const queryClient = new QueryClient();
 
@@ -160,6 +161,7 @@ function Router() {
               <Route path="/dashboard/orders" component={Orders} />
               <Route path="/dashboard/analytics" component={AnalyticsHub} />
               <Route path="/dashboard/growth" component={Growth} />
+              <Route path="/dashboard/growth/connections" component={GrowthConnections} />
               <Route path="/dashboard/reviews" component={AnalyticsHub} />
               <Route path="/dashboard/settings" component={SettingsHub} />
               <Route path="/dashboard/staff" component={SettingsHub} />
