@@ -2,9 +2,20 @@ import { useEffect, useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { adminRest, supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
-import { TrendingUp, Package, ShoppingCart, Store as StoreIcon, Loader2, Check, X, Zap } from 'lucide-react';
+import { TrendingUp, Package, ShoppingCart, Store as StoreIcon, Loader2, Check, X, Zap, Sparkles, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+
+interface GrowthPlan {
+  id: string;
+  stage: string;
+  stage_label_ar: string;
+  summary: string;
+  priorities: { title: string; description: string; category: string }[];
+  metrics: Record<string, any>;
+  period_start: string;
+  period_end: string;
+}
 
 interface GrowthEvent {
   id: string;
@@ -21,6 +32,14 @@ const CATEGORY_ICON: Record<string, any> = {
   product: Package,
   store: StoreIcon,
   cart: ShoppingCart,
+};
+
+const STAGE_STYLE: Record<string, { cls: string; icon: any }> = {
+  launch: { cls: 'bg-blue-500/10 text-blue-500', icon: Sparkles },
+  rapid_growth: { cls: 'bg-primary/10 text-primary', icon: ArrowUpRight },
+  steady_growth: { cls: 'bg-primary/10 text-primary', icon: ArrowUpRight },
+  plateau: { cls: 'bg-amber-500/10 text-amber-500', icon: Minus },
+  decline: { cls: 'bg-red-500/10 text-red-500', icon: ArrowDownRight },
 };
 
 function timeAgo(dateStr: string, isAr: boolean) {
@@ -40,6 +59,7 @@ export default function Growth() {
   const { toast } = useToast();
   const isAr = language === 'ar';
   const [events, setEvents] = useState<GrowthEvent[]>([]);
+  const [plan, setPlan] = useState<GrowthPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [decidingId, setDecidingId] = useState<string | null>(null);
 
@@ -53,10 +73,20 @@ export default function Growth() {
     setEvents(Array.isArray(data) ? data : []);
   };
 
+  const fetchPlan = async () => {
+    if (!currentStore?.id) return;
+    const data = await adminRest.select(
+      'store_growth_plans',
+      `store_id=eq.${currentStore.id}&order=period_end.desc&limit=1`,
+      currentStore.id
+    );
+    setPlan(Array.isArray(data) && data.length ? data[0] : null);
+  };
+
   useEffect(() => {
     (async () => {
       setLoading(true);
-      await fetchEvents();
+      await Promise.all([fetchEvents(), fetchPlan()]);
       setLoading(false);
     })();
   }, [currentStore?.id]);
@@ -102,6 +132,47 @@ export default function Growth() {
             : 'The growth agent watches your store daily and surfaces anything worth your attention here — a stagnant product, a page that isn\'t converting, or unusually high cart abandonment.'}
         </p>
       </div>
+
+      {plan && (() => {
+        const style = STAGE_STYLE[plan.stage] || STAGE_STYLE.steady_growth;
+        const StageIcon = style.icon;
+        return (
+          <div className="rounded-xl border border-border/40 bg-card p-5 space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center gap-1.5 text-sm font-semibold rounded-full px-3 py-1 ${style.cls}`}>
+                  <StageIcon className="w-4 h-4" />
+                  {plan.stage_label_ar}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {isAr ? `تقرير ${plan.period_start} → ${plan.period_end}` : `Report ${plan.period_start} → ${plan.period_end}`}
+                </span>
+              </div>
+            </div>
+            <p className="text-sm leading-relaxed">{plan.summary}</p>
+            {plan.priorities?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">{isAr ? 'أولويات هالشهر' : "This month's priorities"}</p>
+                <div className="space-y-2">
+                  {plan.priorities.map((p, i) => (
+                    <div key={i} className="flex gap-2 items-start">
+                      <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
+                      <div>
+                        <p className="text-sm font-medium">{p.title}</p>
+                        <p className="text-xs text-muted-foreground">{p.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {events.length > 0 && (
+        <p className="text-xs font-semibold text-muted-foreground pt-2">{isAr ? 'آخر الملاحظات اليومية' : 'Recent daily notes'}</p>
+      )}
 
       {events.length === 0 ? (
         <div className="rounded-xl border border-border/40 bg-card p-8 text-center">
