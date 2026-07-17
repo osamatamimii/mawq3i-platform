@@ -4,6 +4,6 @@
   "installCommand": "echo 'dependencies installed per-app'",
   "framework": null,
   "crons": [
-    { "path": "/api/growth-agent-cron", "schedule": "0 3 * * *" }
+    { "path": "/api/growth-agent", "schedule": "0 3 * * *" }
   ]
 }

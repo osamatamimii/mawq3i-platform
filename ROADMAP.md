@@ -6,7 +6,9 @@
 ## 🧠 وكيل النمو الذكي (Growth Agent) — مشروع استراتيجي كبير (17 يوليو 2026)
 > التموضع الجديد: Mawq3i ما بتبيع "متجر"، بتبيع نمو مُدار بالذكاء الاصطناعي. المواصفة الكاملة (الرؤية، مكونات النظام، قاعدة معايير السوق 2026، المخاطر) موجودة بـ `docs/growth-agent-spec.md`. هون بس نتابع تنفيذ المراحل.
 >
-> ⚠️ **يستاهل تحقق:** صار عنا 5 Cron jobs بـ `vercel.json` (sync، ads-sync، diagnose، capture-results، monthly-plan). خطة Vercel "Hobby" فيها حدود على عدد/تكرار الـ Cron jobs بتختلف حسب الخطة — تأكد إنه حسابكم يدعمهم قبل ما تعتمد عليهم بالكامل (تحقق من Vercel dashboard → Settings → Cron Jobs بعد أول نشر).
+> 🔴 **حادثة حقيقية صارت واتصلحت (17 يوليو 2026):** كل نشر من المرحلة 1 لغاية "التقييم الشهري" **فشل بالكامل** على Vercel — يعني ولا صفحة/API وحدة منها وصلت production أبداً، رغم إنه كل الأكواد كانت شغالة محلياً. السبب الحقيقي (اتأكد من رسالة Vercel نفسها): **خطة "Hobby" فيها حد أقصى 12 Serverless Function بكل نشر** — كنا وصلنا 22 (11 موجودين أصلاً + 11 ملف API جديد لوكيل النمو). محاولة أولى ظنيت المشكلة عدد الـ Cron jobs ودمجتهم بواحد — ما كانت كافية لأنه المشكلة عدد **الملفات** مش الـ Cron. **الحل النهائي:** دمجت كل الـ 11 ملف بملف واحد `api/growth-agent.js` فيه dispatcher داخلي (`?action=sync|diagnose|...`)، فصرنا بالضبط 12 function (11 قديم + 1 جديد) — **بالحد الأقصى تماماً، بدون أي هامش**.
+>
+> ⚠️ **قيد دائم لازم تنتبهله:** أي ميزة API جديدة مستقبلاً (مو بس وكيل النمو) لازم تُضاف كـ action جديد جوا `growth-agent.js` أو جوا ملف API موجود أصلاً — **مش ملف جديد** — إلا إذا رفعت لخطة Vercel Pro (بتلغي هاد القيد نهائياً، وبتفتح كمان cron jobs أكتر بتردد أعلى من مرة باليوم). هاي نقطة تستاهل قرار منك: تحمّل هالقيد الدائم، أو ترقية الخطة.
 >
 > 📍 **توضيح صفحتين مختلفتين بقصد:** `/dashboard/growth` (لوحة التاجر — المنتج الفعلي، فيها التقرير الشهري + التشخيصات + أزرار الموافقة) مقابل `/admin/growth-agent` (لوحة الأدمن — أداة تحقق تقنية لعثمان بس، يشوف فيها بيانات خام لأي متجر ومعايير السوق). الاتنين موجودين ومقصودين، مش تكرار غلط.
 
@@ -40,14 +42,13 @@
 **المرحلة 2 — ربط Meta + TikTok Ads (بعد المرحلة 1):**
 - [x] **البنية التحتية الكاملة مبنية (17 يوليو 2026)** — كود جاهز 100%، لكن **غير فعّال لحد ما توفر حسابات مطورين حقيقية** (تفصيل بالأسفل):
   - جداول `ad_accounts` (بدون RLS write من المتصفح — التوكنات حساسة، فقط السيرفر يكتب)، `ad_campaigns_daily`، `oauth_connect_intents` (مؤقتة، تمنع أي حد يربط حساب إعلانات بمتجر مش تبعه)
-  - `api/meta-oauth-start.js` + `api/meta-oauth-callback.js` — تدفق OAuth كامل لـ Meta (تبديل كود → توكن قصير → توكن طويل 60 يوم → جلب أول حساب إعلانات)
-  - `api/tiktok-oauth-start.js` + `api/tiktok-oauth-callback.js` — نفس الشي لـ TikTok Business API
+  - **(بعد الدمج — انظر الحادثة أعلى الصفحة):** كل منطق Meta/TikTok OAuth أصبح جوا `api/growth-agent.js` (`action=oauth-start`, `action=oauth-callback`) — نفس التدفق بالضبط (تبديل كود → توكن قصير → توكن طويل 60 يوم → جلب أول حساب إعلانات)، بس بملف واحد بدل 4.
   - `api/growth-agent-ads-sync.js` — مزامنة يومية لأداء الحملات (spend/impressions/clicks/CTR/CPC) من كل حساب مربوط، Cron الساعة 2:30 صباحاً UTC
   - قاعدة تشخيص خامسة بـ `growth-agent-diagnose.js`: نسبة نقر ضعيفة مقارنة بمعيار السوق (لكل منصة لحالها)
   - قسم "حسابات الإعلانات" بصفحة `/dashboard/settings` — زر ربط لكل منصة، يتحقق من ملكية المتجر عبر الـ session قبل ما يبدأ الـ OAuth
 - [ ] **⚠️ محجوب على إجراء منك خارج الكود بالكامل:** ما في شي تقني تاني أقدر أبنيه هون. لازم:
-  1. **Meta:** تنشئ [Meta App](https://developers.facebook.com/apps) نوع Business، تضيف منتج "Facebook Login for Business" + "Marketing API"، وتضيف env vars بـ Vercel: `META_APP_ID`, `META_APP_SECRET`, `META_OAUTH_REDIRECT_URI` (= `https://mawq3i.co/api/meta-oauth-callback`). ملاحظة: طلب صلاحية `ads_read` على تطبيق حي (مو Development mode) بيحتاج **App Review من Meta** — بياخد وقت، وثيقة رسمية مطلوبة توضح استخدام البيانات.
-  2. **TikTok:** تسجّل بـ [TikTok for Business Developer Portal](https://business-api.tiktok.com/portal)، تنشئ App، وتضيف env vars: `TIKTOK_APP_ID`, `TIKTOK_APP_SECRET`, `TIKTOK_OAUTH_REDIRECT_URI`.
+  1. **Meta:** تنشئ [Meta App](https://developers.facebook.com/apps) نوع Business، تضيف منتج "Facebook Login for Business" + "Marketing API"، وتضيف env vars بـ Vercel: `META_APP_ID`, `META_APP_SECRET`, `META_OAUTH_REDIRECT_URI` (= `https://mawq3i.co/api/growth-agent?action=oauth-callback&platform=meta`). ملاحظة: طلب صلاحية `ads_read` على تطبيق حي (مو Development mode) بيحتاج **App Review من Meta** — بياخد وقت، وثيقة رسمية مطلوبة توضح استخدام البيانات.
+  2. **TikTok:** تسجّل بـ [TikTok for Business Developer Portal](https://business-api.tiktok.com/portal)، تنشئ App، وتضيف env vars: `TIKTOK_APP_ID`, `TIKTOK_APP_SECRET`, `TIKTOK_OAUTH_REDIRECT_URI` (= `https://mawq3i.co/api/growth-agent?action=oauth-callback&platform=tiktok`).
   3. بعد ما توفر الـ env vars، الكود جاهز يشتغل فوراً بدون أي تعديل إضافي.
 - [ ] **قيد معروف موثّق:** الربط الحالي (Meta) بياخد **أول حساب إعلانات** بس من حساب المستخدم (MVP)؛ لو تاجر عنده أكتر من حساب إعلانات، بدنا نضيف واجهة اختيار لاحقاً.
 - [ ] **قيد أهم:** ما في ربط حقيقي بين مصروف الإعلان والمبيعة الفعلية (attribution) — لأنه `orders` ما فيها tracking لـ UTM parameters أو `fbclid`. يعني حالياً نقدر نقارن أداء الإعلان (CTR/CPC) بمعيار السوق، بس مو "هاد الإعلان جاب X مبيعة بالضبط". لإضافة attribution حقيقي لازم إضافة capture لـ UTM/click-id بصفحة الهبوط وربطها بـ `orders` — بند مفتوح للمرحلة الجاية لو حبينا نعمقها.

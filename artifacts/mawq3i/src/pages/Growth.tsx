@@ -98,7 +98,7 @@ export default function Growth() {
       const accessToken = sessionData?.session?.access_token;
       if (!accessToken) { toast({ title: isAr ? 'سجّل دخولك من جديد' : 'Please sign in again', variant: 'destructive' }); return; }
 
-      const res = await fetch('/api/growth-agent-execute-action', {
+      const res = await fetch('/api/growth-agent?action=execute-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ event_id: eventId, decision }),

@@ -188,7 +188,7 @@ function AdAccountsSection({ isAr, currentStore }: { isAr: boolean; currentStore
       const accessToken = sessionData?.session?.access_token;
       if (!accessToken) { toast({ title: isAr ? 'سجّل دخولك من جديد' : 'Please sign in again', variant: 'destructive' }); return; }
 
-      const endpoint = platform === 'meta' ? '/api/meta-oauth-start' : '/api/tiktok-oauth-start';
+      const endpoint = `/api/growth-agent?action=oauth-start&platform=${platform}`;
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
