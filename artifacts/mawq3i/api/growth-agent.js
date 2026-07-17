@@ -632,6 +632,29 @@ function buildPriorities({ stageInfo, categoryCounts, ads }) {
   return priorities.slice(0, 5);
 }
 
+function buildGoal({ stageInfo, revenueAfter, ordersAfter }) {
+  // هدف رقمي واحد واضح للشهر الجاي — مبني على أداء المتجر الفعلي، مش رقم عشوائي
+  if (stageInfo.stage === 'launch') {
+    const target = Math.max(ordersAfter * 2, 10);
+    return { type: 'orders', target, label_ar: `وصول ${target} طلب الشهر الجاي (مقابل ${ordersAfter} هالشهر)` };
+  }
+  if (stageInfo.stage === 'rapid_growth') {
+    const target = Math.round(revenueAfter * 1.15);
+    return { type: 'revenue', target, label_ar: `الحفاظ على نفس زخم النمو — إيراد ${target.toLocaleString()} الشهر الجاي` };
+  }
+  if (stageInfo.stage === 'steady_growth') {
+    const target = Math.round(revenueAfter * 1.15);
+    return { type: 'revenue', target, label_ar: `رفع الإيراد لـ${target.toLocaleString()} الشهر الجاي (+15%)` };
+  }
+  if (stageInfo.stage === 'plateau') {
+    const target = Math.round(revenueAfter * 1.1);
+    return { type: 'revenue', target, label_ar: `كسر الركود — هدف ${target.toLocaleString()} إيراد الشهر الجاي (+10%)` };
+  }
+  // decline
+  const target = Math.round(revenueAfter * 1.2);
+  return { type: 'revenue', target, label_ar: `استعادة النمو — هدف ${target.toLocaleString()} إيراد الشهر الجاي` };
+}
+
 async function runMonthlyPlan() {
   const now = new Date();
   const periodEnd = isoDate(now);
@@ -656,10 +679,11 @@ async function runMonthlyPlan() {
       const stageInfo = classifyStage({ storeAgeDays, ordersThisPeriod: revenueAfter.purchases, revenuePct });
       const summaryText = buildSummary({ stageInfo, revenue: { before: revenueBefore.revenue, after: revenueAfter.revenue }, revenuePct, orders: revenueAfter.purchases, cart, ads, storeName: store.name });
       const priorities = buildPriorities({ stageInfo, categoryCounts, ads });
+      const goal = buildGoal({ stageInfo, revenueAfter: revenueAfter.revenue, ordersAfter: revenueAfter.purchases });
 
       await sbUpsert('store_growth_plans', [{
         store_id: store.id, period_start: periodStart, period_end: periodEnd, stage: stageInfo.stage, stage_label_ar: stageInfo.label, summary: summaryText, priorities,
-        metrics: { revenue_before: revenueBefore.revenue, revenue_after: revenueAfter.revenue, revenue_pct_change: revenuePct, orders_before: revenueBefore.purchases, orders_after: revenueAfter.purchases, views_before: revenueBefore.views, views_after: revenueAfter.views, cart_abandonment_pct: cart.pct, ad_spend: ads?.spend ?? null, ad_clicks: ads?.clicks ?? null, store_age_days: Math.floor(storeAgeDays), category_counts: categoryCounts },
+        metrics: { revenue_before: revenueBefore.revenue, revenue_after: revenueAfter.revenue, revenue_pct_change: revenuePct, orders_before: revenueBefore.purchases, orders_after: revenueAfter.purchases, views_before: revenueBefore.views, views_after: revenueAfter.views, cart_abandonment_pct: cart.pct, ad_spend: ads?.spend ?? null, ad_clicks: ads?.clicks ?? null, store_age_days: Math.floor(storeAgeDays), category_counts: categoryCounts, next_month_goal: goal },
       }], 'store_id,period_end');
       summary.storesProcessed++;
     } catch (storeErr) {

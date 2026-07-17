@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import {
   Brain, Package, ShoppingCart, Store as StoreIcon, Loader2, Check, X, Zap,
-  ArrowUpRight, ArrowDownRight, Minus, Radio, Megaphone, ExternalLink, Settings2,
+  ArrowUpRight, ArrowDownRight, Minus, Radio, Megaphone, ExternalLink, Settings2, MessageCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -187,6 +187,12 @@ export default function Growth() {
       {/* أولويات الخبير */}
       {plan?.priorities?.length > 0 && (
         <div className="rounded-xl border border-border/40 bg-card p-5 space-y-3">
+          {plan.metrics?.next_month_goal?.label_ar && (
+            <div className="flex items-center gap-2 pb-3 border-b border-border/30">
+              <span className="text-lg">🎯</span>
+              <p className="text-sm font-semibold">{plan.metrics.next_month_goal.label_ar}</p>
+            </div>
+          )}
           <p className="text-xs font-semibold text-muted-foreground">{isAr ? 'أولوياتك هالشهر حسب خبير النمو' : "This month's priorities from your growth expert"}</p>
           <div className="space-y-2">
             {plan.priorities.map((p, i) => (
@@ -246,6 +252,12 @@ export default function Growth() {
                   {e.event_type === 'suggested_action' && e.status === 'rejected' && (
                     <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted rounded-full px-2 py-0.5 mt-2"><X className="w-3 h-3" />{isAr ? 'رُفض' : 'Rejected'}</span>
                   )}
+                  <Link
+                    href={`/dashboard/ai-advisor?q=${encodeURIComponent(isAr ? `خبير النمو لاحظ هالشي بمتجري: "${e.title} — ${e.description}". شو رأيك وشو نصيحتك؟` : `My growth expert flagged this: "${e.title} — ${e.description}". What's your take and advice?`)}`}
+                    className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors mt-2"
+                  >
+                    <MessageCircle className="w-3 h-3" />{isAr ? 'ناقشها مع المستشار الذكي' : 'Discuss with AI Advisor'}
+                  </Link>
                 </div>
               </div>
             );

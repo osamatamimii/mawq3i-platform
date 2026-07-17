@@ -182,6 +182,17 @@ export default function AIAdvisor() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, sending]);
 
+  // لو وصلنا برابط فيه سؤال جاهز (مثلاً من خبير النمو: /dashboard/ai-advisor?q=...)، ابعته تلقائياً أول ما المتجر يجهز
+  useEffect(() => {
+    if (!currentStore?.id) return;
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) {
+      sendMessage(q);
+      window.history.replaceState({}, '', '/dashboard/ai-advisor');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStore?.id]);
+
   const suggested = isAr ? SUGGESTED_PROMPTS_AR : SUGGESTED_PROMPTS_EN;
 
   async function sendMessage(text: string) {
