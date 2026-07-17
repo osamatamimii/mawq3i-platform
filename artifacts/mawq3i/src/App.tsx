@@ -32,6 +32,7 @@ import EditProduct from "@/pages/EditProduct";
 import PromotionsHub from "@/pages/PromotionsHub";
 import MarketingStudioHub from "@/pages/MarketingStudioHub";
 import AIAdvisor from "@/pages/AIAdvisor";
+import Growth from "@/pages/Growth";
 
 const queryClient = new QueryClient();
 
@@ -131,6 +132,7 @@ function Router() {
         "/dashboard/competitor-prices": "products",
         "/dashboard/add-product": "products",
         "/dashboard/analytics": "analytics",
+        "/dashboard/growth": "analytics",
         "/dashboard/settings": "settings",
         "/dashboard/promotions": "promotions",
         "/dashboard/discount-codes": "promotions",
@@ -157,6 +159,7 @@ function Router() {
               <Route path="/dashboard/products/edit/:id" component={EditProduct} />
               <Route path="/dashboard/orders" component={Orders} />
               <Route path="/dashboard/analytics" component={AnalyticsHub} />
+              <Route path="/dashboard/growth" component={Growth} />
               <Route path="/dashboard/reviews" component={AnalyticsHub} />
               <Route path="/dashboard/settings" component={SettingsHub} />
               <Route path="/dashboard/staff" component={SettingsHub} />

@@ -16,6 +16,7 @@ import {
   X,
   Shield,
   Sparkles,
+  Activity,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -79,6 +80,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const ADMIN_EMAIL = 'admin@mawq3i.com';
   const isAdminInOwnerMode = supabaseUser?.email?.toLowerCase() === ADMIN_EMAIL;
   const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const [newGrowthCount, setNewGrowthCount] = useState(0);
 
   useEffect(() => {
     if (!currentStore?.id) return;
@@ -96,11 +98,32 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   }, [currentStore?.id]);
 
   useEffect(() => {
+    if (!currentStore?.id) return;
+    const fetchGrowthCount = async () => {
+      const since = new Date(Date.now() - 3 * 86400000).toISOString();
+      const { count } = await supabase
+        .from('store_growth_events')
+        .select('id', { count: 'exact', head: true })
+        .eq('store_id', currentStore.id)
+        .gte('created_at', since);
+      setNewGrowthCount(count ?? 0);
+    };
+    fetchGrowthCount();
+    const interval = setInterval(fetchGrowthCount, 60000);
+    return () => clearInterval(interval);
+  }, [currentStore?.id]);
+
+  useEffect(() => {
+    if (location.startsWith('/dashboard/growth')) setNewGrowthCount(0);
+  }, [location]);
+
+  useEffect(() => {
     if (location.startsWith('/dashboard/orders')) setNewOrdersCount(0);
   }, [location]);
 
   const allMenuItems: (MenuItem & { requiresPerm?: 'products' | 'analytics' | 'settings' | 'promotions' })[] = [
     { href: '/dashboard', icon: LayoutDashboard, labelAr: 'لوحة التحكم', labelEn: 'Dashboard', exact: true, requiresPerm: 'analytics' },
+    { href: '/dashboard/growth', icon: Activity, labelAr: 'النمو', labelEn: 'Growth', exact: false, requiresPerm: 'analytics', badge: newGrowthCount },
     { href: '/dashboard/ai-advisor', icon: Sparkles, labelAr: 'المستشار الذكي', labelEn: 'AI Advisor', exact: false },
     { href: '/dashboard/products', icon: Package, labelAr: 'المنتجات', labelEn: 'Products', exact: false, requiresPerm: 'products' },
     { href: '/dashboard/winning-products', icon: TrendingUp, labelAr: 'المنتجات الرابحة', labelEn: 'Winning Products', exact: false, requiresPerm: 'products' },
