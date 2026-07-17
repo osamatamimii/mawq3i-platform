@@ -442,6 +442,34 @@ async function diagnoseStore(store, sinceDate, bench) {
         data: { diagnosis_key: key, action_type: 'pause_ad_campaign', platform: c.platform, campaign_id: c.campaign_id, campaign_name: c.campaign_name, spend: c.spend, ctr_pct: ctrPct, benchmark_ctr: benchmarkCtr },
       });
     }
+    // توصية ميزانية مبنية على عائد حقيقي (ROAS) — بس لما يتوفر ربط إعلانات + بيانات attribution من المتجر
+    // (تتفعّل تلقائياً بدون أي كود إضافي أول ما الشرطين يتحققوا — هيك مصممة القاعدة)
+    try {
+      const roasCampaigns = await computeCampaignROAS(store.id, sinceDate, isoDate(new Date()));
+      for (const c of roasCampaigns) {
+        if (c.spend < 20) continue; // عينة صرف صغيرة كتير، ما نحكم عليها
+        const platformName = c.platform === 'meta' ? 'Meta' : 'TikTok';
+        if (c.roas >= 3) {
+          const key = 'suggest_increase_budget';
+          if (await alreadyDiagnosedRecently(store.id, key, null)) continue;
+          events.push({
+            store_id: store.id, event_type: 'suggested_action', category: 'ad', related_product_id: null, requires_approval: true,
+            title: `اقتراح زيادة ميزانية حملة رابحة: ${c.campaign_name || c.campaign_id}`,
+            description: `صرفت ${c.spend.toFixed(0)}$ وجابت ${c.revenue.toFixed(0)}$ مبيعات (عائد ${c.roas.toFixed(1)}x — ممتاز). اقتراحي نزيد الميزانية 20% عشان نستفيد أكتر من هالحملة قبل ما تتعب.`,
+            data: { diagnosis_key: key, action_type: 'increase_campaign_budget', platform: c.platform, campaign_id: c.campaign_id, campaign_name: c.campaign_name, spend: c.spend, revenue: c.revenue, roas: c.roas, increase_pct: 20 },
+          });
+        } else if (c.roas < 1) {
+          const key = 'suggest_pause_low_roas';
+          if (await alreadyDiagnosedRecently(store.id, key, null)) continue;
+          events.push({
+            store_id: store.id, event_type: 'suggested_action', category: 'ad', related_product_id: null, requires_approval: true,
+            title: `حملة بتخسر فعلياً: ${c.campaign_name || c.campaign_id}`,
+            description: `صرفت ${c.spend.toFixed(0)}$ وجابت ${c.revenue.toFixed(0)}$ مبيعات بس (عائد ${c.roas.toFixed(2)}x — أقل من 1، يعني بتخسر فلوس فعلياً مش بس أداء ضعيف). اقتراحي نوقفها فوراً.`,
+            data: { diagnosis_key: key, action_type: 'pause_ad_campaign', platform: c.platform, campaign_id: c.campaign_id, campaign_name: c.campaign_name, spend: c.spend, revenue: c.revenue, roas: c.roas },
+          });
+        }
+      }
+    } catch (e) { console.error(`ROAS check failed for store ${store.id}:`, e?.message); }
   } catch (e) { console.error(`ad performance check failed for store ${store.id}:`, e?.message); }
 
   return events;
@@ -471,6 +499,69 @@ async function runDiagnose() {
 // ============================================================
 // 4) EXECUTE-ACTION — موافقة/رفض إجراء من صاحب المتجر
 // ============================================================
+
+async function increaseCampaignBudget(storeId, platform, campaignId, pct = 20) {
+  const [account] = await sbGet(`ad_accounts?store_id=eq.${storeId}&platform=eq.${platform}&status=eq.connected&select=access_token`);
+  if (!account) throw new Error('No connected ad account found for this platform');
+
+  if (platform === 'meta') {
+    const infoRes = await fetch(`https://graph.facebook.com/v19.0/${campaignId}?fields=daily_budget,lifetime_budget&access_token=${account.access_token}`);
+    if (!infoRes.ok) throw new Error(`Meta campaign lookup failed: ${infoRes.status} ${await infoRes.text()}`);
+    const info = await infoRes.json();
+    const field = info.daily_budget ? 'daily_budget' : info.lifetime_budget ? 'lifetime_budget' : null;
+    if (!field) throw new Error('Campaign has no budget set at campaign level (likely ad-set level budget — not supported yet)');
+    const newBudget = Math.round(Number(info[field]) * (1 + pct / 100));
+    const r = await fetch(`https://graph.facebook.com/v19.0/${campaignId}?access_token=${account.access_token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `${field}=${newBudget}`,
+    });
+    if (!r.ok) throw new Error(`Meta budget update failed: ${r.status} ${await r.text()}`);
+    return { new_budget: newBudget };
+  } else {
+    const infoRes = await fetch(`https://business-api.tiktok.com/open_api/v1.3/campaign/get/?advertiser_id=${encodeURIComponent(JSON.stringify([campaignId]))}`, { headers: { 'Access-Token': account.access_token } });
+    const info = await infoRes.json();
+    const currentBudget = info?.data?.list?.[0]?.budget;
+    if (!currentBudget) throw new Error('Could not read current TikTok campaign budget');
+    const newBudget = Math.round(Number(currentBudget) * (1 + pct / 100));
+    const r = await fetch('https://business-api.tiktok.com/open_api/v1.3/campaign/update/', {
+      method: 'POST',
+      headers: { 'Access-Token': account.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaign_id: campaignId, budget: newBudget }),
+    });
+    if (!r.ok) throw new Error(`TikTok budget update failed: ${r.status} ${await r.text()}`);
+    return { new_budget: newBudget };
+  }
+}
+
+// حساب ROAS حقيقي لكل حملة — يربط مصروف الإعلان (ad_campaigns_daily) بالمبيعة الفعلية (orders.attribution)
+// ما بيشتغل غير لما التاجر ربط حساب إعلانات + المتجر عم يرسل attribution مع الطلبات (يفعّل تلقائياً أول ما الاتنين يتوفروا)
+async function computeCampaignROAS(storeId, from, to) {
+  const [adRows, orders] = await Promise.all([
+    sbGet(`ad_campaigns_daily?store_id=eq.${storeId}&stat_date=gte.${from}&stat_date=lt.${to}&select=platform,campaign_id,campaign_name,spend`),
+    sbGet(`orders?store_id=eq.${storeId}&date=gte.${from}&date=lt.${to}&status=neq.cancelled&attribution=not.is.null&select=amount,attribution`),
+  ]);
+  if (!adRows.length) return [];
+
+  const spendByCampaign = {};
+  for (const r of adRows) {
+    const key = `${r.platform}:${r.campaign_id}`;
+    if (!spendByCampaign[key]) spendByCampaign[key] = { platform: r.platform, campaign_id: r.campaign_id, campaign_name: r.campaign_name, spend: 0, revenue: 0, orders: 0 };
+    spendByCampaign[key].spend += Number(r.spend || 0);
+  }
+  for (const o of orders) {
+    const campaignId = o.attribution?.campaign_id;
+    const platform = o.attribution?.platform;
+    if (!campaignId || !platform) continue;
+    const key = `${platform}:${campaignId}`;
+    if (!spendByCampaign[key]) continue; // إعلان مو من الفترة الحالية أو مو موجود بجدول الحملات
+    spendByCampaign[key].revenue += Number(o.amount || 0);
+    spendByCampaign[key].orders += 1;
+  }
+  return Object.values(spendByCampaign)
+    .filter((c) => c.spend > 0)
+    .map((c) => ({ ...c, roas: c.revenue / c.spend }));
+}
 
 async function pauseAdCampaign(storeId, platform, campaignId) {
   const [account] = await sbGet(`ad_accounts?store_id=eq.${storeId}&platform=eq.${platform}&status=eq.connected&select=access_token`);
@@ -509,6 +600,10 @@ async function executeAction(event) {
     await pauseAdCampaign(event.store_id, event.data.platform, event.data.campaign_id);
     return { executed: true, action_type: actionType };
   }
+  if (actionType === 'increase_campaign_budget' && event.data?.platform && event.data?.campaign_id) {
+    const result = await increaseCampaignBudget(event.store_id, event.data.platform, event.data.campaign_id, event.data.increase_pct || 20);
+    return { executed: true, action_type: actionType, ...result };
+  }
   throw new Error(`Unknown or unsupported action_type: ${actionType}`);
 }
 
@@ -546,6 +641,71 @@ async function handleExecuteAction(req, res) {
 async function storeRevenueBetween(storeId, fromDate, toDate) {
   const rows = await sbGet(`product_daily_stats?store_id=eq.${storeId}&stat_date=gte.${fromDate}&stat_date=lt.${toDate}&select=revenue,purchases`);
   return { revenue: rows.reduce((s, r) => s + Number(r.revenue || 0), 0), purchases: rows.reduce((s, r) => s + Number(r.purchases || 0), 0) };
+}
+
+// ============================================================
+// 5.5) TEST-EVALUATION — تجربة متسلسلة قابلة للتراجع التلقائي (نسخة عملية من A/B بدون توزيع زوار)
+// لكل نسخة بديلة اتطبقت (apply_product_variant) من ≥14 يوم: نقارن معدل تحويل المنتج
+// (views/purchases) قبل التطبيق مقابل بعده. لو ساء بشكل واضح، نرجّع النسخة الأصلية تلقائياً
+// ونوثّق ليش. لو تحسّن أو انضل ثابت، نأكّد النسخة كتجربة ناجحة.
+// ============================================================
+
+async function productConversionBetween(productId, fromDate, toDate) {
+  const rows = await sbGet(`product_daily_stats?product_id=eq.${productId}&stat_date=gte.${fromDate}&stat_date=lt.${toDate}&select=views,purchases`);
+  const views = rows.reduce((s, r) => s + Number(r.views || 0), 0);
+  const purchases = rows.reduce((s, r) => s + Number(r.purchases || 0), 0);
+  return { views, purchases, cvr: views > 0 ? (purchases / views) * 100 : null };
+}
+
+async function runTestEvaluation() {
+  const summary = { testsEvaluated: 0, reverted: 0, confirmed: 0, errors: [] };
+  const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString();
+  const events = await sbGet(
+    `store_growth_events?data->>action_type=eq.apply_product_variant&status=in.(approved,auto_executed)&resolved_at=lte.${fourteenDaysAgo}&test_status=is.null&select=id,store_id,related_product_id,resolved_at,data`
+  );
+
+  for (const event of events) {
+    try {
+      const resolvedAt = new Date(event.resolved_at);
+      const before = isoDate(new Date(resolvedAt.getTime() - 14 * 86400000));
+      const atResolve = isoDate(resolvedAt);
+      const after = isoDate(new Date(resolvedAt.getTime() + 14 * 86400000));
+      const [beforeCvr, afterCvr] = await Promise.all([
+        productConversionBetween(event.related_product_id, before, atResolve),
+        productConversionBetween(event.related_product_id, atResolve, after),
+      ]);
+
+      if (afterCvr.views < 10) {
+        // مشاهدات قليلة كتير بعد التطبيق، ما نقدر نحكم بثقة — نأجل التقييم لدورة جاية بدل ما نقرر بعينة ضعيفة
+        continue;
+      }
+
+      const pctChangeCvr = beforeCvr.cvr && beforeCvr.cvr > 0 ? ((afterCvr.cvr - beforeCvr.cvr) / beforeCvr.cvr) * 100 : null;
+      const testResult = { measured_at: new Date().toISOString(), product_cvr_before: beforeCvr.cvr, product_cvr_after: afterCvr.cvr, pct_change: pctChangeCvr, views_after: afterCvr.views };
+
+      // ساء معدل التحويل بشكل واضح (أكتر من 20%) → رجّع النسخة الأصلية تلقائياً
+      if (pctChangeCvr != null && pctChangeCvr < -20 && event.data?.variant?.original != null) {
+        await sbPatch('products', `id=eq.${event.related_product_id}`, { [event.data.variant.field]: event.data.variant.original });
+        await sbPatch('store_growth_events', `id=eq.${event.id}`, { test_status: 'reverted', result_snapshot: testResult });
+        await sbInsert('store_growth_events', [{
+          store_id: event.store_id, event_type: 'auto_action', category: 'product', related_product_id: event.related_product_id,
+          requires_approval: false, status: 'auto_executed', resolved_at: new Date().toISOString(),
+          title: 'رجّعت النسخة الأصلية — التجربة ما نفعت',
+          description: `النسخة البديلة اللي طبّقناها قبل أسبوعين خفّضت معدل التحويل ${Math.abs(pctChangeCvr).toFixed(0)}% (من ${beforeCvr.cvr?.toFixed(1)}% لـ${afterCvr.cvr?.toFixed(1)}%). رجّعت الوصف الأصلي تلقائياً.`,
+          data: { diagnosis_key: 'test_reverted', action_type: 'revert_variant', related_test_event_id: event.id },
+        }]);
+        summary.reverted++;
+      } else {
+        await sbPatch('store_growth_events', `id=eq.${event.id}`, { test_status: 'confirmed', result_snapshot: testResult });
+        summary.confirmed++;
+      }
+      summary.testsEvaluated++;
+    } catch (evErr) {
+      summary.errors.push({ event_id: event.id, message: evErr?.message });
+      console.error(`test evaluation failed for event ${event.id}:`, evErr);
+    }
+  }
+  return summary;
 }
 
 async function runCaptureResults() {
@@ -601,6 +761,14 @@ function classifyStage({ storeAgeDays, ordersThisPeriod, revenuePct }) {
   if (revenuePct >= 0) return { stage: 'steady_growth', label: 'نمو مستقر' };
   if (revenuePct >= -15) return { stage: 'plateau', label: 'ركود' };
   return { stage: 'decline', label: 'تراجع' };
+}
+// تصنيف الحجم مستقل عن اتجاه النمو (ممكن متجر "كبير" يكون بمرحلة "تراجع" بنفس الوقت)
+// مبني على عدد الطلبات الشهرية — مقياس يشتغل بأي عملة (ILS/SAR/USD)، عكس الإيراد اللي بيختلف بالعملة
+function classifyStoreSize(ordersPerMonth) {
+  if (ordersPerMonth < 10) return { size: 'micro', label: 'ناشئ جداً' };
+  if (ordersPerMonth < 50) return { size: 'small', label: 'صغير' };
+  if (ordersPerMonth < 200) return { size: 'medium', label: 'متوسط' };
+  return { size: 'large', label: 'كبير' };
 }
 function buildSummary({ stageInfo, revenue, revenuePct, orders, cart, ads, storeName }) {
   const dir = revenuePct > 0 ? 'زيادة' : revenuePct < 0 ? 'انخفاض' : 'ثبات';
@@ -677,13 +845,14 @@ async function runMonthlyPlan() {
       const storeAgeDays = store.join_date ? (now.getTime() - new Date(store.join_date).getTime()) / 86400000 : 0;
       const revenuePct = pctChange(revenueBefore.revenue, revenueAfter.revenue);
       const stageInfo = classifyStage({ storeAgeDays, ordersThisPeriod: revenueAfter.purchases, revenuePct });
+      const sizeInfo = classifyStoreSize(revenueAfter.purchases);
       const summaryText = buildSummary({ stageInfo, revenue: { before: revenueBefore.revenue, after: revenueAfter.revenue }, revenuePct, orders: revenueAfter.purchases, cart, ads, storeName: store.name });
       const priorities = buildPriorities({ stageInfo, categoryCounts, ads });
       const goal = buildGoal({ stageInfo, revenueAfter: revenueAfter.revenue, ordersAfter: revenueAfter.purchases });
 
       await sbUpsert('store_growth_plans', [{
         store_id: store.id, period_start: periodStart, period_end: periodEnd, stage: stageInfo.stage, stage_label_ar: stageInfo.label, summary: summaryText, priorities,
-        metrics: { revenue_before: revenueBefore.revenue, revenue_after: revenueAfter.revenue, revenue_pct_change: revenuePct, orders_before: revenueBefore.purchases, orders_after: revenueAfter.purchases, views_before: revenueBefore.views, views_after: revenueAfter.views, cart_abandonment_pct: cart.pct, ad_spend: ads?.spend ?? null, ad_clicks: ads?.clicks ?? null, store_age_days: Math.floor(storeAgeDays), category_counts: categoryCounts, next_month_goal: goal },
+        metrics: { revenue_before: revenueBefore.revenue, revenue_after: revenueAfter.revenue, revenue_pct_change: revenuePct, orders_before: revenueBefore.purchases, orders_after: revenueAfter.purchases, views_before: revenueBefore.views, views_after: revenueAfter.views, cart_abandonment_pct: cart.pct, ad_spend: ads?.spend ?? null, ad_clicks: ads?.clicks ?? null, store_age_days: Math.floor(storeAgeDays), category_counts: categoryCounts, next_month_goal: goal, store_size: sizeInfo },
       }], 'store_id,period_end');
       summary.storesProcessed++;
     } catch (storeErr) {
@@ -863,6 +1032,7 @@ export default async function handler(req, res) {
       case 'ads-sync': return res.status(200).json(await runAdsSync(q.date));
       case 'diagnose': return res.status(200).json(await runDiagnose());
       case 'capture-results': return res.status(200).json(await runCaptureResults());
+      case 'test-evaluation': return res.status(200).json(await runTestEvaluation());
       case 'monthly-plan': return res.status(200).json(await runMonthlyPlan());
       case 'execute-action':
         if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
@@ -886,6 +1056,7 @@ export default async function handler(req, res) {
         try { results.adsSync = await runAdsSync(); } catch (e) { results.adsSync = { error: e?.message }; }
         try { results.diagnose = await runDiagnose(); } catch (e) { results.diagnose = { error: e?.message }; }
         if (isSunday) { try { results.captureResults = await runCaptureResults(); } catch (e) { results.captureResults = { error: e?.message }; } }
+        if (isSunday) { try { results.testEvaluation = await runTestEvaluation(); } catch (e) { results.testEvaluation = { error: e?.message }; } }
         if (isFirstOfMonth) { try { results.monthlyPlan = await runMonthlyPlan(); } catch (e) { results.monthlyPlan = { error: e?.message }; } }
         return res.status(200).json({ ranAt: now.toISOString(), isSunday, isFirstOfMonth, results });
       }

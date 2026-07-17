@@ -181,6 +181,13 @@ export default function GrowthConnections() {
 
       <div className="rounded-xl border border-border/40 bg-card p-5 space-y-4">
         <div className="flex items-center gap-2"><Link2 className="w-4 h-4 text-primary" /><p className="text-sm font-semibold">{isAr ? 'ربط حسابات الإعلانات' : 'Connect ad accounts'}</p></div>
+        <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+          <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">
+            {isAr
+              ? 'عشان أقدر أحسب العائد الحقيقي (ROAS) لكل حملة وأقترحلك زيادة/تخفيض ميزانية بثقة، لازم تضيف "utm_campaign={{campaign.id}}" (Meta) أو المعادل بـ TikTok بحقل "URL Parameters" لكل حملة إعلانية. بدونها بقدر بس أشوف نسبة النقر، مش المبيعة الفعلية.'
+              : 'To calculate real ROAS per campaign and suggest budget changes with confidence, add "utm_campaign={{campaign.id}}" (Meta) or the TikTok equivalent to each campaign\'s "URL Parameters" field. Without it, I can only see click rate — not actual sales.'}
+          </p>
+        </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
           {isAr ? 'اربط حسابات إعلاناتك عشان أقدر أشخّص أداء حملاتك (نسبة النقر، الصرف، مقارنة بمعايير السوق) — مش بس أداء متجرك الداخلي.' : "Connect your ad accounts so I can diagnose campaign performance — not just your store's internal metrics."}
         </p>
