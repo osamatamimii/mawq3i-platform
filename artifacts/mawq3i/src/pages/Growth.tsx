@@ -32,6 +32,7 @@ interface GrowthEvent {
   created_at: string;
   status: string;
   data?: { variant?: { field: string; original: string; suggested: string } };
+  result_snapshot?: { pct_change: number | null; store_revenue_before: number; store_revenue_after: number } | null;
 }
 interface AdAccount {
   id: string;
@@ -355,6 +356,14 @@ export default function Growth() {
                   )}
                   {e.event_type === 'auto_action' && (
                     <span className="inline-flex items-center gap-1 text-[11px] text-primary bg-primary/10 rounded-full px-2 py-0.5 mt-2"><Zap className="w-3 h-3" />{isAr ? 'نفّذته بنفسي — قابل للتراجع من صفحة المنتجات' : 'I executed this — reversible from Products page'}</span>
+                  )}
+                  {(e.status === 'approved' || e.status === 'auto_executed') && e.result_snapshot?.pct_change != null && (
+                    <p className="text-[11px] mt-2 flex items-center gap-1">
+                      <span className={e.result_snapshot.pct_change >= 0 ? 'text-primary' : 'text-red-400'}>
+                        {e.result_snapshot.pct_change >= 0 ? '↑' : '↓'} {Math.abs(e.result_snapshot.pct_change).toFixed(0)}%
+                      </span>
+                      <span className="text-muted-foreground">{isAr ? 'تغيّر إيراد المتجر خلال أسبوع بعد هالقرار' : "store revenue change in the week after this decision"}</span>
+                    </p>
                   )}
                   {e.event_type === 'suggested_action' && e.status === 'pending' && (
                     <div className="flex gap-2 mt-3">

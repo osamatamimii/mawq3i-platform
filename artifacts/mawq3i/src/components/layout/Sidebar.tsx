@@ -111,7 +111,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       const newCount = count ?? 0;
       // نبّه فقط لما يزيد العدد بعد أول تحميل (تجنب إشعار عن سجل قديم أول ما يفتح التطبيق)
       if (growthCountRef.current !== null && newCount > growthCountRef.current) {
-        sendBrowserNotification('🧠 خبير النمو عنده جديد', `في ${newCount - growthCountRef.current} إجراء/ملاحظة جديدة بانتظارك`);
+        const { data: latest } = await supabase
+          .from('store_growth_events')
+          .select('title')
+          .eq('store_id', currentStore.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        const latestTitle = latest?.[0]?.title;
+        sendBrowserNotification('🧠 خبير النمو', latestTitle || `في ${newCount - growthCountRef.current} إجراء/ملاحظة جديدة بانتظارك`);
       }
       growthCountRef.current = newCount;
       setNewGrowthCount(newCount);

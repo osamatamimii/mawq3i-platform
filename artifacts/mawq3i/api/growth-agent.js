@@ -346,12 +346,23 @@ async function diagnoseStore(store, sinceDate, bench) {
 
         const variantText = await generateVariantDescription(productName(product), product.desc_ar);
         if (variantText && variantText !== product.desc_ar) {
-          events.push({
-            store_id: store.id, event_type: 'suggested_action', category: 'product', related_product_id: pid, requires_approval: true,
-            title: `اقترحت نسخة بديلة لوصف: ${productName(product)}`,
-            description: `${agg.views} مشاهدة بس ${agg.purchases} مبيعة فقط (تحويل ${productConversionPct.toFixed(1)}% مقابل متوسط المتجر ${storeConversionPct.toFixed(1)}%). جرّبت أكتبلك وصف بديل أقوى بيعياً — شوف البريفيو وقرر.`,
+          const baseVariantEvent = {
+            store_id: store.id, category: 'product', related_product_id: pid,
+            title: `${storeTrusted ? 'طبّقت' : 'اقترحت'} نسخة بديلة لوصف: ${productName(product)}`,
+            description: `${agg.views} مشاهدة بس ${agg.purchases} مبيعة فقط (تحويل ${productConversionPct.toFixed(1)}% مقابل متوسط المتجر ${storeConversionPct.toFixed(1)}%). ${storeTrusted ? 'جرّبت وصف بديل أقوى بيعياً وطبّقته مباشرة — قابل للتراجع بأي وقت من صفحة المنتجات.' : 'جرّبت أكتبلك وصف بديل أقوى بيعياً — شوف البريفيو وقرر.'}`,
             data: { diagnosis_key: key, action_type: 'apply_product_variant', views: agg.views, purchases: agg.purchases, product_cvr: productConversionPct, store_cvr: storeConversionPct, variant: { field: 'desc_ar', original: product.desc_ar || '', suggested: variantText } },
-          });
+          };
+          if (storeTrusted) {
+            try {
+              await sbPatch('products', `id=eq.${pid}`, { desc_ar: variantText });
+              events.push({ ...baseVariantEvent, event_type: 'auto_action', requires_approval: false, status: 'auto_executed', resolved_at: new Date().toISOString() });
+            } catch (e) {
+              console.error(`auto-apply variant failed for product ${pid}:`, e?.message);
+              events.push({ ...baseVariantEvent, event_type: 'suggested_action', requires_approval: true });
+            }
+          } else {
+            events.push({ ...baseVariantEvent, event_type: 'suggested_action', requires_approval: true });
+          }
         } else {
           events.push({ store_id: store.id, event_type: 'diagnosis', category: 'product', related_product_id: pid, requires_approval: false, title: `تحويل ضعيف: ${productName(product)}`, description: `${agg.views} مشاهدة بس ${agg.purchases} مبيعة فقط (تحويل ${productConversionPct.toFixed(1)}% مقابل متوسط المتجر ${storeConversionPct.toFixed(1)}%). المشكلة على الأغلب بصفحة المنتج (الصورة/السعر/الوصف) مش بجذب الزوار.`, data: { diagnosis_key: key, views: agg.views, purchases: agg.purchases, product_cvr: productConversionPct, store_cvr: storeConversionPct } });
         }
@@ -390,11 +401,17 @@ async function diagnoseStore(store, sinceDate, bench) {
   try {
     const adRows = await sbGet(`ad_campaigns_daily?store_id=eq.${store.id}&stat_date=gte.${sinceDate}&select=platform,campaign_id,campaign_name,spend,clicks,impressions`);
     const byPlatform = {};
+    const byCampaign = {};
     for (const r of adRows) {
       if (!byPlatform[r.platform]) byPlatform[r.platform] = { spend: 0, clicks: 0, impressions: 0 };
       byPlatform[r.platform].spend += Number(r.spend || 0);
       byPlatform[r.platform].clicks += Number(r.clicks || 0);
       byPlatform[r.platform].impressions += Number(r.impressions || 0);
+      const ck = `${r.platform}:${r.campaign_id}`;
+      if (!byCampaign[ck]) byCampaign[ck] = { platform: r.platform, campaign_id: r.campaign_id, campaign_name: r.campaign_name, spend: 0, clicks: 0, impressions: 0 };
+      byCampaign[ck].spend += Number(r.spend || 0);
+      byCampaign[ck].clicks += Number(r.clicks || 0);
+      byCampaign[ck].impressions += Number(r.impressions || 0);
     }
     for (const [platform, agg] of Object.entries(byPlatform)) {
       if (agg.impressions < 1000) continue;
@@ -407,6 +424,23 @@ async function diagnoseStore(store, sinceDate, bench) {
           events.push({ store_id: store.id, event_type: 'diagnosis', category: 'ad', related_product_id: null, requires_approval: false, title: `نسبة نقر ضعيفة على إعلانات ${platformName}`, description: `نسبة النقر ${ctrPct.toFixed(2)}% مقابل معيار السوق ${benchmarkCtr}%. صرفت ${agg.spend.toFixed(0)}$ على ${agg.impressions} ظهور. المشكلة على الأغلب بالمحتوى الإعلاني نفسه (الصورة/الفيديو) مش بالجمهور المستهدف — جرّب تجديد المحتوى.`, data: { diagnosis_key: key, platform, ctr_pct: ctrPct, benchmark_ctr: benchmarkCtr, spend: agg.spend, impressions: agg.impressions } });
         }
       }
+    }
+
+    // حملة محددة بأداء ضعيف جداً وصرف حقيقي → اقتراح إيقافها فعلياً (مو بس تشخيص)
+    for (const c of Object.values(byCampaign)) {
+      if (c.impressions < 500 || c.spend < 20) continue;
+      const ctrPct = (c.clicks / c.impressions) * 100;
+      const benchmarkCtr = bench[`${c.platform}_ads:global:ctr`];
+      if (!benchmarkCtr || ctrPct >= benchmarkCtr * 0.4) continue;
+      const key = 'suggest_pause_campaign';
+      if (await alreadyDiagnosedRecently(store.id, key, null)) continue; // ملاحظة: dedupe عام على مستوى المتجر مش لكل حملة، تجنباً لإزعاج يومي لو عندك حملات كتير ضعيفة
+      const platformName = c.platform === 'meta' ? 'Meta' : 'TikTok';
+      events.push({
+        store_id: store.id, event_type: 'suggested_action', category: 'ad', related_product_id: null, requires_approval: true,
+        title: `اقتراح إيقاف حملة: ${c.campaign_name || c.campaign_id}`,
+        description: `صرفت ${c.spend.toFixed(0)}$ على ${c.impressions} ظهور بنسبة نقر ${ctrPct.toFixed(2)}% بس (أقل من نص معيار السوق لـ${platformName}). صرف مستمر بدون نتيجة — اقتراحي نوقفها الآن قبل ما يضيع أكتر من الميزانية.`,
+        data: { diagnosis_key: key, action_type: 'pause_ad_campaign', platform: c.platform, campaign_id: c.campaign_id, campaign_name: c.campaign_name, spend: c.spend, ctr_pct: ctrPct, benchmark_ctr: benchmarkCtr },
+      });
     }
   } catch (e) { console.error(`ad performance check failed for store ${store.id}:`, e?.message); }
 
@@ -438,6 +472,27 @@ async function runDiagnose() {
 // 4) EXECUTE-ACTION — موافقة/رفض إجراء من صاحب المتجر
 // ============================================================
 
+async function pauseAdCampaign(storeId, platform, campaignId) {
+  const [account] = await sbGet(`ad_accounts?store_id=eq.${storeId}&platform=eq.${platform}&status=eq.connected&select=access_token`);
+  if (!account) throw new Error('No connected ad account found for this platform');
+
+  if (platform === 'meta') {
+    const r = await fetch(`https://graph.facebook.com/v19.0/${campaignId}?access_token=${account.access_token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'status=PAUSED',
+    });
+    if (!r.ok) throw new Error(`Meta pause failed: ${r.status} ${await r.text()}`);
+  } else {
+    const r = await fetch('https://business-api.tiktok.com/open_api/v1.3/campaign/update/status/', {
+      method: 'POST',
+      headers: { 'Access-Token': account.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ campaign_ids: [campaignId], operation_status: 'DISABLE' }),
+    });
+    if (!r.ok) throw new Error(`TikTok pause failed: ${r.status} ${await r.text()}`);
+  }
+}
+
 async function executeAction(event) {
   const actionType = event.data?.action_type;
   if (actionType === 'hide_product' && event.related_product_id) {
@@ -448,6 +503,10 @@ async function executeAction(event) {
     const { field, suggested } = event.data.variant;
     if (!['desc_ar'].includes(field)) throw new Error(`Unsupported variant field: ${field}`);
     await sbPatch('products', `id=eq.${event.related_product_id}`, { [field]: suggested });
+    return { executed: true, action_type: actionType };
+  }
+  if (actionType === 'pause_ad_campaign' && event.data?.platform && event.data?.campaign_id) {
+    await pauseAdCampaign(event.store_id, event.data.platform, event.data.campaign_id);
     return { executed: true, action_type: actionType };
   }
   throw new Error(`Unknown or unsupported action_type: ${actionType}`);
