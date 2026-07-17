@@ -7,10 +7,12 @@
 > التموضع الجديد: Mawq3i ما بتبيع "متجر"، بتبيع نمو مُدار بالذكاء الاصطناعي. المواصفة الكاملة (الرؤية، مكونات النظام، قاعدة معايير السوق 2026، المخاطر) موجودة بـ `docs/growth-agent-spec.md`. هون بس نتابع تنفيذ المراحل.
 
 **المرحلة 0 — الأساس (بنية البيانات، بدون أي ذكاء بعد):**
-- [ ] جدول `product_daily_stats` (views/add_to_cart/purchases يومي لكل منتج)
-- [ ] جدول `store_growth_events` (سجل كل قرار يتخذه الوكيل لاحقاً: نوع، سبب، تاريخ، حالة تنفيذ، نتيجة بعد أسبوع)
-- [ ] جدول `market_benchmarks` (تخزين معايير السوق العالمية 2026 من الوثيقة، قابلة للتحديث الدوري)
+- [x] **جدول `product_daily_stats`** — ✅ **تم (17 يوليو 2026)**: views/add_to_cart/purchases/revenue يومي لكل منتج، بـ unique(store_id, product_id, stat_date) + RLS مبنية على owner_id. لسا فاضي — لازم نبني الكود اللي يعبّيه (من GA4 + orders).
+- [x] **جدول `store_growth_events`** — ✅ **تم (17 يوليو 2026)**: سجل كل تشخيص/قرار (event_type, category, status: pending/approved/rejected/auto_executed/reverted) + RLS. جاهز يُستخدم من المرحلة 1.
+- [x] **جدول `market_benchmarks`** — ✅ **تم (17 يوليو 2026)**: معبّى بـ11 معيار فعلي (Conversion Rate global/fashion/beauty، Meta Ads CTR/CPC/ROAS، TikTok Ads CTR/CPC، Cart Abandonment global/MENA، WhatsApp recovery rate). Migration: `growth_agent_phase0_foundation`.
 - [ ] كارت/قسم بسيط بالـ Admin يعرض البيانات الخام هاي لأي متجر (تحقق قبل البناء فوقها)
+
+> ⚠️ **ملاحظة أمان اكتُشفت أثناء الشغل (17 يوليو 2026):** جدول `webhook_logs` بدون RLS مفعّل — أي حد معه anon key يقدر يقرأ/يعدّل عليه. لازم قرار من عثمان قبل التفعيل (تفعيل RLS بدون سياسات بيوقف الـ webhooks الحالية من Togo). لسا مفتوح.
 
 **المرحلة 1 — التشخيص القائم على القواعد (بعد المرحلة 0):**
 - [ ] Cron job يومي يحلل كل متجر بمنطق التشخيص (جدول القواعد بالوثيقة، قسم 3-B)
