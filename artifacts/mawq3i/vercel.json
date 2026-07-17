@@ -5,6 +5,7 @@
     { "src": "/.*", "dest": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/growth-agent-sync", "schedule": "0 2 * * *" }
+    { "path": "/api/growth-agent-sync", "schedule": "0 2 * * *" },
+    { "path": "/api/growth-agent-diagnose", "schedule": "0 3 * * *" }
   ]
 }

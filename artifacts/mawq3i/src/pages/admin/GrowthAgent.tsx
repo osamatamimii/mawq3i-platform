@@ -16,6 +16,15 @@ type DailyStatRow = {
   revenue: number;
 };
 
+type GrowthEvent = {
+  id: string;
+  category: string;
+  title: string;
+  description: string;
+  related_product_id: string | null;
+  created_at: string;
+};
+
 type Benchmark = {
   category: string;
   segment: string;
@@ -43,6 +52,7 @@ export default function GrowthAgent() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [dailyStats, setDailyStats] = useState<DailyStatRow[]>([]);
   const [productNames, setProductNames] = useState<Record<string, string>>({});
+  const [growthEvents, setGrowthEvents] = useState<GrowthEvent[]>([]);
   const [benchmarks, setBenchmarks] = useState<Benchmark[]>([]);
 
   // تحميل قائمة المتاجر + معايير السوق (مرة وحدة)
@@ -66,17 +76,22 @@ export default function GrowthAgent() {
     (async () => {
       setStatsLoading(true);
       const since = daysAgoISO(14);
-      const [statsRows, products] = await Promise.all([
+      const [statsRows, products, eventsRows] = await Promise.all([
         adminRest.select(
           'product_daily_stats',
           `store_id=eq.${selectedStoreId}&stat_date=gte.${since}&select=id,product_id,stat_date,views,add_to_cart,purchases,revenue&order=stat_date.desc`
         ),
         adminRest.select('products', `store_id=eq.${selectedStoreId}&select=id,name_ar,name_en`),
+        adminRest.select(
+          'store_growth_events',
+          `store_id=eq.${selectedStoreId}&order=created_at.desc&limit=30&select=id,category,title,description,related_product_id,created_at`
+        ),
       ]);
       const nameMap: Record<string, string> = {};
       for (const p of products) nameMap[p.id] = p.name_ar || p.name_en || p.id;
       setProductNames(nameMap);
       setDailyStats(statsRows as DailyStatRow[]);
+      setGrowthEvents(eventsRows as GrowthEvent[]);
       setStatsLoading(false);
     })();
   }, [selectedStoreId]);
@@ -179,6 +194,39 @@ export default function GrowthAgent() {
                 </table>
               </div>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* التشخيصات (المرحلة 1) */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-primary" />
+            {isAr ? 'تشخيصات وكيل النمو (آخر 30)' : 'Growth agent diagnoses (last 30)'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {statsLoading ? (
+            <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : growthEvents.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {isAr
+                ? 'ما في تشخيصات بعد لهاد المتجر. محرك التشخيص (api/growth-agent-diagnose) لسا ما اشتغل، أو المتجر ما عنده مشاكل واضحة حسب القواعد الحالية.'
+                : 'No diagnoses yet for this store. The diagnosis engine (api/growth-agent-diagnose) hasn\'t run yet, or the store has no clear issues under the current rules.'}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {growthEvents.map((e) => (
+                <div key={e.id} className="rounded-lg border border-border/40 bg-background/50 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">{e.title}</span>
+                    <span className="text-[11px] text-muted-foreground shrink-0">{new Date(e.created_at).toLocaleDateString(isAr ? 'ar' : 'en')}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{e.description}</p>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
