@@ -26,6 +26,7 @@ import AdminSubscriptions from "@/pages/admin/Subscriptions";
 import AdminDomains from "@/pages/admin/Domains";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AIUsage from "@/pages/admin/AIUsage";
+import GrowthAgentAdmin from "@/pages/admin/GrowthAgent";
 import SiteBuilder from "@/pages/SiteBuilder";
 import EditProduct from "@/pages/EditProduct";
 import PromotionsHub from "@/pages/PromotionsHub";
@@ -100,6 +101,7 @@ function Router() {
               <Route path="/admin/domains" component={AdminDomains} />
               <Route path="/admin/settings" component={AdminSettings} />
               <Route path="/admin/ai-usage" component={AIUsage} />
+              <Route path="/admin/growth-agent" component={GrowthAgentAdmin} />
               <Route path="/admin/site-builder/:slug" component={SiteBuilder} />
               <Route component={NotFound} />
             </Switch>

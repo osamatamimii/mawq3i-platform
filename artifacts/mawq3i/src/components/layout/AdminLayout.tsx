@@ -15,6 +15,7 @@ import {
   Sun,
   Moon,
   Sparkles,
+  TrendingUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -27,6 +28,7 @@ const adminNavItems = [
   { href: '/admin/subscriptions', icon: CreditCard, labelAr: 'الاشتراكات', labelEn: 'Subscriptions', exact: false },
   { href: '/admin/domains', icon: Globe, labelAr: 'الدومينات', labelEn: 'Domains', exact: false },
   { href: '/admin/ai-usage', icon: Sparkles, labelAr: 'استخدام الذكاء الاصطناعي', labelEn: 'AI Usage', exact: false },
+  { href: '/admin/growth-agent', icon: TrendingUp, labelAr: 'وكيل النمو', labelEn: 'Growth Agent', exact: false },
   { href: '/admin/settings', icon: Settings, labelAr: 'الإعدادات', labelEn: 'Settings', exact: false },
 ];
 
@@ -37,6 +39,7 @@ const adminRouteNames: Record<string, { ar: string; en: string }> = {
   '/admin/subscriptions': { ar: 'الاشتراكات', en: 'Subscriptions' },
   '/admin/domains': { ar: 'الدومينات', en: 'Domains' },
   '/admin/ai-usage': { ar: 'استخدام الذكاء الاصطناعي', en: 'AI Usage' },
+  '/admin/growth-agent': { ar: 'وكيل النمو', en: 'Growth Agent' },
   '/admin/settings': { ar: 'الإعدادات', en: 'Settings' },
   '/admin/site-builder': { ar: 'منشئ المواقع', en: 'Site Builder' },
 };
