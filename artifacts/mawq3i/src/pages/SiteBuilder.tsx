@@ -8,12 +8,28 @@ import {
   ChevronDown, ChevronUp, Image, Trash2, Plus, Eye,
   Upload, Loader2, ArrowLeft, Settings, Zap, Store
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
-// GitHub PAT — hardcoded (same as project knowledge)
-// PAT split to avoid secret scanning
-const _a = 'ghp_dyfQtv', _b = 'v1qOEulyrvDhkcnirtrmPeqX1w34Jh';
-const GH_TOKEN = _a + _b;
-const GH_USER = 'osamatamimii';
+// SECURITY: the GitHub token used to publish store sites now lives only on
+// the server (api/secure-db.js, GITHUB_PAT env var). It never reaches the
+// browser — this used to be a hardcoded token shipped in this file's JS
+// bundle, extractable by anyone via devtools. getFileSha/pushToGitHub below
+// now call the admin-gated /api/secure-db proxy instead.
+async function callSecureDbGithub(action: 'github_get_file' | 'github_push_file', body: Record<string, unknown>) {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) throw new Error('Not authenticated');
+  const res = await fetch('/api/secure-db', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accessToken, action, ...body }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error || `GitHub request failed: ${res.status}`);
+  }
+  return res.json();
+}
 
 interface SiteConfig {
   storeName: string;
@@ -81,29 +97,21 @@ function buildHtml(originalHtml: string, config: SiteConfig, products: ProductIt
 // ────────────────────────────────────────────────
 // GitHub: get file SHA + content
 // ────────────────────────────────────────────────
-async function getFileSha(repo: string): Promise<{sha: string; content: string}> {
-  const r = await fetch(`https://api.github.com/repos/${repo}/contents/index.html`, {
-    headers: { 'Authorization': `token ${GH_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' }
-  });
-  const d = await r.json();
-  return { sha: d.sha, content: atob(d.content.replace(/\n/g,'')) };
+async function getFileSha(slug: string): Promise<{sha: string; content: string}> {
+  const d = await callSecureDbGithub('github_get_file', { slug });
+  return { sha: d.sha, content: d.content };
 }
 
 // ────────────────────────────────────────────────
 // GitHub: push updated HTML
 // ────────────────────────────────────────────────
-async function pushToGitHub(repo: string, htmlContent: string, sha: string, message: string): Promise<boolean> {
-  const b64 = btoa(unescape(encodeURIComponent(htmlContent)));
-  const r = await fetch(`https://api.github.com/repos/${repo}/contents/index.html`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `token ${GH_TOKEN}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/vnd.github.v3+json'
-    },
-    body: JSON.stringify({ message, content: b64, sha })
-  });
-  return r.ok;
+async function pushToGitHub(slug: string, htmlContent: string, sha: string, message: string): Promise<boolean> {
+  try {
+    await callSecureDbGithub('github_push_file', { slug, htmlContent, sha, message });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // ────────────────────────────────────────────────
@@ -146,7 +154,6 @@ export default function SiteBuilder() {
   const isAr = language === 'ar';
   const [, params] = useRoute('/admin/site-builder/:slug');
   const slug = params?.slug ?? '25brands';
-  const repo = `${GH_USER}/${slug}-site`;
   const siteUrl = `https://${slug}.mawq3i.co`;
 
   const [tab, setTab] = useState<'info' | 'design' | 'products' | 'publish'>('info');
@@ -167,7 +174,7 @@ export default function SiteBuilder() {
 
   // Load from GitHub on mount
   useEffect(() => {
-    getFileSha(repo).then(({ sha, content }) => {
+    getFileSha(slug).then(({ sha, content }) => {
       setFileSha(sha);
       setOriginalHtml(content);
       setConfig(parseConfig(content));
@@ -182,10 +189,10 @@ export default function SiteBuilder() {
     setPublishState('idle');
     try {
       const updatedHtml = buildHtml(originalHtml, config, products);
-      const ok = await pushToGitHub(repo, updatedHtml, fileSha, `تحديث موقع ${slug} - ${new Date().toLocaleDateString('ar')}`);
+      const ok = await pushToGitHub(slug, updatedHtml, fileSha, `تحديث موقع ${slug} - ${new Date().toLocaleDateString('ar')}`);
         if (ok) {
         // Get new SHA
-        const { sha } = await getFileSha(repo);
+        const { sha } = await getFileSha(slug);
         setFileSha(sha);
         setPublishState('success');
         setTimeout(() => setPublishState('idle'), 4000);

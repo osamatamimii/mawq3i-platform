@@ -21,6 +21,13 @@ const SUPABASE_URL = 'https://mbenszegcjmwgmbjylbf.supabase.co';
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANON_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
 const ADMIN_EMAIL = 'admin@mawq3i.com';
+// Used only by the admin-only SiteBuilder "publish to GitHub" flow below.
+// Previously this token was hardcoded in the SiteBuilder.tsx frontend bundle,
+// meaning anyone could extract it from the browser and get repo write access.
+// It now lives only here, server-side, gated behind the same admin check as
+// everything else in this file.
+const GITHUB_PAT = process.env.GITHUB_PAT;
+const GITHUB_USER = 'osamatamimii';
 
 const ALLOWED_TABLES = new Set([
   'products', 'bundles', 'orders', 'reviews', 'stores', 'store_staff',
@@ -75,11 +82,12 @@ export default async function handler(req, res) {
   try {
     const { accessToken, action, table, query, filter, body, storeId } = req.body || {};
 
-    if (!ALLOWED_TABLES.has(table) && action !== 'auth_create_user') {
+    const GITHUB_ACTIONS = ['github_get_file', 'github_push_file'];
+    if (!ALLOWED_TABLES.has(table) && action !== 'auth_create_user' && !GITHUB_ACTIONS.includes(action)) {
       res.status(400).json({ error: 'Table not allowed' });
       return;
     }
-    if (!['select', 'insert', 'update', 'delete', 'auth_create_user'].includes(action)) {
+    if (!['select', 'insert', 'update', 'delete', 'auth_create_user', ...GITHUB_ACTIONS].includes(action)) {
       res.status(400).json({ error: 'Invalid action' });
       return;
     }
@@ -118,6 +126,60 @@ export default async function handler(req, res) {
       const userData = await authRes.json();
       res.status(200).json({ id: userData?.id ?? null });
       return;
+    }
+
+    // SiteBuilder: read/write a client store repo's index.html on GitHub.
+    // Admin-only — the token that authorizes this never reaches the browser.
+    if (action === 'github_get_file' || action === 'github_push_file') {
+      if (!isAdmin) {
+        res.status(403).json({ error: 'Admin only' });
+        return;
+      }
+      if (!GITHUB_PAT) {
+        res.status(500).json({ error: 'GitHub publishing is not configured (missing GITHUB_PAT)' });
+        return;
+      }
+      const { slug } = body || {};
+      if (!slug || !/^[a-zA-Z0-9-]+$/.test(slug)) {
+        res.status(400).json({ error: 'Missing or invalid slug' });
+        return;
+      }
+      const repo = `${GITHUB_USER}/${slug}-site`;
+      const ghHeaders = { Authorization: `token ${GITHUB_PAT}`, Accept: 'application/vnd.github.v3+json' };
+
+      if (action === 'github_get_file') {
+        const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/index.html`, { headers: ghHeaders });
+        if (!ghRes.ok) {
+          res.status(ghRes.status).json({ error: 'Failed to fetch file from GitHub' });
+          return;
+        }
+        const d = await ghRes.json();
+        const content = Buffer.from(d.content, 'base64').toString('utf-8');
+        res.status(200).json({ sha: d.sha, content });
+        return;
+      }
+
+      if (action === 'github_push_file') {
+        const { htmlContent, sha, message } = body || {};
+        if (!htmlContent || !sha) {
+          res.status(400).json({ error: 'Missing htmlContent or sha' });
+          return;
+        }
+        const b64 = Buffer.from(htmlContent, 'utf-8').toString('base64');
+        const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/index.html`, {
+          method: 'PUT',
+          headers: { ...ghHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: message || `update ${slug} site`, content: b64, sha }),
+        });
+        if (!ghRes.ok) {
+          const errText = await ghRes.text();
+          res.status(ghRes.status).json({ error: 'Failed to push to GitHub', detail: errText.slice(0, 300) });
+          return;
+        }
+        const d = await ghRes.json();
+        res.status(200).json({ ok: true, newSha: d.content?.sha ?? null });
+        return;
+      }
     }
 
     if (!isAdmin) {
