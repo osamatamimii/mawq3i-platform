@@ -2,5 +2,8 @@
   "buildCommand": "cd artifacts/mawq3i && npm install && npm run build",
   "outputDirectory": "artifacts/mawq3i/dist",
   "installCommand": "echo 'dependencies installed per-app'",
-  "framework": null
+  "framework": null,
+  "crons": [
+    { "path": "/api/growth-agent-sync", "schedule": "0 2 * * *" }
+  ]
 }

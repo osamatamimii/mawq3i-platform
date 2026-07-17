@@ -10,6 +10,9 @@
 - [x] **جدول `product_daily_stats`** — ✅ **تم (17 يوليو 2026)**: views/add_to_cart/purchases/revenue يومي لكل منتج، بـ unique(store_id, product_id, stat_date) + RLS مبنية على owner_id. لسا فاضي — لازم نبني الكود اللي يعبّيه (من GA4 + orders).
 - [x] **جدول `store_growth_events`** — ✅ **تم (17 يوليو 2026)**: سجل كل تشخيص/قرار (event_type, category, status: pending/approved/rejected/auto_executed/reverted) + RLS. جاهز يُستخدم من المرحلة 1.
 - [x] **جدول `market_benchmarks`** — ✅ **تم (17 يوليو 2026)**: معبّى بـ11 معيار فعلي (Conversion Rate global/fashion/beauty، Meta Ads CTR/CPC/ROAS، TikTok Ads CTR/CPC، Cart Abandonment global/MENA، WhatsApp recovery rate). Migration: `growth_agent_phase0_foundation`.
+- [x] كود يعبّي `product_daily_stats` فعلياً — ✅ **تم (17 يوليو 2026)**: `api/growth-agent-sync.js` — يجمع views من GA4 (نفس نمط analytics-data.js) + purchases/revenue من orders (أونلاين) وoffline_sales (بالمحل)، ويعمل upsert يومي. مجدول عبر Vercel Cron الساعة 2 صباحاً UTC (`vercel.json`). قابل للاستدعاء يدوياً: `GET /api/growth-agent-sync?date=YYYY-MM-DD`.
+  - **⚠️ اكتشاف مهم أثناء البناء:** بعض عناصر `orders.items[].product_id` قيم قديمة (slug نصي زي `lumia`, `naqaa`) مش UUID فعلي بجدول `products` — على الأغلب بيانات قديمة من قبل توحيد الـ schema. الكود يتجاهلها بأمان (يعدّها بـ `unmatchedOrderItems` بدل ما يفشل)، بس هاد معناه إحصائيات المبيعات لبعض الطلبات القديمة ما رح تنعكس بـ `product_daily_stats`. يستاهل مراجعة لاحقاً لو الرقم طلع كبير.
+  - **ملاحظة:** `add_to_cart` مش متتبّع حالياً (يحتاج GA4 event إضافي) — الحقل موجود بالجدول بقيمة 0 مؤقتاً.
 - [ ] كارت/قسم بسيط بالـ Admin يعرض البيانات الخام هاي لأي متجر (تحقق قبل البناء فوقها)
 
 > ⚠️ **ملاحظة أمان اكتُشفت أثناء الشغل (17 يوليو 2026):** جدول `webhook_logs` بدون RLS مفعّل — أي حد معه anon key يقدر يقرأ/يعدّل عليه. لازم قرار من عثمان قبل التفعيل (تفعيل RLS بدون سياسات بيوقف الـ webhooks الحالية من Togo). لسا مفتوح.
