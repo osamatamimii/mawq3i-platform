@@ -86,43 +86,45 @@ async function hideProduct(productId) {
   });
 }
 
+export async function runDiagnose() {
+  if (!SUPABASE_KEY) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY env var');
+
+  const sinceDate = daysAgoISODate(WINDOW_DAYS);
+  const summary = { window: `${sinceDate} → today`, storesProcessed: 0, diagnosesCreated: 0, errors: [] };
+
+  const stores = await sbGet('stores?status=eq.active&select=id,name,join_date');
+  const benchmarkRows = await sbGet('market_benchmarks?select=category,segment,metric_key,metric_avg');
+  const bench = {};
+  for (const b of benchmarkRows) bench[`${b.category}:${b.segment}:${b.metric_key}`] = Number(b.metric_avg);
+
+  for (const store of stores) {
+    try {
+      const newEvents = await diagnoseStore(store, sinceDate, bench);
+      if (newEvents.length) {
+        await sbInsert('store_growth_events', newEvents);
+        summary.diagnosesCreated += newEvents.length;
+      }
+      summary.storesProcessed++;
+    } catch (storeErr) {
+      summary.errors.push({ store_id: store.id, message: storeErr?.message });
+      console.error(`growth-agent-diagnose failed for store ${store.id}:`, storeErr);
+    }
+  }
+
+  return summary;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
-  if (!SUPABASE_KEY) {
-    res.status(500).json({ error: 'Missing SUPABASE_SERVICE_ROLE_KEY env var' });
-    return;
-  }
-
-  const sinceDate = daysAgoISODate(WINDOW_DAYS);
-  const summary = { window: `${sinceDate} → today`, storesProcessed: 0, diagnosesCreated: 0, errors: [] };
-
   try {
-    const stores = await sbGet('stores?status=eq.active&select=id,name,join_date');
-    const benchmarkRows = await sbGet('market_benchmarks?select=category,segment,metric_key,metric_avg');
-    const bench = {};
-    for (const b of benchmarkRows) bench[`${b.category}:${b.segment}:${b.metric_key}`] = Number(b.metric_avg);
-
-    for (const store of stores) {
-      try {
-        const newEvents = await diagnoseStore(store, sinceDate, bench);
-        if (newEvents.length) {
-          await sbInsert('store_growth_events', newEvents);
-          summary.diagnosesCreated += newEvents.length;
-        }
-        summary.storesProcessed++;
-      } catch (storeErr) {
-        summary.errors.push({ store_id: store.id, message: storeErr?.message });
-        console.error(`growth-agent-diagnose failed for store ${store.id}:`, storeErr);
-      }
-    }
-
+    const summary = await runDiagnose();
     res.status(200).json(summary);
   } catch (err) {
     console.error('growth-agent-diagnose handler error:', err);
-    res.status(500).json({ error: err?.message || 'Internal server error', ...summary });
+    res.status(500).json({ error: err?.message || 'Internal server error' });
   }
 }
 

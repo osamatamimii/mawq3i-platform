@@ -128,9 +128,8 @@ function buildPriorities({ stageInfo, categoryCounts, cart, ads, revenuePct }) {
   return priorities.slice(0, 5);
 }
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET' && req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
-  if (!SUPABASE_KEY) { res.status(500).json({ error: 'Missing SUPABASE_SERVICE_ROLE_KEY env var' }); return; }
+export async function runMonthlyPlan() {
+  if (!SUPABASE_KEY) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY env var');
 
   const now = new Date();
   const periodEnd = isoDate(now);
@@ -139,58 +138,64 @@ export default async function handler(req, res) {
 
   const summary = { periodStart, periodEnd, storesProcessed: 0, errors: [] };
 
-  try {
-    const stores = await sbGet('stores?status=eq.active&select=id,name,join_date');
+  const stores = await sbGet('stores?status=eq.active&select=id,name,join_date');
 
-    for (const store of stores) {
-      try {
-        const [revenueAfter, revenueBefore, cart, ads, categoryCounts] = await Promise.all([
-          revenueWindow(store.id, periodStart, periodEnd),
-          revenueWindow(store.id, priorStart, periodStart),
-          cartAbandonmentWindow(store.id, periodStart, periodEnd),
-          adSpendWindow(store.id, periodStart, periodEnd),
-          eventCategoryCounts(store.id, periodStart),
-        ]);
+  for (const store of stores) {
+    try {
+      const [revenueAfter, revenueBefore, cart, ads, categoryCounts] = await Promise.all([
+        revenueWindow(store.id, periodStart, periodEnd),
+        revenueWindow(store.id, priorStart, periodStart),
+        cartAbandonmentWindow(store.id, periodStart, periodEnd),
+        adSpendWindow(store.id, periodStart, periodEnd),
+        eventCategoryCounts(store.id, periodStart),
+      ]);
 
-        if (revenueAfter.views === 0 && revenueBefore.views === 0 && revenueAfter.purchases === 0) continue; // ما في بيانات كافية
+      if (revenueAfter.views === 0 && revenueBefore.views === 0 && revenueAfter.purchases === 0) continue; // ما في بيانات كافية
 
-        const storeAgeDays = store.join_date ? (now.getTime() - new Date(store.join_date).getTime()) / 86400000 : 0;
-        const revenuePct = pctChange(revenueBefore.revenue, revenueAfter.revenue);
-        const stageInfo = classifyStage({ storeAgeDays, ordersThisPeriod: revenueAfter.purchases, revenuePct });
+      const storeAgeDays = store.join_date ? (now.getTime() - new Date(store.join_date).getTime()) / 86400000 : 0;
+      const revenuePct = pctChange(revenueBefore.revenue, revenueAfter.revenue);
+      const stageInfo = classifyStage({ storeAgeDays, ordersThisPeriod: revenueAfter.purchases, revenuePct });
 
-        const summaryText = buildSummary({
-          stageInfo, revenue: { before: revenueBefore.revenue, after: revenueAfter.revenue }, revenuePct,
-          orders: revenueAfter.purchases, cart, ads, storeName: store.name,
-        });
-        const priorities = buildPriorities({ stageInfo, categoryCounts, cart, ads, revenuePct });
+      const summaryText = buildSummary({
+        stageInfo, revenue: { before: revenueBefore.revenue, after: revenueAfter.revenue }, revenuePct,
+        orders: revenueAfter.purchases, cart, ads, storeName: store.name,
+      });
+      const priorities = buildPriorities({ stageInfo, categoryCounts, cart, ads, revenuePct });
 
-        await sbUpsert('store_growth_plans', [{
-          store_id: store.id,
-          period_start: periodStart,
-          period_end: periodEnd,
-          stage: stageInfo.stage,
-          stage_label_ar: stageInfo.label,
-          summary: summaryText,
-          priorities,
-          metrics: {
-            revenue_before: revenueBefore.revenue, revenue_after: revenueAfter.revenue, revenue_pct_change: revenuePct,
-            orders_before: revenueBefore.purchases, orders_after: revenueAfter.purchases,
-            views_before: revenueBefore.views, views_after: revenueAfter.views,
-            cart_abandonment_pct: cart.pct, ad_spend: ads?.spend ?? null, ad_clicks: ads?.clicks ?? null,
-            store_age_days: Math.floor(storeAgeDays), category_counts: categoryCounts,
-          },
-        }], 'store_id,period_end');
+      await sbUpsert('store_growth_plans', [{
+        store_id: store.id,
+        period_start: periodStart,
+        period_end: periodEnd,
+        stage: stageInfo.stage,
+        stage_label_ar: stageInfo.label,
+        summary: summaryText,
+        priorities,
+        metrics: {
+          revenue_before: revenueBefore.revenue, revenue_after: revenueAfter.revenue, revenue_pct_change: revenuePct,
+          orders_before: revenueBefore.purchases, orders_after: revenueAfter.purchases,
+          views_before: revenueBefore.views, views_after: revenueAfter.views,
+          cart_abandonment_pct: cart.pct, ad_spend: ads?.spend ?? null, ad_clicks: ads?.clicks ?? null,
+          store_age_days: Math.floor(storeAgeDays), category_counts: categoryCounts,
+        },
+      }], 'store_id,period_end');
 
-        summary.storesProcessed++;
-      } catch (storeErr) {
-        summary.errors.push({ store_id: store.id, message: storeErr?.message });
-        console.error(`monthly-plan failed for store ${store.id}:`, storeErr);
-      }
+      summary.storesProcessed++;
+    } catch (storeErr) {
+      summary.errors.push({ store_id: store.id, message: storeErr?.message });
+      console.error(`monthly-plan failed for store ${store.id}:`, storeErr);
     }
+  }
 
+  return summary;
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET' && req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
+  try {
+    const summary = await runMonthlyPlan();
     res.status(200).json(summary);
   } catch (err) {
     console.error('growth-agent-monthly-plan error:', err);
-    res.status(500).json({ error: err?.message || 'Internal server error', ...summary });
+    res.status(500).json({ error: err?.message || 'Internal server error' });
   }
 }

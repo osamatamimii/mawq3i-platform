@@ -40,54 +40,58 @@ async function storeRevenueBetween(storeId, fromDate, toDate) {
   };
 }
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET' && req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
-  if (!SUPABASE_KEY) { res.status(500).json({ error: 'Missing SUPABASE_SERVICE_ROLE_KEY env var' }); return; }
-
+export async function runCaptureResults() {
+  if (!SUPABASE_KEY) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY env var');
   const summary = { eventsProcessed: 0, errors: [] };
 
-  try {
-    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-    const events = await sbGet(
-      `store_growth_events?event_type=in.(suggested_action,auto_action)&status=in.(approved,auto_executed)&resolved_at=lte.${sevenDaysAgo}&result_snapshot=is.null&select=id,store_id,resolved_at,data`
-    );
+  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const events = await sbGet(
+    `store_growth_events?event_type=in.(suggested_action,auto_action)&status=in.(approved,auto_executed)&resolved_at=lte.${sevenDaysAgo}&result_snapshot=is.null&select=id,store_id,resolved_at,data`
+  );
 
-    for (const event of events) {
-      try {
-        const resolvedAt = new Date(event.resolved_at);
-        const before = isoDate(new Date(resolvedAt.getTime() - 7 * 86400000));
-        const atResolve = isoDate(resolvedAt);
-        const after = isoDate(new Date(resolvedAt.getTime() + 7 * 86400000));
+  for (const event of events) {
+    try {
+      const resolvedAt = new Date(event.resolved_at);
+      const before = isoDate(new Date(resolvedAt.getTime() - 7 * 86400000));
+      const atResolve = isoDate(resolvedAt);
+      const after = isoDate(new Date(resolvedAt.getTime() + 7 * 86400000));
 
-        const [beforeStats, afterStats] = await Promise.all([
-          storeRevenueBetween(event.store_id, before, atResolve),
-          storeRevenueBetween(event.store_id, atResolve, after),
-        ]);
+      const [beforeStats, afterStats] = await Promise.all([
+        storeRevenueBetween(event.store_id, before, atResolve),
+        storeRevenueBetween(event.store_id, atResolve, after),
+      ]);
 
-        const pctChange = beforeStats.revenue > 0
-          ? ((afterStats.revenue - beforeStats.revenue) / beforeStats.revenue) * 100
-          : null;
+      const pctChange = beforeStats.revenue > 0
+        ? ((afterStats.revenue - beforeStats.revenue) / beforeStats.revenue) * 100
+        : null;
 
-        const snapshot = {
-          measured_at: new Date().toISOString(),
-          store_revenue_before: beforeStats.revenue,
-          store_revenue_after: afterStats.revenue,
-          store_purchases_before: beforeStats.purchases,
-          store_purchases_after: afterStats.purchases,
-          pct_change: pctChange,
-          note: 'هاد مقياس على مستوى المتجر ككل (مو معزول تماماً عن باقي التغيرات) — إشارة أولية مو دليل قاطع.',
-        };
+      const snapshot = {
+        measured_at: new Date().toISOString(),
+        store_revenue_before: beforeStats.revenue,
+        store_revenue_after: afterStats.revenue,
+        store_purchases_before: beforeStats.purchases,
+        store_purchases_after: afterStats.purchases,
+        pct_change: pctChange,
+        note: 'هاد مقياس على مستوى المتجر ككل (مو معزول تماماً عن باقي التغيرات) — إشارة أولية مو دليل قاطع.',
+      };
 
-        await sbPatch('store_growth_events', `id=eq.${event.id}`, { result_snapshot: snapshot });
-        summary.eventsProcessed++;
-      } catch (evErr) {
-        summary.errors.push({ event_id: event.id, message: evErr?.message });
-      }
+      await sbPatch('store_growth_events', `id=eq.${event.id}`, { result_snapshot: snapshot });
+      summary.eventsProcessed++;
+    } catch (evErr) {
+      summary.errors.push({ event_id: event.id, message: evErr?.message });
     }
+  }
 
+  return summary;
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET' && req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
+  try {
+    const summary = await runCaptureResults();
     res.status(200).json(summary);
   } catch (err) {
     console.error('growth-agent-capture-results error:', err);
-    res.status(500).json({ error: err?.message || 'Internal server error', ...summary });
+    res.status(500).json({ error: err?.message || 'Internal server error' });
   }
 }

@@ -4,10 +4,6 @@
   "installCommand": "echo 'dependencies installed per-app'",
   "framework": null,
   "crons": [
-    { "path": "/api/growth-agent-sync", "schedule": "0 2 * * *" },
-    { "path": "/api/growth-agent-ads-sync", "schedule": "30 2 * * *" },
-    { "path": "/api/growth-agent-diagnose", "schedule": "0 3 * * *" },
-    { "path": "/api/growth-agent-capture-results", "schedule": "0 4 * * 0" },
-    { "path": "/api/growth-agent-monthly-plan", "schedule": "0 5 1 * *" }
+    { "path": "/api/growth-agent-cron", "schedule": "0 3 * * *" }
   ]
 }

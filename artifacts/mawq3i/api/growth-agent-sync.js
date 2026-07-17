@@ -167,83 +167,86 @@ async function getSalesForDate(storeId, validProductIds, date) {
   return { purchases, revenue, unmatchedItems };
 }
 
-// ---------- المعالج الرئيسي ----------
+// ---------- الدالة الأساسية (تُستدعى مباشرة من orchestrator أو من الـ handler) ----------
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET' && req.method !== 'POST') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
-  if (!SUPABASE_KEY) {
-    res.status(500).json({ error: 'Missing SUPABASE_SERVICE_ROLE_KEY env var' });
-    return;
-  }
+export async function runSync(dateOverride) {
+  if (!SUPABASE_KEY) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY env var');
 
-  const q = req.method === 'GET' ? req.query : (req.body || {});
-  let date = q.date;
+  let date = dateOverride;
   if (!date) {
     const yesterday = new Date();
     yesterday.setUTCDate(yesterday.getUTCDate() - 1);
     date = yesterday.toISOString().slice(0, 10);
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    res.status(400).json({ error: 'Invalid date format, expected YYYY-MM-DD' });
-    return;
+    throw new Error('Invalid date format, expected YYYY-MM-DD');
   }
 
   const summary = { date, storesProcessed: 0, rowsUpserted: 0, unmatchedOrderItems: 0, errors: [] };
 
-  try {
-    const stores = await sbGet('stores?status=eq.active&select=id,domain,slug');
+  const stores = await sbGet('stores?status=eq.active&select=id,domain,slug');
 
-    for (const store of stores) {
-      try {
-        const products = await sbGet(`products?store_id=eq.${store.id}&select=id`);
-        const validProductIds = new Set(products.map((p) => p.id));
-        if (validProductIds.size === 0) continue;
+  for (const store of stores) {
+    try {
+      const products = await sbGet(`products?store_id=eq.${store.id}&select=id`);
+      const validProductIds = new Set(products.map((p) => p.id));
+      if (validProductIds.size === 0) continue;
 
-        const hostname = store.domain || (store.slug ? `${store.slug}.mawq3i.co` : null);
+      const hostname = store.domain || (store.slug ? `${store.slug}.mawq3i.co` : null);
 
-        const [views, sales] = await Promise.all([
-          getProductViewsForDate(hostname, date),
-          getSalesForDate(store.id, validProductIds, date),
-        ]);
+      const [views, sales] = await Promise.all([
+        getProductViewsForDate(hostname, date),
+        getSalesForDate(store.id, validProductIds, date),
+      ]);
 
-        summary.unmatchedOrderItems += sales.unmatchedItems;
+      summary.unmatchedOrderItems += sales.unmatchedItems;
 
-        const productIdsSeen = new Set([
-          ...Object.keys(views),
-          ...Object.keys(sales.purchases),
-          ...Object.keys(sales.revenue),
-        ]);
+      const productIdsSeen = new Set([
+        ...Object.keys(views),
+        ...Object.keys(sales.purchases),
+        ...Object.keys(sales.revenue),
+      ]);
 
-        const rows = [];
-        for (const pid of productIdsSeen) {
-          if (!validProductIds.has(pid)) continue; // views ممكن تجيب IDs من متاجر/مصادر ثانية بالغلط — تحقق دايماً
-          rows.push({
-            store_id: store.id,
-            product_id: pid,
-            stat_date: date,
-            views: views[pid] || 0,
-            add_to_cart: 0, // غير مُتتبّع حالياً — يحتاج GA4 event إضافي لاحقاً
-            purchases: sales.purchases[pid] || 0,
-            revenue: sales.revenue[pid] || 0,
-            updated_at: new Date().toISOString(),
-          });
-        }
-
-        await sbUpsert('product_daily_stats', rows, 'store_id,product_id,stat_date');
-        summary.rowsUpserted += rows.length;
-        summary.storesProcessed++;
-      } catch (storeErr) {
-        summary.errors.push({ store_id: store.id, message: storeErr?.message });
-        console.error(`growth-agent-sync failed for store ${store.id}:`, storeErr);
+      const rows = [];
+      for (const pid of productIdsSeen) {
+        if (!validProductIds.has(pid)) continue; // views ممكن تجيب IDs من متاجر/مصادر ثانية بالغلط — تحقق دايماً
+        rows.push({
+          store_id: store.id,
+          product_id: pid,
+          stat_date: date,
+          views: views[pid] || 0,
+          add_to_cart: 0, // غير مُتتبّع حالياً — يحتاج GA4 event إضافي لاحقاً
+          purchases: sales.purchases[pid] || 0,
+          revenue: sales.revenue[pid] || 0,
+          updated_at: new Date().toISOString(),
+        });
       }
-    }
 
+      await sbUpsert('product_daily_stats', rows, 'store_id,product_id,stat_date');
+      summary.rowsUpserted += rows.length;
+      summary.storesProcessed++;
+    } catch (storeErr) {
+      summary.errors.push({ store_id: store.id, message: storeErr?.message });
+      console.error(`growth-agent-sync failed for store ${store.id}:`, storeErr);
+    }
+  }
+
+  return summary;
+}
+
+// ---------- المعالج (للاستدعاء اليدوي عبر HTTP فقط — الـ Cron الفعلي يستدعي runSync مباشرة من growth-agent-cron.js) ----------
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+  const q = req.method === 'GET' ? req.query : (req.body || {});
+  try {
+    const summary = await runSync(q.date);
     res.status(200).json(summary);
   } catch (err) {
     console.error('growth-agent-sync handler error:', err);
-    res.status(500).json({ error: err?.message || 'Internal server error', ...summary });
+    res.status(500).json({ error: err?.message || 'Internal server error' });
   }
 }

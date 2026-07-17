@@ -103,40 +103,39 @@ function daysAgoISODate(n) {
   return d.toISOString().slice(0, 10);
 }
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET' && req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
-  if (!SUPABASE_KEY) { res.status(500).json({ error: 'Missing SUPABASE_SERVICE_ROLE_KEY env var' }); return; }
-
-  const q = req.method === 'GET' ? req.query : (req.body || {});
-  const date = q.date || daysAgoISODate(1);
-
+export async function runAdsSync(dateOverride) {
+  if (!SUPABASE_KEY) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY env var');
+  const date = dateOverride || daysAgoISODate(1);
   const summary = { date, accountsProcessed: 0, rowsUpserted: 0, errors: [] };
 
+  const accounts = await sbGet('ad_accounts?status=eq.connected&select=id,store_id,platform,external_account_id,access_token');
+  if (!accounts.length) return { ...summary, message: 'ما في حسابات إعلانات مربوطة بعد' };
+
+  for (const account of accounts) {
+    try {
+      const rows = account.platform === 'meta'
+        ? await syncMetaAccount(account, date)
+        : await syncTikTokAccount(account, date);
+      const validRows = rows.filter((r) => r.campaign_id);
+      await sbUpsert('ad_campaigns_daily', validRows, 'store_id,platform,campaign_id,stat_date');
+      summary.rowsUpserted += validRows.length;
+      summary.accountsProcessed++;
+    } catch (accErr) {
+      summary.errors.push({ account_id: account.id, platform: account.platform, message: accErr?.message });
+      console.error(`ads-sync failed for account ${account.id}:`, accErr);
+    }
+  }
+  return summary;
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'GET' && req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
+  const q = req.method === 'GET' ? req.query : (req.body || {});
   try {
-    const accounts = await sbGet('ad_accounts?status=eq.connected&select=id,store_id,platform,external_account_id,access_token');
-    if (!accounts.length) {
-      res.status(200).json({ ...summary, message: 'ما في حسابات إعلانات مربوطة بعد' });
-      return;
-    }
-
-    for (const account of accounts) {
-      try {
-        const rows = account.platform === 'meta'
-          ? await syncMetaAccount(account, date)
-          : await syncTikTokAccount(account, date);
-        const validRows = rows.filter((r) => r.campaign_id);
-        await sbUpsert('ad_campaigns_daily', validRows, 'store_id,platform,campaign_id,stat_date');
-        summary.rowsUpserted += validRows.length;
-        summary.accountsProcessed++;
-      } catch (accErr) {
-        summary.errors.push({ account_id: account.id, platform: account.platform, message: accErr?.message });
-        console.error(`ads-sync failed for account ${account.id}:`, accErr);
-      }
-    }
-
+    const summary = await runAdsSync(q.date);
     res.status(200).json(summary);
   } catch (err) {
     console.error('growth-agent-ads-sync handler error:', err);
-    res.status(500).json({ error: err?.message || 'Internal server error', ...summary });
+    res.status(500).json({ error: err?.message || 'Internal server error' });
   }
 }
