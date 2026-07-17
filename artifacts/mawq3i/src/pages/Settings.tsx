@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { updateStoreSettings } from '@/lib/db';
+import { supabase } from '@/lib/supabase';
 import { uploadStoreLogo, uploadStoreHeroImage } from '@/lib/storage';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -158,6 +159,97 @@ function DeliveryAddressSection({ isAr, currentStore }: { isAr: boolean; current
         {saving ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : <Check className="w-4 h-4 me-2" />}
         {isAr ? 'حفظ عنوان الاستلام' : 'Save pickup address'}
       </Button>
+    </SectionCard>
+  );
+}
+
+function AdAccountsSection({ isAr, currentStore }: { isAr: boolean; currentStore: any }) {
+  const { toast } = useToast();
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState<'meta' | 'tiktok' | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      if (!currentStore?.id) return;
+      const { data } = await supabase
+        .from('ad_accounts')
+        .select('id, platform, external_account_name, status')
+        .eq('store_id', currentStore.id);
+      setAccounts(data || []);
+      setLoading(false);
+    })();
+  }, [currentStore?.id]);
+
+  const connect = async (platform: 'meta' | 'tiktok') => {
+    setConnecting(platform);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) { toast({ title: isAr ? 'سجّل دخولك من جديد' : 'Please sign in again', variant: 'destructive' }); return; }
+
+      const endpoint = platform === 'meta' ? '/api/meta-oauth-start' : '/api/tiktok-oauth-start';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ store_id: currentStore.id }),
+      });
+      const data = await res.json();
+      if (!data.configured) {
+        toast({ title: isAr ? 'هاي الميزة لسا ما اتفعّلت' : 'Not available yet', description: data.message, variant: 'destructive' });
+        return;
+      }
+      window.location.href = data.authUrl;
+    } catch {
+      toast({ title: isAr ? 'صار خطأ، حاول لاحقاً' : 'Something went wrong', variant: 'destructive' });
+    } finally {
+      setConnecting(null);
+    }
+  };
+
+  const platformLabel = (p: string) => (p === 'meta' ? 'Meta (فيسبوك/إنستغرام)' : 'TikTok');
+  const statusBadge = (s: string) => {
+    const map: Record<string, { ar: string; en: string; cls: string }> = {
+      connected: { ar: 'مربوط', en: 'Connected', cls: 'bg-primary/10 text-primary' },
+      expired: { ar: 'انتهت الصلاحية، أعد الربط', en: 'Expired, reconnect', cls: 'bg-red-500/10 text-red-500' },
+      revoked: { ar: 'مُلغى', en: 'Revoked', cls: 'bg-muted text-muted-foreground' },
+    };
+    const m = map[s] || map.connected;
+    return <span className={`text-xs rounded-full px-2 py-0.5 ${m.cls}`}>{isAr ? m.ar : m.en}</span>;
+  };
+
+  return (
+    <SectionCard titleAr="حسابات الإعلانات" titleEn="Ad Accounts" isAr={isAr}>
+      <p className="text-sm text-muted-foreground -mt-2">
+        {isAr
+          ? 'اربط حساب إعلاناتك عشان وكيل النمو يقدر يشخّص أداء حملاتك ويقارنها بمعايير السوق.'
+          : 'Connect your ad account so the growth agent can diagnose campaign performance against market benchmarks.'}
+      </p>
+      {loading ? (
+        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+      ) : (
+        <div className="space-y-2">
+          {accounts.map((a) => (
+            <div key={a.id} className="flex items-center justify-between p-3 rounded-lg border border-border/40">
+              <div>
+                <p className="text-sm font-medium">{platformLabel(a.platform)}</p>
+                <p className="text-xs text-muted-foreground">{a.external_account_name}</p>
+              </div>
+              {statusBadge(a.status)}
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2 pt-2">
+        <Button variant="outline" disabled={connecting === 'meta'} onClick={() => connect('meta')}>
+          {connecting === 'meta' ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
+          {isAr ? 'ربط حساب Meta الإعلاني' : 'Connect Meta Ads'}
+        </Button>
+        <Button variant="outline" disabled={connecting === 'tiktok'} onClick={() => connect('tiktok')}>
+          {connecting === 'tiktok' ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
+          {isAr ? 'ربط حساب TikTok الإعلاني' : 'Connect TikTok Ads'}
+        </Button>
+      </div>
     </SectionCard>
   );
 }
@@ -784,6 +876,8 @@ export default function Settings() {
       </SectionCard>
 
       <DeliveryAddressSection isAr={isAr} currentStore={currentStore} />
+
+      <AdAccountsSection isAr={isAr} currentStore={currentStore} />
 
       <div className="p-4 rounded-xl bg-muted/30 border border-border/40 text-xs text-muted-foreground space-y-1">
         <p className="font-medium text-foreground/70">{isAr ? 'معلومات المتجر' : 'Store Info'}</p>

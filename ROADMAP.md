@@ -34,10 +34,19 @@
 - [ ] **إرسال كإشعار WhatsApp — قرار مؤجل بسبب قيد تقني حقيقي:** ما بنيته. السبب: المنصة حالياً بتستخدم روابط `wa.me` يدوية (يفتحها الموظف بنفسه) — ما في WhatsApp Business API رسمي متكامل يسمح بإرسال تلقائي من السيرفر لصاحب المتجر (هاد أصلاً بند مستقبلي منفصل بالـ "أفكار أكبر" بالـ ROADMAP: "واتساب بيزنس API رسمي"). إرسال تلقائي حالياً غير ممكن تقنياً بدون هاد الـ API. البديل المؤقت المبني فعلياً: صفحة `/dashboard/growth` + badge بالسايدبار.
 
 **المرحلة 2 — ربط Meta + TikTok Ads (بعد المرحلة 1):**
-- [ ] Meta Marketing API integration
-- [ ] TikTok Ads API integration
-- [ ] ربط بيانات الإعلان بالـ orders الفعلية (مو بس نقرات)
-- [ ] مقارنة أداء كل متجر بـ market_benchmarks
+- [x] **البنية التحتية الكاملة مبنية (17 يوليو 2026)** — كود جاهز 100%، لكن **غير فعّال لحد ما توفر حسابات مطورين حقيقية** (تفصيل بالأسفل):
+  - جداول `ad_accounts` (بدون RLS write من المتصفح — التوكنات حساسة، فقط السيرفر يكتب)، `ad_campaigns_daily`، `oauth_connect_intents` (مؤقتة، تمنع أي حد يربط حساب إعلانات بمتجر مش تبعه)
+  - `api/meta-oauth-start.js` + `api/meta-oauth-callback.js` — تدفق OAuth كامل لـ Meta (تبديل كود → توكن قصير → توكن طويل 60 يوم → جلب أول حساب إعلانات)
+  - `api/tiktok-oauth-start.js` + `api/tiktok-oauth-callback.js` — نفس الشي لـ TikTok Business API
+  - `api/growth-agent-ads-sync.js` — مزامنة يومية لأداء الحملات (spend/impressions/clicks/CTR/CPC) من كل حساب مربوط، Cron الساعة 2:30 صباحاً UTC
+  - قاعدة تشخيص خامسة بـ `growth-agent-diagnose.js`: نسبة نقر ضعيفة مقارنة بمعيار السوق (لكل منصة لحالها)
+  - قسم "حسابات الإعلانات" بصفحة `/dashboard/settings` — زر ربط لكل منصة، يتحقق من ملكية المتجر عبر الـ session قبل ما يبدأ الـ OAuth
+- [ ] **⚠️ محجوب على إجراء منك خارج الكود بالكامل:** ما في شي تقني تاني أقدر أبنيه هون. لازم:
+  1. **Meta:** تنشئ [Meta App](https://developers.facebook.com/apps) نوع Business، تضيف منتج "Facebook Login for Business" + "Marketing API"، وتضيف env vars بـ Vercel: `META_APP_ID`, `META_APP_SECRET`, `META_OAUTH_REDIRECT_URI` (= `https://mawq3i.co/api/meta-oauth-callback`). ملاحظة: طلب صلاحية `ads_read` على تطبيق حي (مو Development mode) بيحتاج **App Review من Meta** — بياخد وقت، وثيقة رسمية مطلوبة توضح استخدام البيانات.
+  2. **TikTok:** تسجّل بـ [TikTok for Business Developer Portal](https://business-api.tiktok.com/portal)، تنشئ App، وتضيف env vars: `TIKTOK_APP_ID`, `TIKTOK_APP_SECRET`, `TIKTOK_OAUTH_REDIRECT_URI`.
+  3. بعد ما توفر الـ env vars، الكود جاهز يشتغل فوراً بدون أي تعديل إضافي.
+- [ ] **قيد معروف موثّق:** الربط الحالي (Meta) بياخد **أول حساب إعلانات** بس من حساب المستخدم (MVP)؛ لو تاجر عنده أكتر من حساب إعلانات، بدنا نضيف واجهة اختيار لاحقاً.
+- [ ] **قيد أهم:** ما في ربط حقيقي بين مصروف الإعلان والمبيعة الفعلية (attribution) — لأنه `orders` ما فيها tracking لـ UTM parameters أو `fbclid`. يعني حالياً نقدر نقارن أداء الإعلان (CTR/CPC) بمعيار السوق، بس مو "هاد الإعلان جاب X مبيعة بالضبط". لإضافة attribution حقيقي لازم إضافة capture لـ UTM/click-id بصفحة الهبوط وربطها بـ `orders` — بند مفتوح للمرحلة الجاية لو حبينا نعمقها.
 
 **المرحلة 3 — قرارات تلقائية محدودة (بعد المرحلة 2):**
 - [ ] طبقة صلاحيات: تلقائي مقابل يحتاج موافقة (قسم 3-C بالوثيقة)

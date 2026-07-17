@@ -5,6 +5,7 @@
   "framework": null,
   "crons": [
     { "path": "/api/growth-agent-sync", "schedule": "0 2 * * *" },
+    { "path": "/api/growth-agent-ads-sync", "schedule": "30 2 * * *" },
     { "path": "/api/growth-agent-diagnose", "schedule": "0 3 * * *" }
   ]
 }

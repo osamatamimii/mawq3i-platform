@@ -228,5 +228,41 @@ async function diagnoseStore(store, sinceDate, bench) {
     console.error(`cart abandonment check failed for store ${store.id}:`, e?.message);
   }
 
+  // -------- قاعدة 5: أداء الحملات الإعلانية (Meta/TikTok) مقارنة بمعيار السوق --------
+  // (يعمل فقط لو عندهم حساب إعلانات مربوط — المرحلة 2)
+  try {
+    const adRows = await sbGet(`ad_campaigns_daily?store_id=eq.${store.id}&stat_date=gte.${sinceDate}&select=platform,campaign_id,campaign_name,spend,clicks,impressions`);
+    const byPlatform = {};
+    for (const r of adRows) {
+      if (!byPlatform[r.platform]) byPlatform[r.platform] = { spend: 0, clicks: 0, impressions: 0 };
+      byPlatform[r.platform].spend += Number(r.spend || 0);
+      byPlatform[r.platform].clicks += Number(r.clicks || 0);
+      byPlatform[r.platform].impressions += Number(r.impressions || 0);
+    }
+    for (const [platform, agg] of Object.entries(byPlatform)) {
+      if (agg.impressions < 1000) continue; // عينة صغيرة جداً، ما نحكم عليها
+      const ctrPct = (agg.clicks / agg.impressions) * 100;
+      const benchmarkCtr = bench[`${platform}_ads:global:ctr`];
+      if (benchmarkCtr && ctrPct < benchmarkCtr * 0.5) {
+        const key = `low_ctr_${platform}`;
+        if (!(await alreadyDiagnosedRecently(store.id, key, null))) {
+          const platformName = platform === 'meta' ? 'Meta (فيسبوك/إنستغرام)' : 'TikTok';
+          events.push({
+            store_id: store.id,
+            event_type: 'diagnosis',
+            category: 'ad',
+            related_product_id: null,
+            requires_approval: false,
+            title: `نسبة نقر ضعيفة على إعلانات ${platformName}`,
+            description: `نسبة النقر ${ctrPct.toFixed(2)}% مقابل معيار السوق ${benchmarkCtr}%. صرفت ${agg.spend.toFixed(0)}$ على ${agg.impressions} ظهور. المشكلة على الأغلب بالمحتوى الإعلاني نفسه (الصورة/الفيديو) مش بالجمهور المستهدف — جرّب تجديد المحتوى.`,
+            data: { diagnosis_key: key, platform, ctr_pct: ctrPct, benchmark_ctr: benchmarkCtr, spend: agg.spend, impressions: agg.impressions },
+          });
+        }
+      }
+    }
+  } catch (e) {
+    console.error(`ad performance check failed for store ${store.id}:`, e?.message);
+  }
+
   return events;
 }
