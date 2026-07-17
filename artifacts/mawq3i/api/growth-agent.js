@@ -570,6 +570,47 @@ async function runMonthlyPlan() {
 // 7) OAUTH — ربط حسابات Meta / TikTok Ads
 // ============================================================
 
+async function handleManualConnect(req, res) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  const { store_id: storeId, platform, external_account_id: accountId, access_token: accessToken } = req.body || {};
+  if (!token || !storeId || !['meta', 'tiktok'].includes(platform) || !accountId || !accessToken) {
+    res.status(400).json({ error: 'Missing required fields' }); return;
+  }
+
+  const user = await getUserFromToken(token);
+  if (!user?.id) { res.status(401).json({ error: 'Invalid session' }); return; }
+
+  const stores = await sbGet(`stores?id=eq.${storeId}&owner_id=eq.${user.id}&select=id`);
+  if (!stores.length) { res.status(403).json({ error: 'Store does not belong to this user' }); return; }
+
+  // تحقق فعلي من صلاحية التوكن قبل الحفظ — ما بنخزن توكن ما اختبرناه
+  let accountName = accountId;
+  try {
+    if (platform === 'meta') {
+      const cleanId = accountId.replace(/^act_/, '');
+      const r = await fetch(`https://graph.facebook.com/v19.0/act_${cleanId}?fields=name,account_status&access_token=${accessToken}`);
+      if (!r.ok) { res.status(400).json({ error: 'التوكن أو رقم الحساب غير صحيح — تحقق منهم وحاول من جديد' }); return; }
+      const data = await r.json();
+      accountName = data.name || cleanId;
+      await sbUpsert('ad_accounts', [{ store_id: storeId, platform: 'meta', external_account_id: cleanId, external_account_name: accountName, access_token: accessToken, token_expires_at: null, status: 'connected', connected_by: user.id }], 'store_id,platform,external_account_id');
+    } else {
+      const r = await fetch(`https://business-api.tiktok.com/open_api/v1.3/advertiser/info/?advertiser_ids=${encodeURIComponent(JSON.stringify([accountId]))}`, { headers: { 'Access-Token': accessToken } });
+      const data = await r.json();
+      const info = data?.data?.list?.[0];
+      if (!info) { res.status(400).json({ error: 'التوكن أو رقم الحساب غير صحيح — تحقق منهم وحاول من جديد' }); return; }
+      accountName = info.name || accountId;
+      await sbUpsert('ad_accounts', [{ store_id: storeId, platform: 'tiktok', external_account_id: accountId, external_account_name: accountName, access_token: accessToken, token_expires_at: null, status: 'connected', connected_by: user.id }], 'store_id,platform,external_account_id');
+    }
+  } catch (e) {
+    console.error('manual connect verification failed:', e);
+    res.status(400).json({ error: 'فشل التحقق من التوكن — تأكد إنه فعّال وله صلاحية ads_read' });
+    return;
+  }
+
+  res.status(200).json({ connected: true, account_name: accountName });
+}
+
 async function handleOAuthStart(req, res, platform) {
   const appId = platform === 'meta' ? process.env.META_APP_ID : process.env.TIKTOK_APP_ID;
   const redirectUri = platform === 'meta' ? process.env.META_OAUTH_REDIRECT_URI : process.env.TIKTOK_OAUTH_REDIRECT_URI;
@@ -702,6 +743,9 @@ export default async function handler(req, res) {
         if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
         if (!['meta', 'tiktok'].includes(platform)) { res.status(400).json({ error: 'Invalid platform' }); return; }
         return await handleOAuthStart(req, res, platform);
+      case 'connect-manual':
+        if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return; }
+        return await handleManualConnect(req, res);
       case 'oauth-callback':
         if (!['meta', 'tiktok'].includes(platform)) { res.status(400).json({ error: 'Invalid platform' }); return; }
         return await handleOAuthCallback(req, res, platform);
