@@ -286,6 +286,18 @@ export default async function handler(req, res) {
     return;
   }
   const resource = (req.query && req.query.resource) || (req.body && req.body.resource);
+  if (resource === 'debug-order-status') {
+    const { storeId, togoDeliveryOrderId } = req.query || {};
+    const store = await getStore(storeId, 'togo_api_key,togo_merchant_address_id');
+    const apiKey = store && store.togo_api_key;
+    const [orderRes, addrRes] = await Promise.all([
+      fetch(`${TOGO_BASE_URL}/api/v1/orders?id=${encodeURIComponent(togoDeliveryOrderId)}`, { headers: { 'x-api-key': apiKey } }),
+      fetch(`${TOGO_BASE_URL}/api/v1/merchants/addresses`, { headers: { 'x-api-key': apiKey } }),
+    ]);
+    const orderData = await orderRes.json();
+    const addrData = await addrRes.json();
+    return res.status(200).json({ order: orderData, merchantAddresses: addrData });
+  }
   if (resource === 'create-delivery') return handleCreateDelivery(req, res);
   if (resource === 'delivery-bids') return handleDeliveryBids(req, res);
   if (resource === 'cancel-delivery') return handleCancelDelivery(req, res);
