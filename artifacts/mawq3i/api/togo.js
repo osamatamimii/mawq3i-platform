@@ -286,6 +286,19 @@ export default async function handler(req, res) {
     return;
   }
   const resource = (req.query && req.query.resource) || (req.body && req.body.resource);
+  if (resource === 'debug-order-status') {
+    const { storeId, togoDeliveryOrderId } = req.query || {};
+    const store = await getStore(storeId, 'togo_api_key');
+    const apiKey = store && store.togo_api_key;
+    const orderRes = await fetch(`${TOGO_BASE_URL}/api/v1/orders?id=${encodeURIComponent(togoDeliveryOrderId)}`, { headers: { 'x-api-key': apiKey } });
+    const orderData = await orderRes.json();
+    const item = orderData && orderData.data && orderData.data.items && orderData.data.items[0];
+    return res.status(200).json({
+      review_status: item && item.review_status,
+      status: item && item.status,
+      is_stuck: item && item.is_stuck,
+    });
+  }
   if (resource === 'create-delivery') return handleCreateDelivery(req, res);
   if (resource === 'delivery-bids') return handleDeliveryBids(req, res);
   if (resource === 'cancel-delivery') return handleCancelDelivery(req, res);
