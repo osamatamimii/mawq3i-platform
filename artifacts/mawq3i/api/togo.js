@@ -40,6 +40,7 @@ async function handleCreateDelivery(req, res) {
     const areaSearch = new URLSearchParams({ city_name_ar: order.city || '' });
     const areaRes = await fetch(`${TOGO_BASE_URL}/api/v1/addresses?${areaSearch.toString()}`, { headers: togoHeaders });
     const areaData = await areaRes.json();
+    console.log('[togo debug] area lookup', { city: order.city, status: areaRes.status, body: JSON.stringify(areaData).slice(0, 800) });
     const area = areaData && areaData.data && areaData.data.items && areaData.data.items[0];
     if (!area) {
       return res.status(400).json({ success: false, message: `Could not match city "${order.city}" to a Togo delivery area. Please pick the area manually.` });
@@ -56,6 +57,7 @@ async function handleCreateDelivery(req, res) {
       }),
     });
     const receiverData = await receiverRes.json();
+    console.log('[togo debug] receiver create', { status: receiverRes.status, body: JSON.stringify(receiverData).slice(0, 800) });
     if (!receiverRes.ok || !receiverData.success) {
       return res.status(502).json({ success: false, message: 'Failed to register receiver with Togo', details: receiverData });
     }
@@ -77,6 +79,7 @@ async function handleCreateDelivery(req, res) {
       }),
     });
     const actionData = await actionRes.json();
+    console.log('[togo debug] action create', { status: actionRes.status, body: JSON.stringify(actionData).slice(0, 800) });
     if (!actionRes.ok || !actionData.success) {
       return res.status(502).json({ success: false, message: 'Failed to create delivery order with Togo', details: actionData });
     }
