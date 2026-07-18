@@ -63,19 +63,24 @@ async function handleCreateDelivery(req, res) {
     }
 
     const isCod = order.payment_method !== 'card';
+    const deliveryData = {
+      value: isCod ? Number(order.amount) : 0,
+      type: isCod ? 'COD' : 'NCD',
+      merchant_address_id: store.togo_merchant_address_id,
+      receiver_address_id: String(receiverData.data.id),
+      package_size: 1,
+    };
+    // Togo's API rejects notes:"" as invalid ("notes is not allowed to be
+    // empty") even though the field is documented as optional — only
+    // include it when there's real content.
+    if (order.notes) deliveryData.notes = order.notes;
+
     const actionRes = await fetch(`${TOGO_BASE_URL}/api/v1/actions`, {
       method: 'POST',
       headers: togoHeaders,
       body: JSON.stringify({
         event: 'Create_No_Visa',
-        data: {
-          value: isCod ? Number(order.amount) : 0,
-          type: isCod ? 'COD' : 'NCD',
-          merchant_address_id: store.togo_merchant_address_id,
-          receiver_address_id: String(receiverData.data.id),
-          package_size: 1,
-          notes: order.notes || '',
-        },
+        data: deliveryData,
       }),
     });
     const actionData = await actionRes.json();
