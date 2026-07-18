@@ -168,7 +168,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try { sessionStorage.removeItem(ADMIN_STORE_KEY); } catch {}
   }, []);
 
-  const isAdminMode = supabaseUser?.email?.toLowerCase() === ADMIN_EMAIL && currentUser === 'admin';
+  // isAdminMode drives whether data reads/writes go through the service-role
+  // admin REST path instead of the direct RLS-bound client call, across the
+  // whole dashboard (orders, products, staff, bundles, promotions, ...).
+  // It must stay true whenever the REAL authenticated identity is the admin
+  // account, even while "currentUser" is toggled to 'owner' for the
+  // "دخول كصاحب المتجر" (view as store owner) feature — that feature never
+  // performs a real auth swap, it only changes which UI is shown, so the
+  // admin's own auth.uid() will never match the impersonated store's
+  // owner_id under RLS. Gating this on currentUser as well used to silently
+  // break every write (and, since orders/stores RLS was tightened, every
+  // read of orders too) whenever an admin viewed a store as its owner.
+  const isAdminMode = supabaseUser?.email?.toLowerCase() === ADMIN_EMAIL;
 
   return (
     <AppContext.Provider value={{
