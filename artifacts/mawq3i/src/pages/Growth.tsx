@@ -80,6 +80,7 @@ export default function Growth() {
   const [plan, setPlan] = useState<GrowthPlan | null>(null);
   const [hasEnoughData, setHasEnoughData] = useState(false);
   const [decidingId, setDecidingId] = useState<string | null>(null);
+  const [showExplainer, setShowExplainer] = useState(true);
 
   const fetchEvents = async () => {
     if (!currentStore?.id) return;
@@ -105,6 +106,10 @@ export default function Growth() {
       setLoading(false);
     })();
   }, [currentStore?.id]);
+
+  useEffect(() => {
+    if (plan) setShowExplainer(false);
+  }, [plan]);
 
   const decide = async (eventId: string, decision: 'approve' | 'reject') => {
     setDecidingId(eventId);
@@ -182,6 +187,48 @@ export default function Growth() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* شرح للتاجر: شو هو خبير النمو وكيف بيشتغل */}
+      <div className="rounded-xl border border-border/40 bg-card p-5">
+        <button
+          type="button"
+          onClick={() => setShowExplainer((v) => !v)}
+          className="w-full flex items-center justify-between gap-3 text-start"
+        >
+          <span className="text-sm font-semibold flex items-center gap-2">
+            <span className="text-base">💡</span>
+            {isAr ? 'شو هو خبير النمو، وكيف بيشتغل؟' : 'What is the Growth Expert, and how does it work?'}
+          </span>
+          <span className="text-xs text-muted-foreground shrink-0">{showExplainer ? (isAr ? 'إخفاء' : 'Hide') : (isAr ? 'عرض' : 'Show')}</span>
+        </button>
+        {showExplainer && (
+          <div className="mt-4 space-y-3 text-sm text-muted-foreground leading-relaxed">
+            <p>
+              {isAr
+                ? 'خبير النمو بيفحص متجرك تلقائياً كل يوم — منتجات ما بتبيع، معدل التحويل، السلة المتروكة، وأداء إعلاناتك لو ربطتها. مش برنامج ثابت بيعطيك نفس النصيحة لكل الناس — بيبني كل قرار على أرقام متجرك الفعلية.'
+                : "The Growth Expert checks your store automatically every day — stagnant products, conversion rate, cart abandonment, and your ad performance if connected. It's not generic advice — every decision is based on your store's actual numbers."}
+            </p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="rounded-lg border border-border/30 bg-muted/20 p-3">
+                <p className="text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-primary" />{isAr ? 'بينفّذها لحاله' : 'It does automatically'}</p>
+                <p className="text-xs">{isAr ? 'تغييرات صغيرة وآمنة — متل تحسين وصف منتج. دايماً قابلة للتراجع من صفحة المنتجات.' : 'Small, safe changes — like improving a product description. Always reversible from the Products page.'}</p>
+              </div>
+              <div className="rounded-lg border border-border/30 bg-muted/20 p-3">
+                <p className="text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-primary" />{isAr ? 'بينتظر موافقتك' : 'It waits for your approval'}</p>
+                <p className="text-xs">{isAr ? 'أي قرار أكبر أثر — متل تغيير ميزانية إعلان أو إخفاء منتج — بيوقف وينتظر منك "موافق" أو "رفض".' : 'Anything with bigger impact — like changing an ad budget or hiding a product — waits for your "Approve" or "Reject".'}</p>
+              </div>
+            </div>
+            <p>
+              {isAr
+                ? 'أول أسبوعين تقريباً بيمضيهم يجمع بيانات كافية عن متجرك قبل ما يبدأ يقترح شي. وكل شهر بيعطيك خطة أولويات جديدة حسب مرحلة نمو متجرك.'
+                : "It spends roughly the first two weeks gathering enough data before suggesting anything. Every month it gives you a new set of priorities based on your store's growth stage."}
+            </p>
+            <Link href="/dashboard/growth/connections" className="inline-flex items-center gap-1 text-primary hover:underline text-xs font-medium">
+              {isAr ? 'شوف بالضبط شو بيراقب + اربط حسابات إعلاناتك' : 'See exactly what it monitors + connect your ad accounts'}<ExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* أولويات الخبير */}
