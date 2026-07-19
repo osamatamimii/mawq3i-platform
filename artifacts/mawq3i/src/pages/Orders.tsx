@@ -83,8 +83,8 @@ function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; st
         body: JSON.stringify({
           storeId, orderId: order.id, togoDeliveryOrderId,
           bidId: bid.id || bid.bid_id,
-          courierName: bid.company_name || bid.courier_name || bid.name,
-          price: bid.price || bid.value,
+          courierName: bid.transporter_name || bid.company_name || bid.courier_name || bid.name,
+          price: bid.delivery_sell_price ?? bid.price ?? bid.value,
         }),
       });
       const data = await res.json();
@@ -181,7 +181,7 @@ function DeliverySection({ order, storeId, isAr, onUpdated }: { order: Order; st
           </div>
           {bids.map((b: any, i: number) => (
             <div key={b.id || b.bid_id || i} className="flex items-center justify-between bg-background/40 border border-border/50 rounded-lg px-3 py-2">
-              <span className="text-xs font-medium">{b.company_name || b.courier_name || b.name || '—'} <span className="text-muted-foreground font-normal">— ₪{b.price || b.value}</span></span>
+              <span className="text-xs font-medium">{b.transporter_name || b.company_name || b.courier_name || b.name || '—'} <span className="text-muted-foreground font-normal">— ₪{b.delivery_sell_price ?? b.price ?? b.value}</span></span>
               <button disabled={assigningBidId !== null} onClick={() => assignBid(b)}
                 className="flex items-center gap-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50">
                 {assigningBidId === (b.id || b.bid_id) ? <Loader2 className="w-3 h-3 animate-spin" /> : (isAr ? 'اختيار' : 'Select')}
