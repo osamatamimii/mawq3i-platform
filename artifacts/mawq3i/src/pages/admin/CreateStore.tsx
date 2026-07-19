@@ -115,6 +115,7 @@ export default function CreateStore() {
   const [slug, setSlug] = useState('');
   const [slugEdited, setSlugEdited] = useState(false);
   const [wa, setWa] = useState('');
+  const [customDomain, setCustomDomain] = useState('');
   const [accent, setAccent] = useState('#3b82f6');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPassword, setOwnerPassword] = useState('');
@@ -130,7 +131,7 @@ export default function CreateStore() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    adminRest.select('store_templates', 'select=id,key,name_ar,name_en,category,description_ar,default_accent,has_hover_shade&order=sort_order.asc')
+    adminRest.select('store_templates', 'select=id,key,name_ar,name_en,category,description_ar,default_accent,has_hover_shade,html_content&order=sort_order.asc')
       .then(rows => {
         setTemplates(rows as StoreTemplate[]);
         setLoadingTemplates(false);
@@ -156,7 +157,7 @@ export default function CreateStore() {
     setCreatingStore(true);
     try {
       const created = await adminRest.insert('stores', {
-        name, slug, domain: `${slug}.mawq3i.co`,
+        name, slug, domain: customDomain.trim() || `${slug}.mawq3i.co`,
         owner_email: ownerEmail || null,
         owner_phone: wa,
         currency: 'ILS',
@@ -376,6 +377,12 @@ export default function CreateStore() {
               </div>
 
               <div className="space-y-2">
+                <Label>دومين مخصص (اختياري)</Label>
+                <Input value={customDomain} onChange={e => setCustomDomain(e.target.value.trim().toLowerCase())} placeholder={`مثال: mystore.com — اتركه فاضي لاستخدام ${slug || '...'}.mawq3i.co`} dir="ltr" />
+                <p className="text-xs text-muted-foreground">إذا عند التاجر دومين خاص فيه (مش من موقعي)، حطه هون بدل الرابط الفرعي</p>
+              </div>
+
+              <div className="space-y-2">
                 <Label>اللون الرئيسي</Label>
                 <div className="flex items-center gap-3">
                   <input type="color" value={accent} onChange={e => setAccent(e.target.value)} className="w-12 h-9 rounded-lg border border-border cursor-pointer bg-transparent" />
@@ -471,7 +478,7 @@ export default function CreateStore() {
                     <h3 className="font-semibold text-sm mb-2">ملخص المتجر</h3>
                     {[
                       ['الاسم', name],
-                      ['الرابط', `${slug}.mawq3i.co`],
+                      ['الرابط', customDomain || `${slug}.mawq3i.co`],
                       ['التصميم', selectedTemplate.name_ar],
                       ['واتساب', wa],
                       ['عدد المنتجات', String(products.filter(p => p.name_ar.trim()).length)],
@@ -524,12 +531,36 @@ export default function CreateStore() {
                     <div className="flex items-start gap-3">
                       <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0 mt-0.5">2</div>
                       <div className="flex-1 space-y-2">
-                        <p className="text-sm font-medium">أضف الدومين الفرعي على Namecheap</p>
-                        <p className="text-xs text-muted-foreground">Advanced DNS → Add New Record → CNAME</p>
-                        <div className="bg-muted/40 rounded-lg p-2.5 text-xs font-mono space-y-1" dir="ltr">
-                          <div>Host: <b>{slug}</b></div>
-                          <div>Value: <b>cname.vercel-dns.com</b></div>
-                        </div>
+                        {customDomain ? (
+                          <>
+                            <p className="text-sm font-medium">أضف الدومين بمشروع Vercel وعلى DNS بتاع التاجر</p>
+                            <p className="text-xs text-muted-foreground">Vercel → المشروع → Settings → Domains → Add، حط <b dir="ltr">{customDomain}</b></p>
+                            <p className="text-xs text-muted-foreground">بعدين عند مزود الدومين (اللي التاجر اشترى منه الدومين):</p>
+                            <div className="bg-muted/40 rounded-lg p-2.5 text-xs font-mono space-y-1" dir="ltr">
+                              {customDomain.split('.').length > 2 ? (
+                                <>
+                                  <div>Type: CNAME</div>
+                                  <div>Host: <b>{customDomain.split('.')[0]}</b></div>
+                                  <div>Value: <b>cname.vercel-dns.com</b></div>
+                                </>
+                              ) : (
+                                <>
+                                  <div>Type: A — Host: @ — Value: <b>76.76.21.21</b></div>
+                                  <div>Type: CNAME — Host: www — Value: <b>cname.vercel-dns.com</b></div>
+                                </>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm font-medium">أضف الدومين الفرعي على Namecheap</p>
+                            <p className="text-xs text-muted-foreground">Advanced DNS → Add New Record → CNAME</p>
+                            <div className="bg-muted/40 rounded-lg p-2.5 text-xs font-mono space-y-1" dir="ltr">
+                              <div>Host: <b>{slug}</b></div>
+                              <div>Value: <b>cname.vercel-dns.com</b></div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </Card>
@@ -538,7 +569,7 @@ export default function CreateStore() {
                     <Button variant="outline" className="flex-1" onClick={() => setLocation('/admin/stores')}>الذهاب لصفحة المتاجر</Button>
                     <Button className="flex-1" onClick={() => {
                       setStep('template'); setSelectedTemplate(null); setName(''); setSlug(''); setSlugEdited(false);
-                      setWa(''); setOwnerEmail(''); setOwnerPassword(''); setProducts([emptyProduct()]);
+                      setWa(''); setCustomDomain(''); setOwnerEmail(''); setOwnerPassword(''); setProducts([emptyProduct()]);
                       setStoreId(null); setDone(false); setPublishedRepoUrl(null);
                     }}>إنشاء متجر آخر</Button>
                   </div>
