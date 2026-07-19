@@ -174,11 +174,8 @@ export default function CreateStore() {
         throw new Error(err?.error || 'فشل التوليد');
       }
       const plan = await res.json();
-      (window as any).__lastAiPlan = plan;
-      (window as any).__lastAiTemplates = templates;
 
       const matchedTemplate = templates.find(t => t.key === plan.template_key) || templates[0];
-      if (!matchedTemplate) throw new Error('DEBUG: no matchedTemplate, templates.length=' + templates.length);
       setSelectedTemplate(matchedTemplate);
       setAccent(plan.accent_hex && /^#[0-9a-fA-F]{6}$/.test(plan.accent_hex) ? plan.accent_hex : matchedTemplate.default_accent);
       setName(plan.name_ar || '');
@@ -203,10 +200,8 @@ export default function CreateStore() {
       setAiFilled(true);
       setStep('info');
     } catch (e: any) {
-      (window as any).__lastAiError = e;
       setAiError(e?.message || 'حدث خطأ أثناء التوليد');
     } finally {
-      (window as any).__aiFinallyRan = true;
       setAiGenerating(false);
     }
   }
