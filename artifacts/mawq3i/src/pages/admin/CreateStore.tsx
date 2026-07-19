@@ -86,14 +86,14 @@ function buildSiteHtml(template: StoreTemplate, opts: {
 }
 
 // Secure-db GitHub actions (server-side token, admin-gated — see api/secure-db.js)
-async function callSecureDbGithub(action: 'github_create_repo' | 'github_push_file', body: Record<string, unknown>) {
+async function callSecureDbGithub(action: 'github_create_repo' | 'github_push_file', extraBody: Record<string, unknown>) {
   const { data } = await supabase.auth.getSession();
   const accessToken = data.session?.access_token;
   if (!accessToken) throw new Error('Not authenticated');
   const res = await fetch('/api/secure-db', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accessToken, action, ...body }),
+    body: JSON.stringify({ accessToken, action, body: extraBody }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -215,7 +215,7 @@ export default function CreateStore() {
           imageUrl = await uploadProductImage(p.file, storeId);
         }
         const variants = p.variantName.trim() && p.variantOptions.trim()
-          ? [{ name: p.variantName.trim(), options: p.variantOptions.split(',').map(o => o.trim()).filter(Boolean) }]
+          ? [{ name: p.variantName.trim(), options: p.variantOptions.split(/[,،]/).map(o => o.trim()).filter(Boolean) }]
           : [];
         await adminRest.insert('products', {
           store_id: storeId,

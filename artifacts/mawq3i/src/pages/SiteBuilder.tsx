@@ -15,14 +15,14 @@ import { supabase } from '@/lib/supabase';
 // browser — this used to be a hardcoded token shipped in this file's JS
 // bundle, extractable by anyone via devtools. getFileSha/pushToGitHub below
 // now call the admin-gated /api/secure-db proxy instead.
-async function callSecureDbGithub(action: 'github_get_file' | 'github_push_file', body: Record<string, unknown>) {
+async function callSecureDbGithub(action: 'github_get_file' | 'github_push_file', extraBody: Record<string, unknown>) {
   const { data } = await supabase.auth.getSession();
   const accessToken = data.session?.access_token;
   if (!accessToken) throw new Error('Not authenticated');
   const res = await fetch('/api/secure-db', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accessToken, action, ...body }),
+    body: JSON.stringify({ accessToken, action, body: extraBody }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
