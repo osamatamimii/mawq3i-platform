@@ -4,7 +4,7 @@ import { adminRest } from '@/lib/supabase';
 import { getAllStores } from '@/lib/db';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, TrendingUp, Database, Gauge } from 'lucide-react';
+import { Loader2, TrendingUp, Database, Gauge, Sparkles } from 'lucide-react';
 
 type DailyStatRow = {
   id: string;
