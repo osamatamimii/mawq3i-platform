@@ -28,6 +28,7 @@ import AdminSettings from "@/pages/admin/AdminSettings";
 import AIUsage from "@/pages/admin/AIUsage";
 import GrowthAgentAdmin from "@/pages/admin/GrowthAgent";
 import SiteBuilder from "@/pages/SiteBuilder";
+import CreateStore from "@/pages/admin/CreateStore";
 import EditProduct from "@/pages/EditProduct";
 import PromotionsHub from "@/pages/PromotionsHub";
 import MarketingStudioHub from "@/pages/MarketingStudioHub";
@@ -97,6 +98,7 @@ function Router() {
             <Switch>
               <Route path="/admin" component={AdminOverview} />
               <Route path="/admin/stores" component={AdminStores} />
+              <Route path="/admin/create-store" component={CreateStore} />
               <Route path="/admin/clients" component={AdminClients} />
               <Route path="/admin/customers" component={AdminClients} />
               <Route path="/admin/subscriptions" component={AdminSubscriptions} />

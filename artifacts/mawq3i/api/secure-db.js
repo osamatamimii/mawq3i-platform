@@ -33,6 +33,7 @@ const ALLOWED_TABLES = new Set([
   'products', 'bundles', 'orders', 'reviews', 'stores', 'store_staff',
   'offline_sales', 'promotions', 'discount_codes', 'abandoned_carts',
   'ai_image_generations', 'feature_usage_events', 'subscription_plans',
+  'store_templates',
 ]);
 
 const SERVICE_HEADERS = {
@@ -82,7 +83,7 @@ export default async function handler(req, res) {
   try {
     const { accessToken, action, table, query, filter, body, storeId } = req.body || {};
 
-    const GITHUB_ACTIONS = ['github_get_file', 'github_push_file'];
+    const GITHUB_ACTIONS = ['github_get_file', 'github_push_file', 'github_create_repo'];
     if (!ALLOWED_TABLES.has(table) && action !== 'auth_create_user' && !GITHUB_ACTIONS.includes(action)) {
       res.status(400).json({ error: 'Table not allowed' });
       return;
@@ -128,9 +129,10 @@ export default async function handler(req, res) {
       return;
     }
 
-    // SiteBuilder: read/write a client store repo's index.html on GitHub.
-    // Admin-only — the token that authorizes this never reaches the browser.
-    if (action === 'github_get_file' || action === 'github_push_file') {
+    // SiteBuilder / Store Builder: create + read/write a client store repo's
+    // index.html on GitHub. Admin-only — the token that authorizes this never
+    // reaches the browser.
+    if (action === 'github_get_file' || action === 'github_push_file' || action === 'github_create_repo') {
       if (!isAdmin) {
         res.status(403).json({ error: 'Admin only' });
         return;
@@ -147,6 +149,27 @@ export default async function handler(req, res) {
       const repo = `${GITHUB_USER}/${slug}-site`;
       const ghHeaders = { Authorization: `token ${GITHUB_PAT}`, Accept: 'application/vnd.github.v3+json' };
 
+      // Used by the Store Builder wizard when creating a brand-new store from
+      // a template: creates an empty repo (private) that github_push_file can
+      // then write index.html into.
+      if (action === 'github_create_repo') {
+        const createRes = await fetch('https://api.github.com/user/repos', {
+          method: 'POST',
+          headers: { ...ghHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: `${slug}-site`, private: true, auto_init: true }),
+        });
+        if (!createRes.ok) {
+          const errText = await createRes.text();
+          // 422 with "already exists" is fine — repo can already be there from a retry.
+          if (createRes.status !== 422) {
+            res.status(createRes.status).json({ error: 'Failed to create GitHub repo', detail: errText.slice(0, 300) });
+            return;
+          }
+        }
+        res.status(200).json({ ok: true, repo });
+        return;
+      }
+
       if (action === 'github_get_file') {
         const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/index.html`, { headers: ghHeaders });
         if (!ghRes.ok) {
@@ -161,15 +184,18 @@ export default async function handler(req, res) {
 
       if (action === 'github_push_file') {
         const { htmlContent, sha, message } = body || {};
-        if (!htmlContent || !sha) {
-          res.status(400).json({ error: 'Missing htmlContent or sha' });
+        if (!htmlContent) {
+          res.status(400).json({ error: 'Missing htmlContent' });
           return;
         }
         const b64 = Buffer.from(htmlContent, 'utf-8').toString('base64');
+        // sha is required only when overwriting an existing file; omitted, GitHub creates a new one.
+        const putBody = { message: message || `update ${slug} site`, content: b64 };
+        if (sha) putBody.sha = sha;
         const ghRes = await fetch(`https://api.github.com/repos/${repo}/contents/index.html`, {
           method: 'PUT',
           headers: { ...ghHeaders, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: message || `update ${slug} site`, content: b64, sha }),
+          body: JSON.stringify(putBody),
         });
         if (!ghRes.ok) {
           const errText = await ghRes.text();

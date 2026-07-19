@@ -16,6 +16,7 @@ import {
   Moon,
   Sparkles,
   TrendingUp,
+  Wand2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ import { Button } from '@/components/ui/button';
 const adminNavItems = [
   { href: '/admin', icon: LayoutGrid, labelAr: 'نظرة عامة', labelEn: 'Overview', exact: true },
   { href: '/admin/stores', icon: Store, labelAr: 'المتاجر', labelEn: 'Stores', exact: false },
+  { href: '/admin/create-store', icon: Wand2, labelAr: 'إنشاء متجر جديد', labelEn: 'Create Store', exact: false },
   { href: '/admin/clients', icon: Users, labelAr: 'العملاء', labelEn: 'Clients', exact: false },
   { href: '/admin/subscriptions', icon: CreditCard, labelAr: 'الاشتراكات', labelEn: 'Subscriptions', exact: false },
   { href: '/admin/domains', icon: Globe, labelAr: 'الدومينات', labelEn: 'Domains', exact: false },
@@ -35,6 +37,7 @@ const adminNavItems = [
 const adminRouteNames: Record<string, { ar: string; en: string }> = {
   '/admin': { ar: 'نظرة عامة', en: 'Overview' },
   '/admin/stores': { ar: 'المتاجر', en: 'Stores' },
+  '/admin/create-store': { ar: 'إنشاء متجر جديد', en: 'Create Store' },
   '/admin/clients': { ar: 'العملاء', en: 'Clients' },
   '/admin/subscriptions': { ar: 'الاشتراكات', en: 'Subscriptions' },
   '/admin/domains': { ar: 'الدومينات', en: 'Domains' },
