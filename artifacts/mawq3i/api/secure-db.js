@@ -219,7 +219,10 @@ ${templateList.map(t => `- key: "${t.key}" | ${t.name_ar} | فئة: ${t.category
       return;
     }
 
-
+    // SiteBuilder / Store Builder: create + read/write a client store repo's
+    // index.html on GitHub. Admin-only — the token that authorizes this never
+    // reaches the browser.
+    if (action === 'github_get_file' || action === 'github_push_file' || action === 'github_create_repo') {
       if (!isAdmin) {
         res.status(403).json({ error: 'Admin only' });
         return;
