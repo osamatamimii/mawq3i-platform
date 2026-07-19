@@ -52,11 +52,12 @@ const emptyProduct = (): DraftProduct => ({
 });
 
 function toSlug(name: string) {
-  const s = name.toLowerCase().trim()
-    .replace(/[أإآ]/g, 'ا')
-    .replace(/\s+/g, '-')
-    .replace(/[^\w-]/g, '');
-  return s || 'store-' + Date.now().toString(36);
+  const cleaned = name.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').replace(/-+/g, '-');
+  return cleaned || '';
+}
+
+function isValidSlug(s: string) {
+  return /^[a-z0-9]+(-[a-z0-9]+)*$/.test(s);
 }
 
 // Darken a hex color by a percentage (0-1) — used to derive the hover shade
@@ -150,7 +151,7 @@ export default function CreateStore() {
   // Step 2 -> 3: create the store row now so product images can be uploaded
   // against a real storeId (uploadProductImage needs it for the storage path).
   async function handleInfoNext() {
-    if (!name.trim() || !slug.trim() || !wa.trim()) return;
+    if (!name.trim() || !isValidSlug(slug) || !wa.trim()) return;
     if (storeId) { setStep('products'); return; } // already created (going back and forth)
     setCreatingStore(true);
     try {
@@ -359,11 +360,14 @@ export default function CreateStore() {
               </div>
 
               <div className="space-y-2">
-                <Label>الرابط (slug)</Label>
+                <Label>الرابط (slug) — بالإنجليزي فقط</Label>
                 <div className="flex items-center gap-2">
-                  <Input value={slug} onChange={e => { setSlug(toSlug(e.target.value)); setSlugEdited(true); }} placeholder="elegance" dir="ltr" />
+                  <Input value={slug} onChange={e => { setSlug(toSlug(e.target.value) || e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')); setSlugEdited(true); }} placeholder="elegance" dir="ltr" />
                   <span className="text-xs text-muted-foreground whitespace-nowrap">.mawq3i.co</span>
                 </div>
+                {slug && !isValidSlug(slug) && (
+                  <p className="text-xs text-destructive">الرابط لازم يكون بأحرف إنجليزية وأرقام وشرطات فقط</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -395,7 +399,7 @@ export default function CreateStore() {
 
               <div className="flex justify-between pt-2">
                 <Button variant="outline" onClick={() => setStep('template')}><ChevronRight className="w-4 h-4 ml-1" /> رجوع</Button>
-                <Button disabled={!name.trim() || !slug.trim() || !wa.trim() || creatingStore} onClick={handleInfoNext}>
+                <Button disabled={!name.trim() || !isValidSlug(slug) || !wa.trim() || creatingStore} onClick={handleInfoNext}>
                   {creatingStore ? <Loader2 className="w-4 h-4 animate-spin ml-1" /> : null}
                   التالي <ChevronLeft className="w-4 h-4 mr-1" />
                 </Button>
