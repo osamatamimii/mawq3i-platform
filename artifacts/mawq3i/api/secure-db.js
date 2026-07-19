@@ -84,11 +84,11 @@ export default async function handler(req, res) {
     const { accessToken, action, table, query, filter, body, storeId } = req.body || {};
 
     const GITHUB_ACTIONS = ['github_get_file', 'github_push_file', 'github_create_repo'];
-    if (!ALLOWED_TABLES.has(table) && action !== 'auth_create_user' && !GITHUB_ACTIONS.includes(action)) {
+    if (!ALLOWED_TABLES.has(table) && action !== 'auth_create_user' && action !== 'ai_generate_store_plan' && !GITHUB_ACTIONS.includes(action)) {
       res.status(400).json({ error: 'Table not allowed' });
       return;
     }
-    if (!['select', 'insert', 'update', 'delete', 'auth_create_user', ...GITHUB_ACTIONS].includes(action)) {
+    if (!['select', 'insert', 'update', 'delete', 'auth_create_user', 'ai_generate_store_plan', ...GITHUB_ACTIONS].includes(action)) {
       res.status(400).json({ error: 'Invalid action' });
       return;
     }
@@ -129,10 +129,97 @@ export default async function handler(req, res) {
       return;
     }
 
-    // SiteBuilder / Store Builder: create + read/write a client store repo's
-    // index.html on GitHub. Admin-only — the token that authorizes this never
-    // reaches the browser.
-    if (action === 'github_get_file' || action === 'github_push_file' || action === 'github_create_repo') {
+    // AI Store Builder: turn a free-text prompt into a structured store plan
+    // (template pick, name, accent color, product list) that the Create Store
+    // wizard then pre-fills for the admin to review before anything is saved.
+    // Admin-only, same as every other privileged action in this file.
+    if (action === 'ai_generate_store_plan') {
+      if (!isAdmin) {
+        res.status(403).json({ error: 'Admin only' });
+        return;
+      }
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        res.status(500).json({ error: 'AI builder is not configured (missing OPENAI_API_KEY)' });
+        return;
+      }
+      const { prompt, templates } = body || {};
+      if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+        res.status(400).json({ error: 'Missing prompt' });
+        return;
+      }
+      const templateList = Array.isArray(templates) ? templates : [];
+      const templateKeys = templateList.map(t => t.key);
+
+      const systemPrompt = `أنت مصمم متاجر إلكترونية محترف عندك ذوق مميز، تشتغل لمنصة موقعي (Mawq3i) اللي بتخدم تجار فلسطين والأردن والخليج.
+مهمتك: تاخذ وصف تاجر لمتجره (قد يكون جملة قصيرة أو فقرة) وترجعه كخطة متجر جاهزة، بصيغة JSON فقط بدون أي نص إضافي.
+
+القوالب المتاحة (اختر الأنسب واحد فقط حسب نوع المنتجات المذكورة):
+${templateList.map(t => `- key: "${t.key}" | ${t.name_ar} | فئة: ${t.category} | ${t.description_ar}`).join('\n')}
+
+قواعد التصميم المهمة (لازم تلتزم فيها):
+- اللون الرئيسي (accent_hex): اختر لون فعلي مناسب لطبيعة المنتجات المذكورة تحديداً، وليس لون قالب افتراضي أو ألوان AI المكررة (تدرج بنفسجي-أزرق، أو كريمي دافئ+تراكوتا، أو أسود مع نيون). اللون يجب أن يكون له علاقة حقيقية بالمنتج أو الجو العام المطلوب.
+- أسماء وأوصاف المنتجات: عربي بسيط ومباشر يعكس المنتجات المذكورة فعلاً بالبرومبت، تجنب الكليشيهات التسويقية الفارغة ("الأفضل"، "جودة عالية جداً"، "لا يفوتك"). لو التاجر ذكر منتجات محددة استخدمها بالضبط، ولو ما ذكر، اقترح منتجات واقعية ومنطقية لنوع المتجر.
+- الأسعار: بالشيكل (ILS)، أرقام واقعية لسوق فلسطين/الأردن حسب نوع المنتج.
+- بدك تنتج بين 4 إلى 6 منتجات.
+- كل منتج ممكن يكون عنده خيار واحد (مثل اللون أو المقاس) لو منطقي لنوع المنتج، وإلا اتركه فاضي.
+
+أرجع JSON بالضبط بهذا الشكل (بدون أي markdown أو نص خارج الـ JSON):
+{
+  "template_key": "one of: ${templateKeys.join(', ')}",
+  "name_ar": "اسم المتجر بالعربي",
+  "name_en_slug_hint": "اسم انجليزي قصير مناسب كـ slug (أحرف صغيرة وشرطات فقط، بدون مسافات)",
+  "accent_hex": "#rrggbb",
+  "products": [
+    { "name_ar": "...", "price": 0, "category": "...", "desc_ar": "...", "badge": "", "variant_name": "", "variant_options": "" }
+  ]
+}`;
+
+      try {
+        const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model: 'gpt-4.1-mini',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: prompt.trim().slice(0, 2000) },
+            ],
+            response_format: { type: 'json_object' },
+            temperature: 0.7,
+            max_tokens: 1400,
+          }),
+        });
+        if (!openaiRes.ok) {
+          const errText = await openaiRes.text();
+          res.status(502).json({ error: 'AI provider error', detail: errText.slice(0, 400) });
+          return;
+        }
+        const data = await openaiRes.json();
+        const content = data?.choices?.[0]?.message?.content;
+        if (!content) {
+          res.status(502).json({ error: 'Empty AI response' });
+          return;
+        }
+        let plan;
+        try {
+          plan = JSON.parse(content);
+        } catch {
+          res.status(502).json({ error: 'AI returned invalid JSON' });
+          return;
+        }
+        // Guard against a hallucinated template key.
+        if (!templateKeys.includes(plan.template_key)) {
+          plan.template_key = templateKeys[0] || null;
+        }
+        res.status(200).json(plan);
+      } catch (err) {
+        res.status(500).json({ error: err?.message || 'AI generation failed' });
+      }
+      return;
+    }
+
+
       if (!isAdmin) {
         res.status(403).json({ error: 'Admin only' });
         return;

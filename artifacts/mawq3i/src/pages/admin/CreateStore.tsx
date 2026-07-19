@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Wand2, Check, ChevronLeft, ChevronRight, Loader2, Plus, Trash2,
   Image as ImageIcon, ExternalLink, CheckCircle2, AlertCircle, Copy,
-  Store as StoreIcon, Palette, Package, Rocket,
+  Store as StoreIcon, Palette, Package, Rocket, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -111,6 +111,11 @@ export default function CreateStore() {
   const [selectedTemplate, setSelectedTemplate] = useState<StoreTemplate | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<StoreTemplate | null>(null);
 
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiFilled, setAiFilled] = useState(false);
+
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [slugEdited, setSlugEdited] = useState(false);
@@ -142,6 +147,63 @@ export default function CreateStore() {
     setSelectedTemplate(t);
     setAccent(t.default_accent);
     setStep('info');
+  }
+
+  async function handleAiGenerate() {
+    if (!aiPrompt.trim() || templates.length === 0) return;
+    setAiGenerating(true);
+    setAiError(null);
+    try {
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data.session?.access_token;
+      if (!accessToken) throw new Error('غير مسجل دخول');
+      const res = await fetch('/api/secure-db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accessToken,
+          action: 'ai_generate_store_plan',
+          body: {
+            prompt: aiPrompt,
+            templates: templates.map(t => ({ key: t.key, name_ar: t.name_ar, category: t.category, description_ar: t.description_ar })),
+          },
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || 'فشل التوليد');
+      }
+      const plan = await res.json();
+
+      const matchedTemplate = templates.find(t => t.key === plan.template_key) || templates[0];
+      setSelectedTemplate(matchedTemplate);
+      setAccent(plan.accent_hex && /^#[0-9a-fA-F]{6}$/.test(plan.accent_hex) ? plan.accent_hex : matchedTemplate.default_accent);
+      setName(plan.name_ar || '');
+      const slugCandidate = toSlug(plan.name_en_slug_hint || plan.name_ar || '');
+      setSlug(slugCandidate);
+      setSlugEdited(true);
+
+      const generatedProducts: DraftProduct[] = Array.isArray(plan.products) && plan.products.length
+        ? plan.products.map((p: any) => ({
+            localId: Math.random().toString(36).slice(2),
+            name_ar: p.name_ar || '',
+            price: p.price != null ? String(p.price) : '',
+            category: p.category || '',
+            desc_ar: p.desc_ar || '',
+            badge: p.badge || '',
+            variantName: p.variant_name || '',
+            variantOptions: p.variant_options || '',
+            file: null, previewUrl: null, uploadedUrl: null,
+          }))
+        : [emptyProduct()];
+      setProducts(generatedProducts);
+      setAiFilled(true);
+      setStep('info');
+    } catch (e: any) {
+      setAiError(e?.message || 'حدث خطأ أثناء التوليد');
+    } finally {
+      setAiGenerating(false);
+    }
   }
 
   function handleNameChange(v: string) {
@@ -310,6 +372,36 @@ export default function CreateStore() {
         {/* ── STEP 1: TEMPLATE ── */}
         {step === 'template' && (
           <motion.div key="template" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+            <Card className="p-5 mb-6 border-primary/20 bg-primary/[0.03]">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-4.5 h-4.5 text-primary" />
+                </div>
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <h3 className="font-semibold text-sm">ابنِ المتجر بالذكاء الاصطناعي</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">وصف المتجر ومنتجاته بجملة أو فقرة، وراح يختار التصميم المناسب ويجهز المنتجات — وتراجعها قبل ما تنشر أي شي</p>
+                  </div>
+                  <Textarea
+                    value={aiPrompt}
+                    onChange={e => setAiPrompt(e.target.value)}
+                    placeholder="مثال: متجر عطور رجالية فخمة اسمه العود الملكي، بيبيع عطور شرقية وخشبية، أسعار بين ١٥٠-٤٠٠ شيكل"
+                    rows={3}
+                    className="bg-background"
+                  />
+                  {aiError && (
+                    <div className="text-xs text-destructive flex items-center gap-1.5"><AlertCircle className="w-3.5 h-3.5" /> {aiError}</div>
+                  )}
+                  <Button size="sm" disabled={!aiPrompt.trim() || aiGenerating} onClick={handleAiGenerate} className="gap-1.5">
+                    {aiGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    {aiGenerating ? 'جاري البناء...' : 'ابنِ المتجر تلقائياً'}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            <p className="text-xs text-muted-foreground mb-3">أو اختر تصميم يدوياً:</p>
+
             {loadingTemplates ? (
               <div className="flex items-center justify-center py-20 text-muted-foreground gap-2">
                 <Loader2 className="w-5 h-5 animate-spin" /> جاري تحميل التصاميم...
@@ -354,6 +446,13 @@ export default function CreateStore() {
                 <span>التصميم المختار: <b>{selectedTemplate.name_ar}</b></span>
                 <Button variant="ghost" size="sm" className="mr-auto h-7 px-2 text-xs" onClick={() => setStep('template')}>تغيير</Button>
               </div>
+
+              {aiFilled && (
+                <div className="bg-primary/[0.06] border border-primary/20 rounded-xl p-3 flex items-center gap-2 text-xs text-primary">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  عبّينا الاسم واللون والمنتجات بالذكاء الاصطناعي — راجعهم وعدّل أي شي قبل ما تكمل، وضيف رقم واتساب المتجر الحقيقي
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label>اسم المتجر (عربي)</Label>
@@ -571,6 +670,7 @@ export default function CreateStore() {
                       setStep('template'); setSelectedTemplate(null); setName(''); setSlug(''); setSlugEdited(false);
                       setWa(''); setCustomDomain(''); setOwnerEmail(''); setOwnerPassword(''); setProducts([emptyProduct()]);
                       setStoreId(null); setDone(false); setPublishedRepoUrl(null);
+                      setAiPrompt(''); setAiFilled(false); setAiError(null);
                     }}>إنشاء متجر آخر</Button>
                   </div>
                 </div>
