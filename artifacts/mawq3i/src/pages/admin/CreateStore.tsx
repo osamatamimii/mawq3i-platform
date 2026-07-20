@@ -368,7 +368,7 @@ export default function CreateStore() {
         ))}
       </div>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {/* ── STEP 1: TEMPLATE ── */}
         {step === 'template' && (
           <motion.div key="template" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
