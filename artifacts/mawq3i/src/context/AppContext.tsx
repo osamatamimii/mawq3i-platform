@@ -79,6 +79,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setTheme(prev => prev === 'dark' ? 'light' : 'dark');
   }, []);
 
+  useEffect(() => {
+    if (!currentStore?.id) return;
+    import('@/lib/push').then(({ initPushNotifications }) => {
+      initPushNotifications(currentStore.id, supabaseUser?.id).catch((err) =>
+        console.error('initPushNotifications failed', err),
+      );
+    });
+  }, [currentStore?.id, supabaseUser?.id]);
+
   const loadStore = useCallback(async (email: string, userId?: string) => {
     if (email.toLowerCase() === ADMIN_EMAIL) {
       try {

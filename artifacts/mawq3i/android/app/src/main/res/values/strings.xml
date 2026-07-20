@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">موقعي</string>
+    <string name="title_activity_main">موقعي</string>
+    <string name="package_name">co.mawq3i.app</string>
+    <string name="custom_url_scheme">co.mawq3i.app</string>
+</resources>
