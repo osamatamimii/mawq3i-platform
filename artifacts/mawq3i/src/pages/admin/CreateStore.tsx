@@ -371,7 +371,7 @@ export default function CreateStore() {
       <AnimatePresence>
         {/* ── STEP 1: TEMPLATE ── */}
         {step === 'template' && (
-          <motion.div key="template" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+          <motion.div key="template" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <Card className="p-5 mb-6 border-primary/20 bg-primary/[0.03]">
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -439,7 +439,7 @@ export default function CreateStore() {
 
         {/* ── STEP 2: INFO ── */}
         {step === 'info' && selectedTemplate && (
-          <motion.div key="info" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+          <motion.div key="info" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div className="max-w-xl mx-auto space-y-5">
               <div className="bg-muted/40 rounded-xl p-3 flex items-center gap-3 text-sm">
                 <div className="w-4 h-4 rounded-full shrink-0" style={{ background: accent }} />
@@ -516,7 +516,7 @@ export default function CreateStore() {
 
         {/* ── STEP 3: PRODUCTS ── */}
         {step === 'products' && (
-          <motion.div key="products" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+          <motion.div key="products" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div className="max-w-3xl mx-auto space-y-4">
               <p className="text-sm text-muted-foreground">ضيف منتجات أولية (تقدر تضيف وتعدّل المزيد لاحقاً من لوحة التاجر)</p>
 
@@ -569,7 +569,7 @@ export default function CreateStore() {
 
         {/* ── STEP 4: REVIEW / PUBLISH ── */}
         {step === 'review' && selectedTemplate && (
-          <motion.div key="review" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+          <motion.div key="review" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
             <div className="max-w-xl mx-auto space-y-5">
               {!done ? (
                 <>
