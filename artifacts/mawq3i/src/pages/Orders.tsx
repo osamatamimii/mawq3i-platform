@@ -366,79 +366,140 @@ export default function Orders() {
           </p>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-sm">
-              <thead>
-                <tr className="border-b border-border/50 text-muted-foreground">
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'رقم الطلب' : 'Order ID'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'اسم العميل' : 'Customer'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'رقم الهاتف' : 'Phone'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'المنتج' : 'Product'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'المبلغ' : 'Amount'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'حالة الطلب' : 'Status'}</th>
-                  <th className="text-start px-6 py-4 font-medium">{isAr ? 'التاريخ' : 'Date'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.length === 0 ? (
-                  <tr><td colSpan={7} className="px-6 py-16 text-center text-muted-foreground">
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="text-3xl">📭</span>
-                      <p className="text-sm">{isAr ? 'لا توجد طلبات بعد' : 'No orders yet'}</p>
-                      <p className="text-xs opacity-60">{isAr ? 'ستظهر هنا طلبات عملاء متجرك' : 'Orders will appear here'}</p>
+          {orders.length === 0 ? (
+            <div className="px-6 py-16 text-center text-muted-foreground">
+              <div className="flex flex-col items-center gap-2">
+                <span className="text-3xl">📭</span>
+                <p className="text-sm">{isAr ? 'لا توجد طلبات بعد' : 'No orders yet'}</p>
+                <p className="text-xs opacity-60">{isAr ? 'ستظهر هنا طلبات عملاء متجرك' : 'Orders will appear here'}</p>
+              </div>
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="px-6 py-16 text-center text-muted-foreground">
+              <div className="flex flex-col items-center gap-2">
+                <Search className="w-7 h-7 text-muted-foreground/50" />
+                <p className="text-sm">{isAr ? 'لا توجد نتائج مطابقة' : 'No matching results'}</p>
+                <p className="text-xs opacity-60">{isAr ? 'جرّب كلمة بحث مختلفة' : 'Try a different search term'}</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Desktop/tablet: table */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full min-w-[700px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border/50 text-muted-foreground">
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'رقم الطلب' : 'Order ID'}</th>
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'اسم العميل' : 'Customer'}</th>
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'رقم الهاتف' : 'Phone'}</th>
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'المنتج' : 'Product'}</th>
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'المبلغ' : 'Amount'}</th>
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'حالة الطلب' : 'Status'}</th>
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'التاريخ' : 'Date'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.map((order, i) => (
+                      <motion.tr key={order.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
+                        className="border-b border-border/30 hover:bg-white/[0.03] transition-colors cursor-pointer"
+                        onClick={() => setSelectedOrder(order)}>
+                        <td className="px-6 py-4 font-mono text-xs text-primary font-bold">{order.id}</td>
+                        <td className="px-6 py-4 font-medium">{order.customerName}</td>
+                        <td className="px-6 py-4 font-mono text-xs text-muted-foreground" dir="ltr">{order.phone}</td>
+                        <td className="px-6 py-4 text-sm max-w-[140px] truncate">{
+                          order.productName
+                            ? order.productName
+                            : Array.isArray(order.items) && order.items.length > 0
+                              ? (order.items[0] as any).productName || (order.items[0] as any).product_name || (order.items[0] as any).name || '—'
+                              : '—'
+                        }</td>
+                        <td className="px-6 py-4">
+                          <span className="font-semibold font-mono">{cur(order)}{order.amount}</span>
+                          <span className="text-xs text-muted-foreground ms-1">{order.currency}</span>
+                        </td>
+                        <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer transition-colors ${statusConfig[order.status].className}`}>
+                                {isAr ? statusConfig[order.status].ar : statusConfig[order.status].en}
+                                <ChevronDown className="w-3 h-3" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="bg-popover border-border">
+                              {(Object.keys(statusConfig) as OrderStatus[]).map(s => (
+                                <DropdownMenuItem key={s} onClick={() => handleStatusChange(order.id, s)} className="cursor-pointer">
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border me-2 ${statusConfig[s].className}`}>
+                                    {isAr ? statusConfig[s].ar : statusConfig[s].en}
+                                  </span>
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                        <td className="px-6 py-4 text-xs text-muted-foreground font-mono">{order.date}</td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile: stacked cards — no horizontal scrolling needed */}
+              <div className="sm:hidden divide-y divide-border/30">
+                {filteredOrders.map((order, i) => (
+                  <motion.div
+                    key={order.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="px-4 py-4 active:bg-white/[0.03] transition-colors"
+                    onClick={() => setSelectedOrder(order)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-mono text-xs text-primary font-bold">{order.id}</p>
+                        <p className="font-medium mt-0.5 truncate">{order.customerName}</p>
+                      </div>
+                      <span className="font-semibold font-mono whitespace-nowrap">
+                        {cur(order)}{order.amount}
+                        <span className="text-xs text-muted-foreground ms-1 font-normal">{order.currency}</span>
+                      </span>
                     </div>
-                  </td></tr>
-                ) : filteredOrders.length === 0 ? (
-                  <tr><td colSpan={7} className="px-6 py-16 text-center text-muted-foreground">
-                    <div className="flex flex-col items-center gap-2">
-                      <Search className="w-7 h-7 text-muted-foreground/50" />
-                      <p className="text-sm">{isAr ? 'لا توجد نتائج مطابقة' : 'No matching results'}</p>
-                      <p className="text-xs opacity-60">{isAr ? 'جرّب كلمة بحث مختلفة' : 'Try a different search term'}</p>
-                    </div>
-                  </td></tr>
-                ) : filteredOrders.map((order, i) => (
-                  <motion.tr key={order.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-                    className="border-b border-border/30 hover:bg-white/[0.03] transition-colors cursor-pointer"
-                    onClick={() => setSelectedOrder(order)}>
-                    <td className="px-6 py-4 font-mono text-xs text-primary font-bold">{order.id}</td>
-                    <td className="px-6 py-4 font-medium">{order.customerName}</td>
-                    <td className="px-6 py-4 font-mono text-xs text-muted-foreground" dir="ltr">{order.phone}</td>
-                    <td className="px-6 py-4 text-sm max-w-[140px] truncate">{
-                      order.productName
+
+                    <p className="text-sm text-muted-foreground truncate mt-1.5">
+                      {order.productName
                         ? order.productName
                         : Array.isArray(order.items) && order.items.length > 0
                           ? (order.items[0] as any).productName || (order.items[0] as any).product_name || (order.items[0] as any).name || '—'
-                          : '—'
-                    }</td>
-                    <td className="px-6 py-4">
-                      <span className="font-semibold font-mono">{cur(order)}{order.amount}</span>
-                      <span className="text-xs text-muted-foreground ms-1">{order.currency}</span>
-                    </td>
-                    <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer transition-colors ${statusConfig[order.status].className}`}>
-                            {isAr ? statusConfig[order.status].ar : statusConfig[order.status].en}
-                            <ChevronDown className="w-3 h-3" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="bg-popover border-border">
-                          {(Object.keys(statusConfig) as OrderStatus[]).map(s => (
-                            <DropdownMenuItem key={s} onClick={() => handleStatusChange(order.id, s)} className="cursor-pointer">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border me-2 ${statusConfig[s].className}`}>
-                                {isAr ? statusConfig[s].ar : statusConfig[s].en}
-                              </span>
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-muted-foreground font-mono">{order.date}</td>
-                  </motion.tr>
+                          : '—'}
+                    </p>
+
+                    <div className="flex items-center justify-between mt-3">
+                      <div onClick={e => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer transition-colors ${statusConfig[order.status].className}`}>
+                              {isAr ? statusConfig[order.status].ar : statusConfig[order.status].en}
+                              <ChevronDown className="w-3 h-3" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="bg-popover border-border">
+                            {(Object.keys(statusConfig) as OrderStatus[]).map(s => (
+                              <DropdownMenuItem key={s} onClick={() => handleStatusChange(order.id, s)} className="cursor-pointer">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border me-2 ${statusConfig[s].className}`}>
+                                  {isAr ? statusConfig[s].ar : statusConfig[s].en}
+                                </span>
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      <span className="text-xs text-muted-foreground font-mono">{order.date}</span>
+                    </div>
+                  </motion.div>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 

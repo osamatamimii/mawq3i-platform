@@ -274,85 +274,165 @@ export default function Products() {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-sm">
-                <thead>
-                  <tr className="border-b border-border/50 text-muted-foreground">
-                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'الصورة' : 'Image'}</th>
-                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'اسم المنتج' : 'Product'}</th>
-                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'السعر' : 'Price'}</th>
-                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'العملة' : 'Currency'}</th>
-                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'المخزون' : 'Stock'}</th>
-                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'الحالة' : 'Status'}</th>
-                    <th className="text-start px-6 py-4 font-medium">{isAr ? 'إجراءات' : 'Actions'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map((product, i) => (
-                    <motion.tr key={product.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
-                      className="border-b border-border/30 hover:bg-white/[0.02] transition-colors" data-testid={`row-product-${product.id}`}>
-                      <td className="px-6 py-4">
-                        <div
-                          className="relative w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg overflow-hidden group cursor-pointer"
-                          onClick={() => openImageUpload(product.id)}
-                          title={isAr ? 'انقر لتغيير الصورة' : 'Click to change image'}
-                        >
-                          {uploadingImageId === product.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                          ) : (
-                            <>
-                              {product.imageUrl
-                                ? <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
-                                : <span>{emojis[parseInt(product.id) - 1] ?? '📦'}</span>}
-                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                                <Camera className="w-3.5 h-3.5 text-white" />
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-medium">{isAr ? product.nameAr : product.nameEn}</p>
-                        <p className="text-xs text-muted-foreground">{product.category}</p>
-                      </td>
-                      <td className="px-6 py-4 font-mono font-semibold">
-                        {product.currency === 'ILS' ? '₪' : '﷼'}{product.price}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-muted text-muted-foreground font-mono">{product.currency}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`font-mono text-sm font-semibold ${product.stock <= 5 ? 'text-amber-400' : ''}`}>{product.stock}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Switch checked={product.status === 'visible'} onCheckedChange={() => toggleVisibility(product.id)} data-testid={`switch-visibility-${product.id}`} />
-                          <span className="text-xs text-muted-foreground">
-                            {product.status === 'visible' ? (isAr ? 'ظاهر' : 'Visible') : (isAr ? 'مخفي' : 'Hidden')}
+            <>
+              {/* Desktop/tablet: table */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b border-border/50 text-muted-foreground">
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'الصورة' : 'Image'}</th>
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'اسم المنتج' : 'Product'}</th>
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'السعر' : 'Price'}</th>
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'العملة' : 'Currency'}</th>
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'المخزون' : 'Stock'}</th>
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'الحالة' : 'Status'}</th>
+                      <th className="text-start px-6 py-4 font-medium">{isAr ? 'إجراءات' : 'Actions'}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.map((product, i) => (
+                      <motion.tr key={product.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}
+                        className="border-b border-border/30 hover:bg-white/[0.02] transition-colors" data-testid={`row-product-${product.id}`}>
+                        <td className="px-6 py-4">
+                          <div
+                            className="relative w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-lg overflow-hidden group cursor-pointer"
+                            onClick={() => openImageUpload(product.id)}
+                            title={isAr ? 'انقر لتغيير الصورة' : 'Click to change image'}
+                          >
+                            {uploadingImageId === product.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                            ) : (
+                              <>
+                                {product.imageUrl
+                                  ? <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
+                                  : <span>{emojis[parseInt(product.id) - 1] ?? '📦'}</span>}
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                  <Camera className="w-3.5 h-3.5 text-white" />
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-medium">{isAr ? product.nameAr : product.nameEn}</p>
+                          <p className="text-xs text-muted-foreground">{product.category}</p>
+                        </td>
+                        <td className="px-6 py-4 font-mono font-semibold">
+                          {product.currency === 'ILS' ? '₪' : '﷼'}{product.price}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-muted text-muted-foreground font-mono">{product.currency}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`font-mono text-sm font-semibold ${product.stock <= 5 ? 'text-amber-400' : ''}`}>{product.stock}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Switch checked={product.status === 'visible'} onCheckedChange={() => toggleVisibility(product.id)} data-testid={`switch-visibility-${product.id}`} />
+                            <span className="text-xs text-muted-foreground">
+                              {product.status === 'visible' ? (isAr ? 'ظاهر' : 'Visible') : (isAr ? 'مخفي' : 'Hidden')}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-amber-500/50 hover:text-amber-400" onClick={() => openOfflineSale(product)} title={isAr ? 'تسجيل بيع أوفلاين' : 'Record offline sale'} data-testid={`button-offline-sale-${product.id}`}>
+                              <Store className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/40 hover:text-primary" onClick={() => setShareProduct(product)} title={isAr ? 'مشاركة المنتج' : 'Share product'} data-testid={`button-share-${product.id}`}>
+                              <Share2 className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/30" onClick={() => setLocation(`/dashboard/products/edit/${product.id}`)} data-testid={`button-edit-${product.id}`}>
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-red-500/50 hover:text-red-400" onClick={() => setDeleteId(product.id)} data-testid={`button-delete-${product.id}`}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile: stacked cards — no horizontal scrolling needed */}
+              <div className="sm:hidden divide-y divide-border/30">
+                {filteredProducts.map((product, i) => (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="px-4 py-4"
+                    data-testid={`row-product-${product.id}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="relative w-12 h-12 flex-shrink-0 rounded-lg bg-muted flex items-center justify-center text-lg overflow-hidden group cursor-pointer"
+                        onClick={() => openImageUpload(product.id)}
+                        title={isAr ? 'انقر لتغيير الصورة' : 'Click to change image'}
+                      >
+                        {uploadingImageId === product.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                        ) : (
+                          <>
+                            {product.imageUrl
+                              ? <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
+                              : <span>{emojis[parseInt(product.id) - 1] ?? '📦'}</span>}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                              <Camera className="w-3 h-3 text-white" />
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{isAr ? product.nameAr : product.nameEn}</p>
+                            <p className="text-xs text-muted-foreground">{product.category}</p>
+                          </div>
+                          <span className="font-mono font-semibold whitespace-nowrap">
+                            {product.currency === 'ILS' ? '₪' : '﷼'}{product.price}
                           </span>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-amber-500/50 hover:text-amber-400" onClick={() => openOfflineSale(product)} title={isAr ? 'تسجيل بيع أوفلاين' : 'Record offline sale'} data-testid={`button-offline-sale-${product.id}`}>
-                            <Store className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/40 hover:text-primary" onClick={() => setShareProduct(product)} title={isAr ? 'مشاركة المنتج' : 'Share product'} data-testid={`button-share-${product.id}`}>
-                            <Share2 className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/30" onClick={() => setLocation(`/dashboard/products/edit/${product.id}`)} data-testid={`button-edit-${product.id}`}>
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-red-500/50 hover:text-red-400" onClick={() => setDeleteId(product.id)} data-testid={`button-delete-${product.id}`}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-muted text-muted-foreground font-mono">{product.currency}</span>
+                          <span className={`font-mono text-xs font-semibold ${product.stock <= 5 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+                            {isAr ? 'مخزون' : 'Stock'}: {product.stock}
+                          </span>
                         </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+
+                        <div className="flex items-center justify-between mt-3">
+                          <div className="flex items-center gap-2">
+                            <Switch checked={product.status === 'visible'} onCheckedChange={() => toggleVisibility(product.id)} data-testid={`switch-visibility-${product.id}`} />
+                            <span className="text-xs text-muted-foreground">
+                              {product.status === 'visible' ? (isAr ? 'ظاهر' : 'Visible') : (isAr ? 'مخفي' : 'Hidden')}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-amber-500/50 hover:text-amber-400" onClick={() => openOfflineSale(product)} title={isAr ? 'تسجيل بيع أوفلاين' : 'Record offline sale'} data-testid={`button-offline-sale-${product.id}`}>
+                              <Store className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/40 hover:text-primary" onClick={() => setShareProduct(product)} title={isAr ? 'مشاركة المنتج' : 'Share product'} data-testid={`button-share-${product.id}`}>
+                              <Share2 className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-primary/30" onClick={() => setLocation(`/dashboard/products/edit/${product.id}`)} data-testid={`button-edit-${product.id}`}>
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="outline" size="icon" className="h-8 w-8 border-border/50 hover:border-red-500/50 hover:text-red-400" onClick={() => setDeleteId(product.id)} data-testid={`button-delete-${product.id}`}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
