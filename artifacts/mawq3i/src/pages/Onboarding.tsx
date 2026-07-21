@@ -1,42 +1,52 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Store, Bell, LineChart, ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { Brain, TrendingUp, Bell, LineChart, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/context/AppContext';
 import { markOnboardingSeen } from '@/lib/onboarding';
 import { requestNotificationPermissionEarly } from '@/lib/push';
 
 type Feature = {
-  icon: typeof Store;
+  icon: typeof Brain;
   titleAr: string;
   titleEn: string;
   bodyAr: string;
   bodyEn: string;
 };
 
+// Real capabilities already in the platform — not generic marketing copy.
 const features: Feature[] = [
   {
-    icon: Store,
-    titleAr: 'شوف متجرك قبل ما تلتزم',
-    titleEn: 'See your store before you commit',
-    bodyAr: 'نبني لك متجر جاهز تتفرج عليه قبل أي دفع',
-    bodyEn: 'A ready store to preview before you pay anything',
+    icon: Brain,
+    titleAr: 'خبير النمو',
+    titleEn: 'Growth Expert',
+    bodyAr: 'يراقب أرقام متجرك أول بأول، وبيقترحلك تحديدًا شو تسوي بعدين',
+    bodyEn: 'Watches your store\'s numbers and tells you exactly what to do next',
+  },
+  {
+    icon: TrendingUp,
+    titleAr: 'بحث السوق بالذكاء الاصطناعي',
+    titleEn: 'AI market research',
+    bodyAr: 'يلاقيلك منتجات رايجة تناسب متجرك، ويراقب أسعار المنافسين',
+    bodyEn: 'Finds trending products that fit your store, and watches competitor prices',
   },
   {
     icon: Bell,
     titleAr: 'إشعار فوري لكل طلب',
     titleEn: 'An instant alert for every order',
-    bodyAr: 'تعرف بالطلب الجديد أول بأول، متل شوبيفاي بالضبط',
-    bodyEn: 'Know the moment a customer orders — just like Shopify',
+    bodyAr: 'توصلك رسالة لحظة ما حدا يطلب من متجرك',
+    bodyEn: "You get a message the moment someone orders from your store",
   },
   {
     icon: LineChart,
     titleAr: 'كل شي من موبايلك',
     titleEn: 'Everything from your phone',
-    bodyAr: 'منتجاتك وطلباتك ومبيعاتك بمكان واحد، بأي وقت',
-    bodyEn: 'Products, orders, and sales in one place, anytime',
+    bodyAr: 'إحصائيات، منتجات، وعروض — بمكان واحد، بأي وقت',
+    bodyEn: 'Analytics, products, and promotions — in one place, anytime',
   },
 ];
+
+const SLIDE_MS = 3200;
 
 // STEP.SPLASH -> STEP.FEATURES -> STEP.NOTIFICATIONS -> onDone()
 const enum Step {
@@ -48,16 +58,28 @@ const enum Step {
 export default function Onboarding({ onDone }: { onDone: () => void }) {
   const { language } = useAppContext();
   const [step, setStep] = useState<Step>(Step.Splash);
+  const [featureIdx, setFeatureIdx] = useState(0);
   const [enabling, setEnabling] = useState(false);
   const isAr = language === 'ar';
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
+  const progressKey = useRef(0);
 
   // Splash auto-advances shortly after the logo animates in.
   useEffect(() => {
     if (step !== Step.Splash) return;
-    const t = setTimeout(() => setStep(Step.Features), 1600);
+    const t = setTimeout(() => setStep(Step.Features), 1500);
     return () => clearTimeout(t);
   }, [step]);
+
+  // Auto-cycle the feature spotlight, story-style.
+  useEffect(() => {
+    if (step !== Step.Features) return;
+    const t = setTimeout(() => {
+      progressKey.current += 1;
+      setFeatureIdx((i) => (i + 1) % features.length);
+    }, SLIDE_MS);
+    return () => clearTimeout(t);
+  }, [step, featureIdx]);
 
   const finish = () => {
     markOnboardingSeen();
@@ -73,6 +95,8 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
       finish();
     }
   };
+
+  const feature = features[featureIdx];
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-[#060a0d] overflow-hidden relative">
@@ -120,39 +144,55 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: isAr ? 24 : -24 }}
             transition={{ duration: 0.35, ease: 'easeOut' }}
-            className="relative z-10 flex-1 flex flex-col px-7 pt-[calc(env(safe-area-inset-top)+2.5rem)]"
+            className="relative z-10 flex-1 flex flex-col px-6 pt-[calc(env(safe-area-inset-top)+1.5rem)]"
           >
-            <div className="mb-9">
-              <h1 className="text-[26px] font-bold text-foreground leading-tight mb-2">
-                {isAr ? 'كل شي يحتاجه تاجر' : 'Everything a merchant needs'}
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                {isAr ? 'منصة موقعي بخطوات بسيطة' : 'The Mawq3i platform, made simple'}
-              </p>
+            {/* Story-style progress bars */}
+            <div className="flex gap-1.5 mb-8">
+              {features.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => { progressKey.current += 1; setFeatureIdx(i); }}
+                  className="flex-1 h-[3px] rounded-full bg-primary/15 overflow-hidden"
+                  aria-label={`feature-${i}`}
+                >
+                  {i === featureIdx && (
+                    <motion.div
+                      key={progressKey.current}
+                      className="h-full bg-primary rounded-full"
+                      initial={{ width: '0%' }}
+                      animate={{ width: '100%' }}
+                      transition={{ duration: SLIDE_MS / 1000, ease: 'linear' }}
+                    />
+                  )}
+                  {i < featureIdx && <div className="h-full w-full bg-primary rounded-full" />}
+                </button>
+              ))}
             </div>
 
-            <div className="flex-1 flex flex-col justify-center gap-7">
-              {features.map((f, i) => (
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-2">
+              <AnimatePresence mode="wait">
                 <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 + i * 0.12, duration: 0.45 }}
-                  className="flex items-start gap-4"
+                  key={featureIdx}
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                  className="flex flex-col items-center max-w-xs"
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-center flex-shrink-0">
-                    <f.icon className="w-5 h-5 text-primary" strokeWidth={1.75} />
+                  <div className="relative mb-7">
+                    <div className="absolute -inset-6 bg-primary/20 rounded-full blur-2xl" />
+                    <div className="relative w-20 h-20 rounded-[26px] bg-primary/10 border border-primary/25 flex items-center justify-center">
+                      <feature.icon className="w-9 h-9 text-primary" strokeWidth={1.6} />
+                    </div>
                   </div>
-                  <div className="pt-1">
-                    <p className="text-foreground text-[15px] font-semibold mb-0.5">
-                      {isAr ? f.titleAr : f.titleEn}
-                    </p>
-                    <p className="text-muted-foreground text-[13px] leading-relaxed">
-                      {isAr ? f.bodyAr : f.bodyEn}
-                    </p>
-                  </div>
+                  <h1 className="text-[22px] font-bold text-foreground leading-snug mb-3">
+                    {isAr ? feature.titleAr : feature.titleEn}
+                  </h1>
+                  <p className="text-muted-foreground text-[15px] leading-relaxed">
+                    {isAr ? feature.bodyAr : feature.bodyEn}
+                  </p>
                 </motion.div>
-              ))}
+              </AnimatePresence>
             </div>
 
             <div className="pb-[calc(env(safe-area-inset-bottom)+2rem)] pt-6">
@@ -208,19 +248,6 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {step !== Step.Splash && (
-        <div className="relative z-10 flex justify-center gap-2 pb-6">
-          {[Step.Features, Step.Notifications].map((s) => (
-            <div
-              key={s}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                s === step ? 'w-6 bg-primary' : 'w-1.5 bg-primary/25'
-              }`}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
