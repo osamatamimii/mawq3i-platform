@@ -1,0 +1,47 @@
+workflows:
+  ios-testflight:
+    name: Mawq3i iOS - TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: mawq3i_asc_key   # name of the App Store Connect API key you add in Codemagic > Teams > Integrations
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: co.mawq3i.app
+      vars:
+        XCODE_WORKSPACE: "App.xcworkspace"
+        XCODE_SCHEME: "App"
+      node: 20
+      xcode: latest
+      cocoapods: default
+    working_directory: artifacts/mawq3i
+    scripts:
+      - name: Install npm dependencies
+        script: npm install
+      - name: Build the web app
+        script: npm run build
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios/App && pod install
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+      - name: Bump build number
+        script: |
+          cd ios/App
+          agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$BUNDLE_ID") + 1))
+      - name: Build ipa for distribution
+        script: |
+          xcode-project build-ipa \
+            --workspace "ios/App/$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Mawq3i Testers
