@@ -27,6 +27,20 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Firebase Cloud Messaging: default look for notifications when the
+             message payload doesn't override them (api/secure-db.js already
+             sets android.notification.icon/color explicitly too, but these
+             covers any notification that doesn't). -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_notify" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_green" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="orders" />
     </application>
 
     <!-- Permissions -->

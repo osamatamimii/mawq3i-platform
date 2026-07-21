@@ -11,6 +11,26 @@ export async function requestNotificationPermissionEarly(): Promise<boolean> {
   if (status.receive === 'prompt') {
     status = await PushNotifications.requestPermissions();
   }
+  // Android: create the branded channel merchants will see in system
+  // notification settings ("طلبات جديدة") — high importance so order
+  // alerts show as a heads-up banner with sound, like Shopify/Stripe.
+  // No-ops safely on iOS (channels are an Android-only concept).
+  if (Capacitor.getPlatform() === 'android') {
+    try {
+      await PushNotifications.createChannel({
+        id: 'orders',
+        name: 'طلبات جديدة',
+        description: 'إشعار فوري عند وصول طلب جديد',
+        importance: 5, // IMPORTANCE_HIGH — heads-up + sound
+        visibility: 1,
+        vibration: true,
+        lights: true,
+        lightColor: '#3B6D11',
+      });
+    } catch {
+      // channel already exists or platform doesn't support it — ignore
+    }
+  }
   return status.receive === 'granted';
 }
 

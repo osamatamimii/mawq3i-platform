@@ -105,7 +105,14 @@ async function sendPushToStore(storeId, title, bodyText, data) {
               token: t.token,
               notification: { title, body: bodyText },
               data: data || {},
-              android: { priority: 'high' },
+              android: {
+                priority: 'high',
+                notification: {
+                  icon: 'ic_stat_notify', // white silhouette, see android/.../drawable-*/ic_stat_notify.png
+                  color: '#3B6D11',
+                  channel_id: 'orders',   // created client-side in src/lib/push.ts
+                },
+              },
               apns: { payload: { aps: { sound: 'default' } } },
             },
           }),
