@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,8 +8,10 @@ import { Layout } from "@/components/layout/Layout";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AnimatePresence, motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { hasSeenOnboarding } from "@/lib/onboarding";
 
 import NotFound from "@/pages/not-found";
+import Onboarding from "@/pages/Onboarding";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import ProductsHub from "@/pages/ProductsHub";
@@ -50,9 +53,18 @@ const ADMIN_EMAIL = "admin@mawq3i.com";
 function Router() {
   const [location] = useLocation();
   const { supabaseUser, authLoading, currentUser, staffPermissions } = useAppContext();
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    hasSeenOnboarding().then((seen) => {
+      setShowOnboarding(!seen);
+      setCheckingOnboarding(false);
+    });
+  }, []);
 
   // Show loading spinner while Supabase session is being checked
-  if (authLoading) {
+  if (authLoading || checkingOnboarding) {
     return (
       <div className="min-h-[100dvh] bg-[#060809] flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -65,6 +77,10 @@ function Router() {
     // If already logged in, redirect to the right place
     if (supabaseUser) {
       return <Redirect to={supabaseUser.email?.toLowerCase() === ADMIN_EMAIL ? "/admin" : "/dashboard"} />;
+    }
+    // First launch of the native app: show onboarding before the login form
+    if (showOnboarding) {
+      return <Onboarding onDone={() => setShowOnboarding(false)} />;
     }
     return (
       <AnimatePresence mode="wait">

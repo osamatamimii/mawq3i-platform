@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   appName: 'موقعي',
   webDir: 'dist', // fallback bundle only used if server.url is unreachable (offline splash)
   server: {
-    url: 'https://mawq3i.co/dashboard',
+    url: 'https://mawq3i.co',
     cleartext: false,
     androidScheme: 'https',
     iosScheme: 'https',
