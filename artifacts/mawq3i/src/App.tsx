@@ -51,7 +51,7 @@ const pageMotion = {
 const ADMIN_EMAIL = "admin@mawq3i.com";
 
 function Router() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { supabaseUser, authLoading, currentUser, staffPermissions } = useAppContext();
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -92,6 +92,12 @@ function Router() {
         </motion.div>
       </AnimatePresence>
     );
+  }
+
+  // Public preview of the native onboarding carousel — lets anyone view it
+  // from a normal browser (desktop or phone) without a native app build.
+  if (location === "/preview/onboarding") {
+    return <Onboarding onDone={() => setLocation("/login")} />;
   }
 
   // Store front — public
