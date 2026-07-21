@@ -55,6 +55,17 @@ const enum Step {
   Notifications = 2,
 }
 
+// Light, "morning" palette — a bright, welcoming first impression rather
+// than the dark theme the rest of the dashboard defaults to. Colors are
+// the brand greens from mawq3i-project-knowledge (#3B6D11 / #639922 /
+// #97C459 / #EAF3DE) on a near-white background.
+const BG = '#FCFBF8';
+const CARD = '#F3F6EE';
+const TEXT = '#16210A';
+const MUTED = '#5C6B4D';
+const PRIMARY = '#3B6D11';
+const PRIMARY_SOFT = '#EAF3DE';
+
 export default function Onboarding({ onDone }: { onDone: () => void }) {
   const { language } = useAppContext();
   const [step, setStep] = useState<Step>(Step.Splash);
@@ -64,14 +75,12 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
   const progressKey = useRef(0);
 
-  // Splash auto-advances shortly after the logo animates in.
   useEffect(() => {
     if (step !== Step.Splash) return;
     const t = setTimeout(() => setStep(Step.Features), 1500);
     return () => clearTimeout(t);
   }, [step]);
 
-  // Auto-cycle the feature spotlight, story-style.
   useEffect(() => {
     if (step !== Step.Features) return;
     const t = setTimeout(() => {
@@ -99,9 +108,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
   const feature = features[featureIdx];
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-[#060a0d] overflow-hidden relative">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_20%,hsl(var(--primary)/0.10),transparent)]" />
-
+    <div className="min-h-[100dvh] flex flex-col overflow-hidden relative" style={{ background: BG }}>
       <AnimatePresence mode="wait">
         {step === Step.Splash && (
           <motion.div
@@ -119,18 +126,15 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
               transition={{ duration: 0.6, ease: 'easeOut' }}
               className="relative"
             >
-              <div className="absolute -inset-8 bg-primary/25 rounded-full blur-3xl" />
-              <img
-                src="/logo.png"
-                alt="Mawq3i"
-                className="relative w-24 h-24 object-contain drop-shadow-[0_0_28px_rgba(82,255,63,0.55)]"
-              />
+              <div className="absolute -inset-8 rounded-full blur-3xl" style={{ background: `${PRIMARY}22` }} />
+              <img src="/logo.png" alt="Mawq3i" className="relative w-24 h-24 object-contain" />
             </motion.div>
             <motion.p
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.35, duration: 0.5 }}
-              className="mt-5 text-foreground text-lg font-bold tracking-tight"
+              className="mt-5 text-lg font-bold tracking-tight"
+              style={{ color: TEXT }}
             >
               Mawq3i | موقعي
             </motion.p>
@@ -146,25 +150,26 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
             transition={{ duration: 0.35, ease: 'easeOut' }}
             className="relative z-10 flex-1 flex flex-col px-6 pt-[calc(env(safe-area-inset-top)+1.5rem)]"
           >
-            {/* Story-style progress bars */}
             <div className="flex gap-1.5 mb-8">
               {features.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => { progressKey.current += 1; setFeatureIdx(i); }}
-                  className="flex-1 h-[3px] rounded-full bg-primary/15 overflow-hidden"
+                  className="flex-1 h-[3px] rounded-full overflow-hidden"
+                  style={{ background: `${PRIMARY}22` }}
                   aria-label={`feature-${i}`}
                 >
                   {i === featureIdx && (
                     <motion.div
                       key={progressKey.current}
-                      className="h-full bg-primary rounded-full"
+                      className="h-full rounded-full"
+                      style={{ background: PRIMARY }}
                       initial={{ width: '0%' }}
                       animate={{ width: '100%' }}
                       transition={{ duration: SLIDE_MS / 1000, ease: 'linear' }}
                     />
                   )}
-                  {i < featureIdx && <div className="h-full w-full bg-primary rounded-full" />}
+                  {i < featureIdx && <div className="h-full w-full rounded-full" style={{ background: PRIMARY }} />}
                 </button>
               ))}
             </div>
@@ -180,15 +185,17 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
                   className="flex flex-col items-center max-w-xs"
                 >
                   <div className="relative mb-7">
-                    <div className="absolute -inset-6 bg-primary/20 rounded-full blur-2xl" />
-                    <div className="relative w-20 h-20 rounded-[26px] bg-primary/10 border border-primary/25 flex items-center justify-center">
-                      <feature.icon className="w-9 h-9 text-primary" strokeWidth={1.6} />
+                    <div
+                      className="relative w-20 h-20 rounded-[26px] flex items-center justify-center"
+                      style={{ background: PRIMARY_SOFT, border: `1px solid ${PRIMARY}33` }}
+                    >
+                      <feature.icon className="w-9 h-9" strokeWidth={1.6} style={{ color: PRIMARY }} />
                     </div>
                   </div>
-                  <h1 className="text-[22px] font-bold text-foreground leading-snug mb-3">
+                  <h1 className="text-[22px] font-bold leading-snug mb-3" style={{ color: TEXT }}>
                     {isAr ? feature.titleAr : feature.titleEn}
                   </h1>
-                  <p className="text-muted-foreground text-[15px] leading-relaxed">
+                  <p className="text-[15px] leading-relaxed" style={{ color: MUTED }}>
                     {isAr ? feature.bodyAr : feature.bodyEn}
                   </p>
                 </motion.div>
@@ -196,7 +203,11 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
             </div>
 
             <div className="pb-[calc(env(safe-area-inset-bottom)+2rem)] pt-6">
-              <Button onClick={() => setStep(Step.Notifications)} className="w-full h-12 text-base font-semibold gap-2">
+              <Button
+                onClick={() => setStep(Step.Notifications)}
+                className="w-full h-12 text-base font-semibold gap-2 text-white hover:opacity-90"
+                style={{ background: PRIMARY }}
+              >
                 {isAr ? 'التالي' : 'Next'}
                 <ArrowIcon className="w-4 h-4" />
               </Button>
@@ -214,15 +225,17 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
             className="relative z-10 flex-1 flex flex-col items-center justify-center px-8 text-center"
           >
             <div className="relative mb-8">
-              <div className="absolute -inset-6 bg-primary/20 rounded-full blur-3xl" />
-              <div className="relative w-20 h-20 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-center">
-                <Bell className="w-9 h-9 text-primary" strokeWidth={1.75} />
+              <div
+                className="relative w-20 h-20 rounded-2xl flex items-center justify-center"
+                style={{ background: PRIMARY_SOFT, border: `1px solid ${PRIMARY}33` }}
+              >
+                <Bell className="w-9 h-9" strokeWidth={1.75} style={{ color: PRIMARY }} />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-foreground leading-snug mb-3 max-w-xs">
+            <h1 className="text-2xl font-bold leading-snug mb-3 max-w-xs" style={{ color: TEXT }}>
               {isAr ? 'خليك أول من يعرف بكل طلب' : 'Be first to know about every order'}
             </h1>
-            <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
+            <p className="text-sm leading-relaxed max-w-xs" style={{ color: MUTED }}>
               {isAr
                 ? 'فعّل الإشعارات عشان توصلك رسالة فورية أول ما زبون يطلب من متجرك'
                 : 'Turn on notifications to get an instant alert the moment a customer orders'}
@@ -232,7 +245,8 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
               <Button
                 onClick={handleEnableNotifications}
                 disabled={enabling}
-                className="w-full h-12 text-base font-semibold gap-2"
+                className="w-full h-12 text-base font-semibold gap-2 text-white hover:opacity-90"
+                style={{ background: PRIMARY }}
               >
                 <Check className="w-4 h-4" />
                 {isAr ? 'فعّل الإشعارات' : 'Enable notifications'}
@@ -240,7 +254,8 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
               <button
                 onClick={finish}
                 disabled={enabling}
-                className="w-full text-sm font-medium text-muted-foreground/70 hover:text-foreground transition-colors py-2"
+                className="w-full text-sm font-medium py-2 hover:opacity-70 transition-opacity"
+                style={{ color: MUTED }}
               >
                 {isAr ? 'لاحقًا' : 'Maybe later'}
               </button>
