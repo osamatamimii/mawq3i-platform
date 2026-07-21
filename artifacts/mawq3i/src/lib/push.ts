@@ -5,6 +5,15 @@ import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { adminRest } from './supabase';
 
+export async function requestNotificationPermissionEarly(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+  let status = await PushNotifications.checkPermissions();
+  if (status.receive === 'prompt') {
+    status = await PushNotifications.requestPermissions();
+  }
+  return status.receive === 'granted';
+}
+
 let didInit = false;
 
 export async function initPushNotifications(storeId: string, userId?: string) {

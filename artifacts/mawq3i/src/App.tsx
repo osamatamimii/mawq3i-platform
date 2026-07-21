@@ -12,6 +12,7 @@ import { hasSeenOnboarding } from "@/lib/onboarding";
 
 import NotFound from "@/pages/not-found";
 import Onboarding from "@/pages/Onboarding";
+import PhoneFramePreview from "@/components/PhoneFramePreview";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import ProductsHub from "@/pages/ProductsHub";
@@ -98,6 +99,12 @@ function Router() {
   // from a normal browser (desktop or phone) without a native app build.
   if (location === "/preview/onboarding") {
     return <Onboarding onDone={() => setLocation("/login")} />;
+  }
+
+  // Same preview, wrapped in an iPhone-shaped frame — for reviewing on a
+  // desktop browser as if it were on a phone.
+  if (location === "/preview/phone") {
+    return <PhoneFramePreview src="/preview/onboarding" />;
   }
 
   // Store front — public
