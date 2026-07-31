@@ -142,7 +142,17 @@ async function sendTikTokConversion({ pixelId, accessToken, order, clientIp, use
   return r.json();
 }
 
+const PUSH_WEBHOOK_SECRET = process.env.PUSH_WEBHOOK_SECRET;
+
 async function handleSendConversionEvent(req, res) {
+  // إذا الطلب جاي عن طريق webhookToken (من الـ Supabase trigger التلقائي)، تحقق من السر
+  const webhookToken = req.query?.webhookToken;
+  if (webhookToken !== undefined) {
+    if (!PUSH_WEBHOOK_SECRET || webhookToken !== PUSH_WEBHOOK_SECRET) {
+      res.status(401).json({ error: 'Invalid webhook token' });
+      return;
+    }
+  }
   const { order_id: orderId, store_id: storeId } = req.body || {};
   if (!orderId || !storeId) { res.status(400).json({ error: 'Missing order_id or store_id' }); return; }
 
