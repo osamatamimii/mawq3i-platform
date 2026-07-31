@@ -17,6 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Video, Sparkles, ScanBarcode } from 'lucide-react';
 import BarcodeScanner from '@/components/BarcodeScanner';
+import WholesaleTiersEditor from '@/components/WholesaleTiersEditor';
 
 export default function EditProduct() {
   const { language, currentStore, isAdminMode } = useAppContext();
@@ -287,6 +288,15 @@ export default function EditProduct() {
             </div>
           </CardContent>
         </Card>
+
+        <WholesaleTiersEditor
+          isAr={isAr}
+          tiers={product.wholesaleTiers || []}
+          onChange={tiers => set('wholesaleTiers', tiers)}
+          moq={String(product.moq ?? 1)}
+          onMoqChange={v => set('moq', Math.max(1, Number(v) || 1))}
+          currency={product.currency}
+        />
 
         {/* Main Image */}
         <Card className="bg-card border-border/50 shadow-lg">

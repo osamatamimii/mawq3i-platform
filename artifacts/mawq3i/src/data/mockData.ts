@@ -23,6 +23,10 @@ export type Product = {
   storeId?: string;
   relatedProductIds?: string[];
   barcode?: string;
+  /** أسعار الجملة حسب الكمية: كل عنصر = ابتداءً من minQty يصير السعر price */
+  wholesaleTiers?: { minQty: number; price: number }[];
+  /** الحد الأدنى للطلب لهذا المنتج (Minimum Order Quantity) */
+  moq?: number;
 };
 
 export type BundleItem = { productId: string; qty: number };

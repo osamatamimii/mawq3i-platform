@@ -26,6 +26,8 @@ function rowToProduct(row: any): Product {
     storeId: row.store_id ?? '',
     relatedProductIds: Array.isArray(row.related_product_ids) ? row.related_product_ids : [],
     barcode: row.barcode ?? '',
+    wholesaleTiers: row.wholesale_tiers ? (typeof row.wholesale_tiers === 'string' ? JSON.parse(row.wholesale_tiers) : row.wholesale_tiers) : [],
+    moq: row.moq !== undefined && row.moq !== null ? Number(row.moq) : 1,
   };
 }
 
@@ -47,6 +49,8 @@ function productToRow(p: Partial<Product> & { storeId?: string }) {
     ...(p.variants !== undefined && { variants: JSON.stringify(p.variants) }),
     ...(p.relatedProductIds !== undefined && { related_product_ids: p.relatedProductIds }),
     ...(p.barcode !== undefined && { barcode: p.barcode }),
+    ...(p.wholesaleTiers !== undefined && { wholesale_tiers: JSON.stringify(p.wholesaleTiers) }),
+    ...(p.moq !== undefined && { moq: p.moq }),
   };
 }
 

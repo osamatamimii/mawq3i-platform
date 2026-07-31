@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Palette, Ruler, Package, Video, Sparkles, ScanBarcode } from 'lucide-react';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import { getProductByBarcode } from '@/lib/db';
+import WholesaleTiersEditor, { WholesaleTier } from '@/components/WholesaleTiersEditor';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type VariantMode = 'none' | 'colors' | 'sizes';
@@ -89,6 +90,9 @@ export default function AddProduct() {
   // Sizes
   const [sizes, setSizes] = useState<SizeVariant[]>([]);
   const [noVariantStock, setNoVariantStock] = useState('');
+
+  const [wholesaleTiers, setWholesaleTiers] = useState<WholesaleTier[]>([]);
+  const [moq, setMoq] = useState('1');
 
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
@@ -278,6 +282,8 @@ export default function AddProduct() {
       badge: form.badge || '',
       storeId: currentStore.id,
       variants: variantsForDb,
+      wholesaleTiers: wholesaleTiers.filter(t => t.minQty > 0 && t.price > 0),
+      moq: Math.max(1, Number(moq) || 1),
     }, isAdminMode);
 
     setSubmitting(false);
@@ -405,6 +411,15 @@ export default function AddProduct() {
             </div>
           </CardContent>
         </Card>
+
+        <WholesaleTiersEditor
+          isAr={isAr}
+          tiers={wholesaleTiers}
+          onChange={setWholesaleTiers}
+          moq={moq}
+          onMoqChange={setMoq}
+          currency={form.currency}
+        />
 
         {/* ── Main Images ── */}
         <Card className="bg-card border-border/50 shadow-lg">
