@@ -188,7 +188,7 @@ export default function Products() {
     if (csvInputRef.current) csvInputRef.current.value = '';
     // Refresh products
     const { data } = await supabase.from('products').select('*').eq('store_id', currentStore.id).order('created_at', { ascending: false });
-    if (data) setProducts(data.map((p: any) => ({ id: p.id, nameAr: p.name_ar, nameEn: p.name_en, descAr: p.desc_ar, descEn: p.desc_en || '', price: p.price, stock: p.stock, category: p.category, status: p.status, imageUrl: p.image_url, variants: p.variants || [], badge: p.badge, currency: p.currency || 'ILS' })));
+    if (data) setProducts(data.map((p: any) => ({ id: p.id, nameAr: p.name_ar, nameEn: p.name_en, descAr: p.desc_ar, descEn: p.desc_en || '', price: p.price, stock: p.stock, category: p.category, status: p.status, imageUrl: p.image_url, variants: p.variants || [], badge: p.badge, currency: p.currency || 'ILS', barcode: p.barcode || '' })));
     const msg = isAr ? `✅ تم استيراد ${added} منتج` + (failed ? ` (فشل ${failed})` : '') : `✅ Imported ${added} products` + (failed ? ` (${failed} failed)` : '');
     toast({ title: msg });
   };
@@ -340,6 +340,11 @@ export default function Products() {
                         <td className="px-6 py-4">
                           <p className="font-medium">{isAr ? product.nameAr : product.nameEn}</p>
                           <p className="text-xs text-muted-foreground">{product.category}</p>
+                          {product.barcode ? (
+                            <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-muted/60 text-[10px] font-mono text-muted-foreground" dir="ltr">
+                              <ScanBarcode className="w-3 h-3" />{product.barcode}
+                            </span>
+                          ) : null}
                         </td>
                         <td className="px-6 py-4 font-mono font-semibold">
                           {product.currency === 'ILS' ? '₪' : '﷼'}{product.price}
@@ -416,6 +421,11 @@ export default function Products() {
                           <div className="min-w-0">
                             <p className="font-medium truncate">{isAr ? product.nameAr : product.nameEn}</p>
                             <p className="text-xs text-muted-foreground">{product.category}</p>
+                            {product.barcode ? (
+                              <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-muted/60 text-[10px] font-mono text-muted-foreground" dir="ltr">
+                                <ScanBarcode className="w-3 h-3" />{product.barcode}
+                              </span>
+                            ) : null}
                           </div>
                           <span className="font-mono font-semibold whitespace-nowrap">
                             {product.currency === 'ILS' ? '₪' : '﷼'}{product.price}
