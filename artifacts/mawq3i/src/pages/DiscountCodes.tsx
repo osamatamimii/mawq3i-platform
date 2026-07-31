@@ -7,18 +7,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Loader2, Tag, Copy, ToggleLeft, ToggleRight, X, Zap, Percent, DollarSign } from 'lucide-react';
+import { Plus, Trash2, Loader2, Tag, Copy, ToggleLeft, ToggleRight, X, Zap, Percent, DollarSign, Gift } from 'lucide-react';
 
 interface DiscountCode {
   id: string;
   code: string;
-  type: 'percentage' | 'fixed';
+  type: 'percentage' | 'fixed' | 'bogo';
   value: number;
   min_order: number;
   max_uses: number | null;
   uses_count: number;
   expires_at: string | null;
   is_active: boolean;
+  buy_qty?: number | null;
+  get_qty?: number | null;
 }
 
 const randomCode = () => {
@@ -38,11 +40,13 @@ export default function DiscountCodes() {
 
   const [form, setForm] = useState({
     code: randomCode(),
-    type: 'percentage' as 'percentage' | 'fixed',
+    type: 'percentage' as 'percentage' | 'fixed' | 'bogo',
     value: '',
     min_order: '',
     max_uses: '',
     expires_at: '',
+    buy_qty: '2',
+    get_qty: '1',
   });
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -56,23 +60,26 @@ export default function DiscountCodes() {
   }, [currentStore?.id]);
 
   const handleSave = async () => {
-    if (!form.code || !form.value || !currentStore) return;
+    const isBogo = form.type === 'bogo';
+    if (!form.code || (!isBogo && !form.value) || (isBogo && (!form.buy_qty || !form.get_qty)) || !currentStore) return;
     setSaving(true);
     const body = {
       store_id: currentStore.id,
       code: form.code.toUpperCase().trim(),
       type: form.type,
-      value: parseFloat(form.value),
+      value: isBogo ? 0 : parseFloat(form.value),
       min_order: form.min_order ? parseFloat(form.min_order) : 0,
       max_uses: form.max_uses ? parseInt(form.max_uses) : null,
       expires_at: form.expires_at || null,
       is_active: true,
+      buy_qty: isBogo ? parseInt(form.buy_qty) : null,
+      get_qty: isBogo ? parseInt(form.get_qty) : null,
     };
     const { data, error } = await supabase.from('discount_codes').insert([body]).select().single();
     setSaving(false);
     if (!error && data) {
       setCodes(prev => [data, ...prev]);
-      setForm({ code: randomCode(), type: 'percentage', value: '', min_order: '', max_uses: '', expires_at: '' });
+      setForm({ code: randomCode(), type: 'percentage', value: '', min_order: '', max_uses: '', expires_at: '', buy_qty: '2', get_qty: '1' });
       setShowForm(false);
       toast({ title: isAr ? '✅ تم إضافة الكود' : '✅ Code added' });
     } else {
@@ -164,11 +171,11 @@ export default function DiscountCodes() {
                   <div className="space-y-1.5">
                     <Label>{isAr ? 'نوع الخصم' : 'Discount Type'}</Label>
                     <div className="flex gap-2">
-                      {(['percentage', 'fixed'] as const).map(t => (
+                      {(['percentage', 'fixed', 'bogo'] as const).map(t => (
                         <button key={t} onClick={() => set('type', t)}
                           className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg border text-sm font-medium transition-all ${form.type === t ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground hover:border-primary/50'}`}>
-                          {t === 'percentage' ? <Percent className="w-3.5 h-3.5" /> : <DollarSign className="w-3.5 h-3.5" />}
-                          {t === 'percentage' ? (isAr ? 'نسبة %' : 'Percent') : (isAr ? 'مبلغ ثابت' : 'Fixed')}
+                          {t === 'percentage' ? <Percent className="w-3.5 h-3.5" /> : t === 'fixed' ? <DollarSign className="w-3.5 h-3.5" /> : <Gift className="w-3.5 h-3.5" />}
+                          {t === 'percentage' ? (isAr ? 'نسبة %' : 'Percent') : t === 'fixed' ? (isAr ? 'مبلغ ثابت' : 'Fixed') : (isAr ? 'اشتر واحصل' : 'Buy X Get Y')}
                         </button>
                       ))}
                     </div>
@@ -176,12 +183,27 @@ export default function DiscountCodes() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <Label>{isAr ? (form.type === 'percentage' ? 'نسبة الخصم %' : 'مبلغ الخصم') : (form.type === 'percentage' ? 'Discount %' : 'Discount Amount')} *</Label>
-                    <Input type="number" value={form.value} onChange={e => set('value', e.target.value)}
-                      placeholder={form.type === 'percentage' ? '10' : '50'}
-                      className="bg-background/50 border-border/50" dir="ltr" />
-                  </div>
+                  {form.type === 'bogo' ? (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label>{isAr ? 'اشتر (قطع)' : 'Buy (qty)'} *</Label>
+                        <Input type="number" min="1" value={form.buy_qty} onChange={e => set('buy_qty', e.target.value)}
+                          placeholder="2" className="bg-background/50 border-border/50" dir="ltr" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>{isAr ? 'واحصل مجاناً (قطع)' : 'Get free (qty)'} *</Label>
+                        <Input type="number" min="1" value={form.get_qty} onChange={e => set('get_qty', e.target.value)}
+                          placeholder="1" className="bg-background/50 border-border/50" dir="ltr" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Label>{isAr ? (form.type === 'percentage' ? 'نسبة الخصم %' : 'مبلغ الخصم') : (form.type === 'percentage' ? 'Discount %' : 'Discount Amount')} *</Label>
+                      <Input type="number" value={form.value} onChange={e => set('value', e.target.value)}
+                        placeholder={form.type === 'percentage' ? '10' : '50'}
+                        className="bg-background/50 border-border/50" dir="ltr" />
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <Label>{isAr ? `حد أدنى للطلب (${currency})` : `Min Order (${currency})`}</Label>
                     <Input type="number" value={form.min_order} onChange={e => set('min_order', e.target.value)}
@@ -193,6 +215,11 @@ export default function DiscountCodes() {
                       placeholder={isAr ? 'غير محدود' : 'Unlimited'} className="bg-background/50 border-border/50" dir="ltr" />
                   </div>
                 </div>
+                {form.type === 'bogo' && (
+                  <p className="text-[11px] text-muted-foreground -mt-2">
+                    {isAr ? `مثال: اشتر ${form.buy_qty || 'X'} احصل على ${form.get_qty || 'Y'} مجاناً — بيتطبق على أرخص القطع بالسلة تلقائياً` : `Example: buy ${form.buy_qty || 'X'} get ${form.get_qty || 'Y'} free — auto-applies to the cheapest items in the cart`}
+                  </p>
+                )}
 
                 <div className="space-y-1.5">
                   <Label>{isAr ? 'تاريخ انتهاء الكود' : 'Expiry Date'}</Label>
@@ -201,12 +228,12 @@ export default function DiscountCodes() {
                 </div>
 
                 {/* Preview */}
-                {form.code && form.value && (
+                {form.code && (form.type === 'bogo' ? (form.buy_qty && form.get_qty) : form.value) && (
                   <div className="rounded-xl p-4 bg-primary/5 border border-primary/20 flex items-center justify-between">
                     <div>
                       <p className="font-mono font-bold text-lg tracking-widest text-primary">{form.code}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {form.type === 'percentage' ? `${form.value}%` : `${currency}${form.value}`} {isAr ? 'خصم' : 'off'}
+                        {form.type === 'percentage' ? `${form.value}%` : form.type === 'fixed' ? `${currency}${form.value}` : (isAr ? `اشتر ${form.buy_qty} احصل ${form.get_qty} مجاناً` : `Buy ${form.buy_qty} get ${form.get_qty} free`)} {form.type !== 'bogo' && (isAr ? 'خصم' : 'off')}
                         {form.min_order ? ` • ${isAr ? 'حد أدنى' : 'min'} ${currency}${form.min_order}` : ''}
                       </p>
                     </div>
@@ -214,7 +241,7 @@ export default function DiscountCodes() {
                   </div>
                 )}
 
-                <Button onClick={handleSave} disabled={saving || !form.code || !form.value} className="w-full">
+                <Button onClick={handleSave} disabled={saving || !form.code || (form.type === 'bogo' ? (!form.buy_qty || !form.get_qty) : !form.value)} className="w-full">
                   {saving ? <><Loader2 className="w-4 h-4 animate-spin me-2" />{isAr ? 'جاري الحفظ...' : 'Saving...'}</> : (isAr ? 'إضافة الكود' : 'Add Code')}
                 </Button>
               </CardContent>
@@ -245,7 +272,7 @@ export default function DiscountCodes() {
                       <div className="flex items-center gap-3 flex-wrap">
                         <span className="font-mono font-bold text-base tracking-widest text-primary">{code.code}</span>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                          {code.type === 'percentage' ? `${code.value}%` : `${currency}${code.value}`} {isAr ? 'خصم' : 'off'}
+                          {code.type === 'percentage' ? `${code.value}%` : code.type === 'fixed' ? `${currency}${code.value}` : (isAr ? `اشتر ${code.buy_qty} احصل ${code.get_qty} مجاناً` : `Buy ${code.buy_qty} get ${code.get_qty} free`)} {code.type !== 'bogo' && (isAr ? 'خصم' : 'off')}
                         </span>
                         {isExpired && <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">{isAr ? 'منتهي' : 'Expired'}</span>}
                         {isFull && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">{isAr ? 'اكتمل' : 'Full'}</span>}
