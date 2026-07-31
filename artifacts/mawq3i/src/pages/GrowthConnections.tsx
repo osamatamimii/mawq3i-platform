@@ -168,8 +168,8 @@ export default function GrowthConnections() {
       </Link>
 
       <div>
-        <h1 className="text-lg font-bold">{isAr ? 'إعدادات خبير النمو' : 'Growth Expert Settings'}</h1>
-        <p className="text-sm text-muted-foreground mt-1">{isAr ? 'وسّع صلاحياته وشوف شو بيراقب بالضبط' : 'Expand his reach and see exactly what he monitors'}</p>
+        <h1 className="text-lg font-bold">{isAr ? 'الإعلانات' : 'Ads'}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{isAr ? 'اربط حسابات Meta وTikTok، وخبير النمو بيراقبها ويحسّنها تلقائياً' : 'Connect your Meta & TikTok accounts — Growth Expert monitors and optimizes them automatically'}</p>
       </div>
 
       <div className="rounded-xl border border-border/40 bg-card p-5">
