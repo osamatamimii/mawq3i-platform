@@ -6,8 +6,9 @@ import { supabase } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ChevronDown, Loader2, Bell, X, Phone, MapPin, CreditCard, Package, MessageSquare, Calendar, Tag, Truck, CheckCircle2, Search } from 'lucide-react';
+import { ChevronDown, Loader2, Bell, X, Phone, MapPin, CreditCard, Package, MessageSquare, Calendar, Tag, Truck, CheckCircle2, Search, Download } from 'lucide-react';
 
 const statusConfig: Record<OrderStatus, { ar: string; en: string; className: string }> = {
   new:        { ar: 'جديد',         en: 'New',        className: 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30' },
@@ -322,6 +323,42 @@ export default function Orders() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
+  // ═══ تصدير محاسبي — Excel/CSV عام، جاهز للاستيراد اليدوي بأي برنامج محاسبة
+  // (دفترة، قيود، الدفتر...) بدون أي ربط تقني أو مفاتيح API ═══
+  const exportAccountingCsv = () => {
+    const rows = filteredOrders.flatMap(o => {
+      const lines = (o.items && o.items.length ? o.items : [{ productName: o.productName || '', quantity: 1, price: o.amount, variantLabel: '' }]);
+      return lines.map(it => ({
+        'رقم الطلب': o.id,
+        'التاريخ': o.date,
+        'اسم العميل': o.customerName,
+        'الهاتف': o.phone,
+        'المدينة': o.city,
+        'المنتج': it.productName + (it.variantLabel ? ` (${it.variantLabel})` : ''),
+        'الكمية': it.quantity,
+        'سعر الوحدة': it.price,
+        'الإجمالي': (it.quantity || 1) * (it.price || 0),
+        'العملة': o.currency,
+        'طريقة الدفع': o.paymentMethod,
+        'الحالة': statusConfig[o.status]?.ar || o.status,
+      }));
+    });
+    if (!rows.length) return;
+    const headers = Object.keys(rows[0]);
+    const csv = [
+      headers.join(','),
+      ...rows.map(r => headers.map(h => `"${String((r as any)[h] ?? '').replace(/"/g, '""')}"`).join(',')),
+    ].join('\n');
+    // BOM عشان إكسل يفتح العربي صح
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orders-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
       <Card className="bg-card border-border/50 shadow-lg">
@@ -356,6 +393,17 @@ export default function Orders() {
                 </button>
               )}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportAccountingCsv}
+              className="gap-1.5 text-xs h-8"
+              data-testid="button-export-accounting"
+              title={isAr ? 'يفتح مباشرة بإكسل، وتقدر تستورده لأي برنامج محاسبة' : 'Opens directly in Excel, importable into any accounting software'}
+            >
+              <Download className="w-3.5 h-3.5" />
+              {isAr ? 'تصدير محاسبي' : 'Export for accounting'}
+            </Button>
           </div>
           <p className="text-sm text-muted-foreground">
             {q ? (
