@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, ScanBarcode, X } from 'lucide-react';
 
@@ -30,6 +30,25 @@ export default function BarcodeScanner({
   const scannerRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const [err, setErr] = useState('');
+  const hwInputRef = useRef<HTMLInputElement>(null);
+
+  // آلة سكانر خارجية (USB/بلوتوث) بتتصرف متل لوحة مفاتيح: تكتب أرقام الباركود بسرعة
+  // ثم ترسل Enter. نخلي حقل مخفي مركّز عليه دايماً وقت ما المودال مفتوح عشان يلتقطها.
+  useEffect(() => {
+    if (!open) return;
+    hwInputRef.current?.focus();
+    const refocus = () => hwInputRef.current?.focus();
+    document.addEventListener('click', refocus);
+    return () => document.removeEventListener('click', refocus);
+  }, [open]);
+
+  const handleHwKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const code = (e.target as HTMLInputElement).value.trim();
+      if (code) onScan(code);
+      (e.target as HTMLInputElement).value = '';
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -82,8 +101,19 @@ export default function BarcodeScanner({
           {err && (
             <p className="mt-2 text-xs text-destructive text-center">{err}</p>
           )}
+          {/* حقل مخفي يلتقط دخل آلة السكانر الخارجية (USB/بلوتوث) — تعمل زي كيبورد */}
+          <input
+            ref={hwInputRef}
+            type="text"
+            inputMode="none"
+            autoComplete="off"
+            onKeyDown={handleHwKeyDown}
+            className="absolute opacity-0 pointer-events-none w-px h-px"
+            aria-hidden="true"
+            tabIndex={-1}
+          />
           <p className="mt-2 text-[11px] text-muted-foreground text-center">
-            {isAr ? 'كمان بيشتغل مع آلة سكانر خارجية موصولة بالموبايل/الكمبيوتر — بس دبّس بالحقل واسحب الكود' : 'Also works with an external USB/Bluetooth scanner — just focus the field and scan'}
+            {isAr ? 'كمان بيشتغل مع آلة سكانر خارجية موصولة بالموبايل/الكمبيوتر — بس اسحب الكود وهو بينكتشف تلقائياً' : 'Also works with an external USB/Bluetooth scanner — just scan, it auto-detects'}
           </p>
         </div>
       </DialogContent>

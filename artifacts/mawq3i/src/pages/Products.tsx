@@ -44,6 +44,8 @@ export default function Products() {
   const { toast } = useToast();
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
+  const [sellScannerOpen, setSellScannerOpen] = useState(false);
+  const [sellScanLoading, setSellScanLoading] = useState(false);
 
   const handleQuickScan = async (code: string) => {
     setScannerOpen(false);
@@ -119,6 +121,23 @@ export default function Products() {
     setOfflineQty('1');
     setOfflinePrice(String(product.price ?? ''));
     setOfflineNote('');
+  };
+
+  const handleSellScan = async (code: string) => {
+    setSellScannerOpen(false);
+    if (!currentStore?.id) return;
+    setSellScanLoading(true);
+    const existing = await getProductByBarcode(currentStore.id, code, isAdminMode);
+    setSellScanLoading(false);
+    if (existing) {
+      if ((existing.stock ?? 0) <= 0) {
+        toast({ title: isAr ? 'المخزون خالص' : 'Out of stock', description: existing.nameAr || existing.nameEn, variant: 'destructive' });
+        return;
+      }
+      openOfflineSale(existing);
+    } else {
+      toast({ title: isAr ? 'ما لقينا منتج بهاد الباركود' : 'No product with this barcode', variant: 'destructive' });
+    }
   };
 
   const submitOfflineSale = async () => {
@@ -258,6 +277,10 @@ export default function Products() {
             {scanLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ScanBarcode className="w-3.5 h-3.5" />}
             {isAr ? 'إضافة بالسكانر' : 'Scan to add'}
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setSellScannerOpen(true)} disabled={sellScanLoading} className="gap-1.5 text-xs h-8 border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
+            {sellScanLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Store className="w-3.5 h-3.5" />}
+            {isAr ? 'بيع بالسكانر' : 'Scan to sell'}
+          </Button>
           <Link href="/dashboard/add-product">
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Button className="gap-2 shadow-[0_0_15px_rgba(82,255,63,0.1)] hover:shadow-[0_0_20px_rgba(82,255,63,0.2)] transition-all" data-testid="button-add-product">
@@ -269,6 +292,7 @@ export default function Products() {
         </div>
       </div>
       <BarcodeScanner open={scannerOpen} onOpenChange={setScannerOpen} onScan={handleQuickScan} isAr={isAr} />
+      <BarcodeScanner open={sellScannerOpen} onOpenChange={setSellScannerOpen} onScan={handleSellScan} isAr={isAr} />
 
       <Card className="bg-card border-border/50 shadow-lg">
         <CardContent className="p-0">
