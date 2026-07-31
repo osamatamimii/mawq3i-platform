@@ -36,22 +36,16 @@ export default function Wholesale() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Boxes className="w-5 h-5 text-primary" />
-            {isAr ? 'الجملة' : 'Wholesale'}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isAr
-              ? 'المنتجات اللي عليها أسعار جملة أو حد أدنى للطلب — تقدر تضيف/تعدّل من صفحة كل منتج.'
-              : 'Products with tiered pricing or a minimum order quantity — add or edit from each product page.'}
-          </p>
-        </div>
-        <Button variant="outline" onClick={() => setLocation('/dashboard/products')} data-testid="button-go-products">
-          <Package className="w-4 h-4 me-1.5" />
-          {isAr ? 'كل المنتجات' : 'All products'}
-        </Button>
+      <div>
+        <h1 className="text-xl font-bold flex items-center gap-2">
+          <Boxes className="w-5 h-5 text-primary" />
+          {isAr ? 'الجملة' : 'Wholesale'}
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          {isAr
+            ? 'المنتجات اللي عليها أسعار جملة أو حد أدنى للطلب — تقدر تضيف/تعدّل من صفحة كل منتج.'
+            : 'Products with tiered pricing or a minimum order quantity — add or edit from each product page.'}
+        </p>
       </div>
 
       {wholesaleProducts.length === 0 ? (

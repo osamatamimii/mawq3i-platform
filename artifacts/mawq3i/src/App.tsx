@@ -16,7 +16,6 @@ import PhoneFramePreview from "@/components/PhoneFramePreview";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import ProductsHub from "@/pages/ProductsHub";
-import Wholesale from "@/pages/Wholesale";
 import ResearchHub from "@/pages/ResearchHub";
 import AddProduct from "@/pages/AddProduct";
 import Orders from "@/pages/Orders";
@@ -160,7 +159,6 @@ function Router() {
       }
       const routePermission: Record<string, keyof typeof staffPermissions> = {
         "/dashboard/products": "products",
-        "/dashboard/wholesale": "products",
         "/dashboard/bundles": "products",
         "/dashboard/winning-products": "products",
         "/dashboard/competitor-prices": "products",
@@ -186,7 +184,6 @@ function Router() {
             <Switch>
               <Route path="/dashboard" component={Dashboard} />
               <Route path="/dashboard/products" component={ProductsHub} />
-              <Route path="/dashboard/wholesale" component={Wholesale} />
               <Route path="/dashboard/bundles" component={ProductsHub} />
               <Route path="/dashboard/winning-products" component={ResearchHub} />
               <Route path="/dashboard/competitor-prices" component={ResearchHub} />
