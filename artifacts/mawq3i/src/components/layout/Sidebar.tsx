@@ -19,6 +19,7 @@ import {
   Sparkles,
   Activity,
   Radio,
+  Boxes,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -143,6 +144,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     { href: '/dashboard/growth/connections', icon: Radio, labelAr: 'الإعلانات', labelEn: 'Ads', exact: false, requiresPerm: 'analytics' },
     { href: '/dashboard/ai-advisor', icon: Sparkles, labelAr: 'المستشار الذكي', labelEn: 'AI Advisor', exact: false },
     { href: '/dashboard/products', icon: Package, labelAr: 'المنتجات', labelEn: 'Products', exact: false, requiresPerm: 'products' },
+    { href: '/dashboard/wholesale', icon: Boxes, labelAr: 'الجملة', labelEn: 'Wholesale', exact: false, requiresPerm: 'products' },
     { href: '/dashboard/winning-products', icon: TrendingUp, labelAr: 'المنتجات الرابحة', labelEn: 'Winning Products', exact: false, requiresPerm: 'products' },
     { href: '/dashboard/orders', icon: ShoppingCart, labelAr: 'الطلبات', labelEn: 'Orders', exact: false, badge: newOrdersCount },
     { href: '/dashboard/analytics', icon: BarChart3, labelAr: 'الإحصائيات', labelEn: 'Analytics', exact: false, requiresPerm: 'analytics' },
