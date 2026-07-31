@@ -165,9 +165,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [indicator, setIndicator] = useState<{ y: number; h: number }>({ y: 0, h: 44 });
   const [indicatorReady, setIndicatorReady] = useState(false);
 
-  const activeIndex = menuItems.findIndex(item =>
-    item.exact ? location === item.href : location.startsWith(item.href)
-  );
+  // نلقط كل العناصر يلي بتطابق، وناخد الأكثر تحديداً (أطول href) — عشان
+  // مسارات فرعية متل /dashboard/growth/connections ما تنسرق من والدها /dashboard/growth
+  const activeIndex = menuItems.reduce<{ idx: number; len: number }>((best, item, idx) => {
+    const matches = item.exact ? location === item.href : location.startsWith(item.href);
+    if (matches && item.href.length > best.len) return { idx, len: item.href.length };
+    return best;
+  }, { idx: -1, len: -1 }).idx;
 
   // useLayoutEffect fires synchronously after DOM update, before paint
   // so the indicator never visually starts from the wrong position
