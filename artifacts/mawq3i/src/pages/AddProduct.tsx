@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAppContext } from '@/context/AppContext';
 import { addProduct } from '@/lib/db';
@@ -13,7 +13,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Palette, Ruler, Package, Video, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Palette, Ruler, Package, Video, Sparkles, ScanBarcode } from 'lucide-react';
+import BarcodeScanner from '@/components/BarcodeScanner';
+import { getProductByBarcode } from '@/lib/db';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type VariantMode = 'none' | 'colors' | 'sizes';
@@ -42,9 +44,32 @@ export default function AddProduct() {
   // Basic form
   const [form, setForm] = useState({
     nameAr: '', nameEn: '', descAr: '', descEn: '',
-    price: '', currency: 'ILS', category: '', badge: ''
+    price: '', currency: 'ILS', category: '', badge: '', barcode: ''
   });
   const set = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [barcodeExists, setBarcodeExists] = useState(false);
+
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('barcode');
+    if (fromUrl) set('barcode', fromUrl);
+  }, []);
+
+  const handleBarcodeScanned = async (code: string) => {
+    setScannerOpen(false);
+    set('barcode', code);
+    if (currentStore?.id) {
+      const existing = await getProductByBarcode(currentStore.id, code, isAdminMode);
+      setBarcodeExists(!!existing);
+      if (existing) {
+        toast({
+          title: isAr ? 'الكود مستخدم مسبقاً' : 'Barcode already in use',
+          description: isAr ? `مرتبط بمنتج: ${existing.nameAr || existing.nameEn}` : `Linked to: ${existing.nameAr || existing.nameEn}`,
+          variant: 'destructive',
+        });
+      }
+    }
+  };
 
   // Main images (multiple)
   const [mainImages, setMainImages] = useState<{ preview: string; file: File }[]>([]);
@@ -246,6 +271,7 @@ export default function AddProduct() {
       descAr: form.descAr, descEn: form.descEn,
       price: Number(form.price), currency: form.currency as 'ILS' | 'SAR',
       stock: totalStock, category: form.category,
+      barcode: form.barcode.trim() || undefined,
       status: 'visible',
       imageUrl: uploadedMainUrls[0] || '',
       videoUrl: uploadedVideoUrl,
@@ -345,6 +371,25 @@ export default function AddProduct() {
                 <Input value={form.category} onChange={e => set('category', e.target.value)} placeholder={isAr ? 'مثال: هوديات' : 'e.g. Hoodies'} className="bg-background/50 border-border/50" />
               </div>
             </div>
+            <div className="space-y-1.5">
+              <Label>{isAr ? 'الباركود (اختياري)' : 'Barcode (optional)'}</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={form.barcode}
+                  onChange={e => { set('barcode', e.target.value); setBarcodeExists(false); }}
+                  placeholder={isAr ? 'امسح الكود أو دخّله يدوي' : 'Scan or type manually'}
+                  className={`bg-background/50 border-border/50 font-mono ${barcodeExists ? 'border-destructive' : ''}`}
+                  dir="ltr"
+                />
+                <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => setScannerOpen(true)}>
+                  <ScanBarcode className="w-4 h-4" />
+                </Button>
+              </div>
+              {barcodeExists && (
+                <p className="text-[11px] text-destructive">{isAr ? 'هاد الكود مستخدم لمنتج تاني بنفس المتجر' : 'This barcode is already used by another product'}</p>
+              )}
+            </div>
+            <BarcodeScanner open={scannerOpen} onOpenChange={setScannerOpen} onScan={handleBarcodeScanned} isAr={isAr} />
             <div className="space-y-1.5">
               <Label>{isAr ? 'الشارة (اختياري)' : 'Badge (optional)'}</Label>
               <Select value={form.badge} onValueChange={v => set('badge', v === 'none' ? '' : v)}>

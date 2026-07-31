@@ -14,8 +14,10 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Loader2, Package, Camera, Upload, Download, Share2, Search, X, Store } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Package, Camera, Upload, Download, Share2, Search, X, Store, ScanBarcode } from 'lucide-react';
 import ShareProductModal from '@/components/ShareProductModal';
+import BarcodeScanner from '@/components/BarcodeScanner';
+import { getProductByBarcode } from '@/lib/db';
 import { useToast } from '@/hooks/use-toast';
 
 const emojis = ['🕌', '🌿', '💎', '☕', '🫐', '🪔', '✨', '💍'];
@@ -40,6 +42,22 @@ export default function Products() {
   const [csvImporting, setCsvImporting] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanLoading, setScanLoading] = useState(false);
+
+  const handleQuickScan = async (code: string) => {
+    setScannerOpen(false);
+    if (!currentStore?.id) return;
+    setScanLoading(true);
+    const existing = await getProductByBarcode(currentStore.id, code, isAdminMode);
+    setScanLoading(false);
+    if (existing) {
+      toast({ title: isAr ? 'لقينا المنتج' : 'Product found', description: existing.nameAr || existing.nameEn });
+      setEditProduct(existing);
+    } else {
+      setLocation(`/dashboard/add-product?barcode=${encodeURIComponent(code)}`);
+    }
+  };
   const imageInputRef = useRef<HTMLInputElement>(null);
   const uploadTargetRef = useRef<string | null>(null);
 
@@ -187,7 +205,8 @@ export default function Products() {
     ? products.filter(p =>
         p.nameAr?.toLowerCase().includes(q) ||
         p.nameEn?.toLowerCase().includes(q) ||
-        p.category?.toLowerCase().includes(q)
+        p.category?.toLowerCase().includes(q) ||
+        p.barcode?.toLowerCase().includes(q)
       )
     : products;
 
@@ -235,6 +254,10 @@ export default function Products() {
             {csvImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
             {isAr ? 'استيراد CSV' : 'Import CSV'}
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setScannerOpen(true)} disabled={scanLoading} className="gap-1.5 text-xs h-8">
+            {scanLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ScanBarcode className="w-3.5 h-3.5" />}
+            {isAr ? 'إضافة بالسكانر' : 'Scan to add'}
+          </Button>
           <Link href="/dashboard/add-product">
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Button className="gap-2 shadow-[0_0_15px_rgba(82,255,63,0.1)] hover:shadow-[0_0_20px_rgba(82,255,63,0.2)] transition-all" data-testid="button-add-product">
@@ -245,6 +268,7 @@ export default function Products() {
           </Link>
         </div>
       </div>
+      <BarcodeScanner open={scannerOpen} onOpenChange={setScannerOpen} onScan={handleQuickScan} isAr={isAr} />
 
       <Card className="bg-card border-border/50 shadow-lg">
         <CardContent className="p-0">

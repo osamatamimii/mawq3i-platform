@@ -22,6 +22,7 @@ export type Product = {
   variants?: ProductVariant[];
   storeId?: string;
   relatedProductIds?: string[];
+  barcode?: string;
 };
 
 export type BundleItem = { productId: string; qty: number };

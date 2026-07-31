@@ -15,7 +15,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Video, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader2, ImageIcon, X, Plus, Trash2, Video, Sparkles, ScanBarcode } from 'lucide-react';
+import BarcodeScanner from '@/components/BarcodeScanner';
 
 export default function EditProduct() {
   const { language, currentStore, isAdminMode } = useAppContext();
@@ -28,6 +29,7 @@ export default function EditProduct() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -268,7 +270,17 @@ export default function EditProduct() {
                 <Label>{isAr ? 'الفئة' : 'Category'}</Label>
                 <Input value={product.category} onChange={e => set('category', e.target.value)} className="bg-background/50 border-border/50" />
               </div>
+              <div className="space-y-1.5">
+                <Label>{isAr ? 'الباركود' : 'Barcode'}</Label>
+                <div className="flex gap-2">
+                  <Input value={product.barcode || ''} onChange={e => set('barcode', e.target.value)} className="bg-background/50 border-border/50 font-mono" dir="ltr" />
+                  <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={() => setScannerOpen(true)}>
+                    <ScanBarcode className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
+            <BarcodeScanner open={scannerOpen} onOpenChange={setScannerOpen} onScan={(code) => { set('barcode', code); setScannerOpen(false); }} isAr={isAr} />
             <div className="flex items-center gap-3">
               <Switch checked={product.status === 'visible'} onCheckedChange={v => set('status', v ? 'visible' : 'hidden')} />
               <Label>{isAr ? (product.status === 'visible' ? 'ظاهر' : 'مخفي') : (product.status === 'visible' ? 'Visible' : 'Hidden')}</Label>

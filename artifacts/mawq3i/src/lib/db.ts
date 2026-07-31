@@ -25,6 +25,7 @@ function rowToProduct(row: any): Product {
     variants: row.variants ? (typeof row.variants === 'string' ? JSON.parse(row.variants) : row.variants) : [],
     storeId: row.store_id ?? '',
     relatedProductIds: Array.isArray(row.related_product_ids) ? row.related_product_ids : [],
+    barcode: row.barcode ?? '',
   };
 }
 
@@ -45,7 +46,22 @@ function productToRow(p: Partial<Product> & { storeId?: string }) {
     ...(p.badge !== undefined && { badge: p.badge }),
     ...(p.variants !== undefined && { variants: JSON.stringify(p.variants) }),
     ...(p.relatedProductIds !== undefined && { related_product_ids: p.relatedProductIds }),
+    ...(p.barcode !== undefined && { barcode: p.barcode }),
   };
+}
+
+/** يبحث عن منتج بالباركود ضمن متجر معيّن — يُستخدم بتدفّق "أضف بالسكانر" */
+export async function getProductByBarcode(storeId: string, barcode: string, useAdmin = false): Promise<Product | null> {
+  try {
+    if (useAdmin) {
+      const rows = await adminRest.select('products', `store_id=eq.${storeId}&barcode=eq.${encodeURIComponent(barcode)}&limit=1`);
+      return rows[0] ? rowToProduct(rows[0]) : null;
+    }
+    const { data } = await supabase.from('products').select('*').eq('store_id', storeId).eq('barcode', barcode).limit(1).maybeSingle();
+    return data ? rowToProduct(data) : null;
+  } catch {
+    return null;
+  }
 }
 
 function rowToBundle(row: any): Bundle {
